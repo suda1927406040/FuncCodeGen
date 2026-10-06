@@ -1,0 +1,1055 @@
+{
+  "counts": {
+    "cases": 120,
+    "missing_definition_cases": 19,
+    "syntax_cases": 5,
+    "public_function_removal_cases": 2,
+    "missing_source": 1
+  },
+  "records": [
+    {
+      "instance_id": "Project-MONAI__MONAI-465",
+      "missing_required_definitions": [
+        "monai/data/decathalon_dataloader.py:_compute_path",
+        "monai/data/decathalon_dataloader.py:_append_paths",
+        "monai/data/decathalon_dataloader.py:load_decathalon_datalist"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "RDFLib__rdflib-1968",
+      "missing_required_definitions": [
+        "rdflib/tools/chunk_serializer.py:serialize_in_chunks._start_new_file",
+        "rdflib/tools/chunk_serializer.py:serialize_in_chunks._serialize_prefixes"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "RDFLib__rdflib-968",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "Textualize__rich-1706",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "Textualize__rich-376",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [
+        "rich/console.py",
+        "rich/console.py"
+      ],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "Textualize__rich-901",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astronomer__astronomer-cosmos-758",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-13094",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-13508",
+      "missing_required_definitions": [
+        "astropy/time/core.py:Time.mean"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [
+        "astropy/time/core.py:TimeBase.min"
+      ],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-13676",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-16135",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-16516",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "astropy__astropy-16677",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "aws-powertools__powertools-lambda-python-5588",
+      "missing_required_definitions": [
+        "examples/event_handler_graphql/src/exception_handling_graphql.py:handle_value_error",
+        "examples/event_handler_graphql/src/exception_handling_graphql.py:create_something",
+        "examples/event_handler_graphql/src/exception_handling_graphql.py:lambda_handler"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3423",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3432",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "boto__boto3-605",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-10154",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-11284",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-11569",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-11675",
+      "missing_required_definitions": [
+        "conans/paths/__init__.py:get_conan_user_home._find_conanrc_file",
+        "conans/paths/__init__.py:get_conan_user_home._user_home_from_conanrc_file"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-11678",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12094",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12243",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12873",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12886",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12887",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-12980",
+      "missing_required_definitions": [
+        "conans/client/cache/cache.py:ClientCache.settings._load_settings",
+        "conans/client/cache/cache.py:ClientCache.settings.appending_recursive_dict_update"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-14233",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-15284",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-16231",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "conan-io__conan-16871",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "deepset-ai__haystack-7933",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "deepset-ai__haystack-8042",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "deepset-ai__haystack-8336",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "django__django-16369",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "docker__docker-py-1230",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "embeddings-benchmark__mteb-1256",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "fairlearn__fairlearn-1436",
+      "missing_required_definitions": [
+        "fairlearn/metrics/_disaggregated_result.py:DisaggregatedResult._apply_functions"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "falconry__falcon-640",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "google-deepmind__optax-632",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "google-deepmind__optax-897",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "googleapis__python-aiplatform-4748",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "huggingface__accelerate-255",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "huggingface__accelerate-991",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "huggingface__datasets-214",
+      "missing_required_definitions": [
+        "src/nlp/arrow_dataset.py:Dataset.filter.map_function"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "huggingface__datasets-6318",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "huggingface__huggingface_hub-2027",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "joke2k__faker-1783",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "joke2k__faker-1848",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "joke2k__faker-494",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "joke2k__faker-738",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "joke2k__faker-964",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "lark-parser__lark-466",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20634",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-21977",
+      "missing_required_definitions": [
+        "lib/matplotlib/patches.py:Ellipse.get_corners"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23692",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [
+        "lib/matplotlib/axis.py",
+        "lib/matplotlib/axis.py"
+      ],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-26293",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pgmpy__pgmpy-1797",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "prometheus__client_python-302",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1017",
+      "missing_required_definitions": [
+        "pvlib/shading.py:masking_angle",
+        "pvlib/shading.py:masking_angle_passias",
+        "pvlib/shading.py:sky_diffuse_passias"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1177",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1190",
+      "missing_required_definitions": [
+        "pvlib/ivtools/sdm.py:pvsyst_temperature_coeff.maxp"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1562",
+      "missing_required_definitions": [
+        "pvlib/iam.py:schlick",
+        "pvlib/iam.py:schlick_diffuse"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1585",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1705",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-784",
+      "missing_required_definitions": [
+        "pvlib/ivtools.py:fit_sdm_desoto",
+        "pvlib/ivtools.py:_system_of_equations_desoto"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pydata__xarray-4886",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pydicom__pydicom-1648",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pygments__pygments-2654",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pylint-dev__pylint-5315",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pypa__hatch-211",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pyvista__pyvista-3662",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "pyvista__pyvista-5055",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "roboflow__supervision-1237",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "roboflow__supervision-1296",
+      "missing_required_definitions": [
+        "supervision/detection/lmm.py:validate_lmm_parameters"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "roboflow__supervision-245",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "roboflow__supervision-847",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "roboflow__supervision-910",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-11196",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13336",
+      "missing_required_definitions": [
+        "sklearn/linear_model/ridge.py:_solve_sparse_cg._get_rescaled_operator",
+        "sklearn/linear_model/ridge.py:_solve_sparse_cg._get_rescaled_operator.matvec",
+        "sklearn/linear_model/ridge.py:_solve_sparse_cg._get_rescaled_operator.rmatvec"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [
+        "sklearn/linear_model/ridge.py:ridge_regression"
+      ],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-17225",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-18393",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-29210",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-1766",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-2073",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-7327",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-7597",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9131",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [
+        "sphinx/transforms/post_transforms/__init__.py",
+        "sphinx/transforms/post_transforms/__init__.py"
+      ],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sqlfluff__sqlfluff-3937",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-13304",
+      "missing_required_definitions": [
+        "sympy/polys/polyclasses.py:DMP.norm",
+        "sympy/polys/polytools.py:Poly.norm"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-13345",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-14745",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-14826",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-14954",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [
+        "sympy/discrete/convolution.py",
+        "sympy/discrete/convolution.py"
+      ],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-14968",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-15333",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-15661",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-15693",
+      "missing_required_definitions": [
+        "sympy/stats/rv_interface.py:entropy"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-15825",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-16253",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-16423",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [
+        "sympy/physics/quantum/commutator.py",
+        "sympy/physics/quantum/commutator.py"
+      ],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-16522",
+      "missing_required_definitions": [
+        "sympy/combinatorics/perm_groups.py:PermutationGroup.index"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-17077",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-17153",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-17806",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-17974",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-18085",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-18335",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-20238",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-20886",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-21052",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-21510",
+      "missing_required_definitions": [],
+      "unverifiable_files": [
+        "sympy/logic/algorithms/dpll2.py",
+        "sympy/logic/boolalg.py"
+      ],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "missing_source"
+    },
+    {
+      "instance_id": "sympy__sympy-21634",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-21712",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-21973",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-22476",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-23111",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-23329",
+      "missing_required_definitions": [
+        "sympy/combinatorics/group_numbers.py:is_nilpotent_number",
+        "sympy/combinatorics/group_numbers.py:is_abelian_number",
+        "sympy/combinatorics/group_numbers.py:is_cyclic_number"
+      ],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-24070",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    },
+    {
+      "instance_id": "sympy__sympy-24437",
+      "missing_required_definitions": [],
+      "unverifiable_files": [],
+      "syntax_error_files": [],
+      "removed_public_functions": [],
+      "replay_status": "ok"
+    }
+  ]
+}

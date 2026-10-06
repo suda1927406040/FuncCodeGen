@@ -1,0 +1,324 @@
+{
+  "googleapis__python-aiplatform-4748": [
+    "samples/model-builder/vector_search/vector_search_find_neighbors_sample.py::vector_search_find_neighbors",
+    "samples/model-builder/vector_search/vector_search_find_neighbors_sample.py::vector_search_find_neighbors_jwt"
+  ],
+  "aws-powertools__powertools-lambda-python-5588": [
+    "aws_lambda_powertools/event_handler/appsync.py::AppSyncResolver.async_batch_resolver",
+    "aws_lambda_powertools/event_handler/appsync.py::AppSyncResolver.resolve",
+    "aws_lambda_powertools/utilities/data_classes/code_pipeline_job_event.py::CodePipelineJobEvent.put_artifact"
+  ],
+  "fairlearn__fairlearn-1436": [
+    "fairlearn/metrics/_disaggregated_result.py::DisaggregatedResult.apply_grouping",
+    "fairlearn/metrics/_disaggregated_result.py::DisaggregatedResult.create",
+    "fairlearn/metrics/_disaggregated_result.py::DisaggregatedResult.difference",
+    "fairlearn/metrics/_disaggregated_result.py::DisaggregatedResult.ratio"
+  ],
+  "embeddings-benchmark__mteb-1256": [
+    "mteb/cli.py::main"
+  ],
+  "deepset-ai__haystack-8336": [
+    "haystack/components/preprocessors/document_splitter.py::DocumentSplitter.__init__",
+    "haystack/components/preprocessors/document_splitter.py::DocumentSplitter._add_split_overlap_information",
+    "haystack/components/preprocessors/document_splitter.py::DocumentSplitter._split_into_units"
+  ],
+  "conan-io__conan-16871": [
+    "conans/client/graph/build_mode.py::BuildMode.__init__",
+    "conans/client/graph/compute_pid.py::compute_package_id",
+    "conans/client/graph/graph_binaries.py::GraphBinariesAnalyzer._find_existing_compatible_binaries"
+  ],
+  "deepset-ai__haystack-8042": [
+    "haystack/document_stores/types/filter_policy.py::apply_filter_policy"
+  ],
+  "pgmpy__pgmpy-1797": [
+    "pgmpy/utils/utils.py::discretize"
+  ],
+  "astropy__astropy-16677": [
+    "astropy/modeling/fitting.py::_NonLinearLSQFitter._wrap_deriv",
+    "astropy/modeling/fitting.py::_validate_constraints",
+    "astropy/modeling/fitting.py::fitter_to_model_params",
+    "astropy/modeling/fitting.py::model_to_fit_params"
+  ],
+  "deepset-ai__haystack-7933": [],
+  "roboflow__supervision-1296": [
+    "supervision/detection/lmm.py::from_paligemma",
+    "supervision/detection/lmm.py::validate_lmm_and_kwargs"
+  ],
+  "scikit-learn__scikit-learn-29210": [
+    "sklearn/metrics/_classification.py::cohen_kappa_score"
+  ],
+  "astropy__astropy-16516": [
+    "astropy/units/equivalencies.py::plate_scale"
+  ],
+  "roboflow__supervision-1237": [
+    "supervision/detection/core.py::validate_fields_both_defined_or_none",
+    "supervision/utils/internal.py::classproperty.__get__"
+  ],
+  "conan-io__conan-16231": [
+    "conan/tools/cmake/cmakedeps/templates/config.py::ConfigTemplate.context",
+    "conan/tools/cmake/cmakedeps/templates/config.py::ConfigTemplate.template"
+  ],
+  "google-deepmind__optax-897": [],
+  "astropy__astropy-16135": [],
+  "pygments__pygments-2654": [
+    "pygments/formatters/rtf.py::RtfFormatter.format_unencoded"
+  ],
+  "roboflow__supervision-910": [],
+  "huggingface__huggingface_hub-2027": [],
+  "roboflow__supervision-847": [
+    "supervision/detection/core.py::Detections.with_nms"
+  ],
+  "conan-io__conan-15284": [
+    "conan/cli/commands/lock.py::lock_add"
+  ],
+  "astronomer__astronomer-cosmos-758": [],
+  "google-deepmind__optax-632": [],
+  "huggingface__datasets-6318": [],
+  "pyvista__pyvista-5055": [
+    "pyvista/plotting/text.py::TextProperty.__init__",
+    "pyvista/plotting/text.py::TextProperty.set_font_file"
+  ],
+  "softlayer__softlayer-python-2073": [],
+  "roboflow__supervision-245": [
+    "supervision/dataset/core.py::DetectionDataset.from_pascal_voc",
+    "supervision/dataset/formats/pascal_voc.py::load_pascal_voc_annotations"
+  ],
+  "matplotlib__matplotlib-26293": [],
+  "conan-io__conan-14233": [
+    "conan/tools/gnu/pkgconfigdeps.py::_PCGenerator.pc_files"
+  ],
+  "joke2k__faker-1848": [],
+  "pvlib__pvlib-python-1705": [
+    "pvlib/irradiance.py::complete_irradiance"
+  ],
+  "conan-io__conan-12980": [],
+  "huggingface__accelerate-991": [
+    "src/accelerate/accelerator.py::Accelerator.__init__",
+    "src/accelerate/accelerator.py::Accelerator.load_state",
+    "src/accelerate/accelerator.py::Accelerator.save_state"
+  ],
+  "joke2k__faker-1783": [],
+  "conan-io__conan-12887": [],
+  "conan-io__conan-12886": [
+    "conan/tools/microsoft/subsystems.py::unix_path"
+  ],
+  "conan-io__conan-12873": [
+    "conan/tools/cmake/toolchain/blocks.py::AndroidSystemBlock.context"
+  ],
+  "sympy__sympy-24437": [
+    "sympy/utilities/iterables.py::kbins"
+  ],
+  "django__django-16369": [
+    "django/contrib/sitemaps/__init__.py::Sitemap._items",
+    "django/contrib/sitemaps/__init__.py::Sitemap._urls"
+  ],
+  "pyvista__pyvista-3662": [],
+  "pvlib__pvlib-python-1585": [
+    "pvlib/ivtools/utils.py::_schumaker_qspline"
+  ],
+  "aws__sagemaker-python-sdk-3432": [
+    "src/sagemaker/image_uris.py::retrieve"
+  ],
+  "aws__sagemaker-python-sdk-3423": [
+    "src/sagemaker/image_uris.py::_processor",
+    "src/sagemaker/image_uris.py::retrieve"
+  ],
+  "sqlfluff__sqlfluff-3937": [
+    "src/sqlfluff/cli/commands.py::lint"
+  ],
+  "softlayer__softlayer-python-1766": [
+    "SoftLayer/CLI/formatting.py::_format_list_objects",
+    "SoftLayer/CLI/formatting.py::format_output"
+  ],
+  "conan-io__conan-12243": [
+    "conan/api/subapi/install.py::InstallAPI.install_consumer",
+    "conan/api/subapi/install.py::direct_deploy",
+    "conan/api/subapi/install.py::full_deploy",
+    "conan/cli/commands/graph.py::graph_info"
+  ],
+  "pvlib__pvlib-python-1562": [
+    "pvlib/iam.py::marion_diffuse",
+    "pvlib/iam.py::marion_integrate"
+  ],
+  "sympy__sympy-24070": [
+    "sympy/physics/wigner.py::gaunt"
+  ],
+  "astropy__astropy-13676": [
+    "astropy/units/quantity.py::Quantity.__new__",
+    "astropy/units/structured.py::Structure.__ne__"
+  ],
+  "conan-io__conan-12094": [],
+  "matplotlib__matplotlib-23692": [
+    "lib/matplotlib/axes/_base.py::_AxesBase.tick_params",
+    "lib/matplotlib/axis.py::Axis._translate_tick_params",
+    "lib/matplotlib/axis.py::Axis.set_tick_params"
+  ],
+  "astropy__astropy-13508": [],
+  "conan-io__conan-11678": [
+    "conan/tools/gnu/autotoolstoolchain.py::AutotoolsToolchain.__init__"
+  ],
+  "conan-io__conan-11675": [],
+  "conan-io__conan-11569": [
+    "conan/tools/files/files.py::download"
+  ],
+  "pydicom__pydicom-1648": [],
+  "RDFLib__rdflib-1968": [],
+  "conan-io__conan-11284": [
+    "conan/tools/gnu/autotoolstoolchain.py::AutotoolsToolchain.__init__",
+    "conan/tools/gnu/autotoolstoolchain.py::AutotoolsToolchain.generate_args"
+  ],
+  "pypa__hatch-211": [
+    "src/hatch/cli/dep/__init__.py::table"
+  ],
+  "astropy__astropy-13094": [],
+  "sympy__sympy-23329": [],
+  "sympy__sympy-23111": [],
+  "huggingface__accelerate-255": [],
+  "matplotlib__matplotlib-21977": [],
+  "conan-io__conan-10154": [],
+  "Textualize__rich-1706": [],
+  "pylint-dev__pylint-5315": [
+    "pylint/lint/run.py::Run.__init__"
+  ],
+  "sympy__sympy-22476": [],
+  "sympy__sympy-21973": [
+    "sympy/logic/boolalg.py::is_anf",
+    "sympy/logic/boolalg.py::simplify_univariate"
+  ],
+  "matplotlib__matplotlib-20634": [],
+  "sympy__sympy-21712": [
+    "sympy/physics/mechanics/body.py::Body.__init__"
+  ],
+  "sympy__sympy-21634": [],
+  "sympy__sympy-21510": [
+    "sympy/logic/inference.py::satisfiable"
+  ],
+  "sphinx-doc__sphinx-9131": [
+    "sphinx/transforms/post_transforms/__init__.py::ReferencesResolver.warn_missing_reference"
+  ],
+  "pvlib__pvlib-python-1190": [
+    "pvlib/ivtools/sdm.py::_calc_theta_phi_exact"
+  ],
+  "sympy__sympy-21052": [
+    "sympy/matrices/determinant.py::_det"
+  ],
+  "pvlib__pvlib-python-1177": [
+    "pvlib/temperature.py::fuentes"
+  ],
+  "pydata__xarray-4886": [],
+  "sympy__sympy-20886": [
+    "sympy/functions/special/bessel.py::besseli.eval",
+    "sympy/functions/special/bessel.py::besselj.eval"
+  ],
+  "Textualize__rich-901": [
+    "rich/console.py::Console.__init__",
+    "rich/console.py::Console._detect_color_system",
+    "rich/console.py::Console._render_buffer"
+  ],
+  "Textualize__rich-376": [],
+  "sympy__sympy-20238": [
+    "sympy/stats/stochastic_process_types.py::DiscreteMarkovChain.communication_classes"
+  ],
+  "scikit-learn__scikit-learn-18393": [],
+  "pvlib__pvlib-python-1017": [],
+  "Project-MONAI__MONAI-465": [],
+  "huggingface__datasets-214": [
+    "src/nlp/arrow_dataset.py::Dataset.map"
+  ],
+  "scikit-learn__scikit-learn-17225": [
+    "sklearn/metrics/_regression.py::median_absolute_error"
+  ],
+  "sphinx-doc__sphinx-7597": [
+    "sphinx/domains/python.py::PyAttribute.handle_signature",
+    "sphinx/domains/python.py::PyVariable.handle_signature"
+  ],
+  "sphinx-doc__sphinx-7327": [],
+  "RDFLib__rdflib-968": [],
+  "sympy__sympy-18335": [],
+  "sympy__sympy-18085": [
+    "sympy/ntheory/factor_.py::divisor_count"
+  ],
+  "sympy__sympy-17974": [],
+  "lark-parser__lark-466": [],
+  "sympy__sympy-17806": [
+    "sympy/functions/special/elliptic_integrals.py::elliptic_pi.fdiff"
+  ],
+  "pvlib__pvlib-python-784": [
+    "pvlib/ivtools.py::_calculate_sde_parameters"
+  ],
+  "sympy__sympy-17153": [
+    "sympy/geometry/polygon.py::Polygon.cut_section",
+    "sympy/geometry/polygon.py::Polygon.second_moment_of_area"
+  ],
+  "sympy__sympy-17077": [],
+  "joke2k__faker-964": [],
+  "sympy__sympy-16522": [
+    "sympy/combinatorics/fp_groups.py::FpGroup._to_perm_group",
+    "sympy/combinatorics/homomorphisms.py::_check_homomorphism",
+    "sympy/combinatorics/perm_groups.py::PermutationGroup.__new__",
+    "sympy/combinatorics/perm_groups.py::PermutationGroup.is_normal"
+  ],
+  "sympy__sympy-16423": [
+    "sympy/physics/quantum/commutator.py::Commutator._eval_expand_commutator"
+  ],
+  "sympy__sympy-16253": [
+    "sympy/utilities/misc.py::rawlines"
+  ],
+  "scikit-learn__scikit-learn-13336": [
+    "sklearn/linear_model/ridge.py::_BaseRidge.fit",
+    "sklearn/linear_model/ridge.py::ridge_regression"
+  ],
+  "sympy__sympy-15825": [
+    "sympy/crypto/crypto.py::decipher_gm"
+  ],
+  "sympy__sympy-15693": [],
+  "sympy__sympy-15661": [],
+  "sympy__sympy-15333": [
+    "sympy/tensor/array/dense_ndim_array.py::DenseNDimArray.__getitem__",
+    "sympy/tensor/array/dense_ndim_array.py::ImmutableDenseNDimArray._new",
+    "sympy/tensor/array/sparse_ndim_array.py::ImmutableSparseNDimArray.__new__",
+    "sympy/tensor/array/sparse_ndim_array.py::SparseNDimArray.__getitem__"
+  ],
+  "prometheus__client_python-302": [
+    "prometheus_client/core.py::HistogramMetricFamily.add_metric",
+    "prometheus_client/core.py::_MultiProcessValue",
+    "prometheus_client/multiprocess.py::MultiProcessCollector.collect"
+  ],
+  "sympy__sympy-14968": [
+    "sympy/combinatorics/fp_groups.py::define_schreier_generators",
+    "sympy/combinatorics/fp_groups.py::reidemeister_presentation"
+  ],
+  "sympy__sympy-14954": [
+    "sympy/discrete/convolution.py::covering_product"
+  ],
+  "sympy__sympy-14826": [
+    "sympy/physics/continuum_mechanics/beam.py::Beam.point_cflexure",
+    "sympy/physics/continuum_mechanics/beam.py::Beam.variable"
+  ],
+  "scikit-learn__scikit-learn-11196": [
+    "sklearn/preprocessing/label.py::_inverse_binarize_multiclass",
+    "sklearn/utils/sparsefuncs.py::min_max_axis"
+  ],
+  "sympy__sympy-14745": [
+    "sympy/discrete/transforms.py::_number_theoretic_transform",
+    "sympy/discrete/transforms.py::ntt"
+  ],
+  "joke2k__faker-738": [
+    "faker/providers/file/__init__.py::Provider.file_path"
+  ],
+  "sympy__sympy-13345": [],
+  "sympy__sympy-13304": [],
+  "joke2k__faker-494": [
+    "faker/providers/file/__init__.py::Provider.file_extension"
+  ],
+  "docker__docker-py-1230": [],
+  "boto__boto3-605": [
+    "boto3/dynamodb/table.py::TableResource.batch_writer"
+  ],
+  "falconry__falcon-640": [
+    "falcon/request.py::Request.__init__",
+    "falcon/request.py::Request.get_header_as_datetime",
+    "falcon/util/misc.py::http_date_to_dt",
+    "falcon/util/uri.py::parse_host"
+  ]
+}

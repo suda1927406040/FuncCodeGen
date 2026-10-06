@@ -1,5 +1,9 @@
 # change_1007 本地验证
 
+本页记录首次迁入和增强的 17 例开发集结果。针对当前 **121 个 unresolved** 的后续
+全量日志诊断和新改动见 [unresolved/README.md](unresolved/README.md)；这 17 例中只有
+5 例属于 unresolved，不能将本页的小样本成绩当作 121 例的验证结果。
+
 使用本地可获得的 16 个实例真实 base commit，另从服务器只读导出 Conan-16871 的
 base tree，共 17 个样例。所有源码都来自 `git archive <base_commit>`，没有使用当前
 工作区中可能已包含模型修改的文件。16 个本地快照保留只读 Git 历史访问；

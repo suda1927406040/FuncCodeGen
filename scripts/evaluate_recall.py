@@ -3,6 +3,7 @@
 Reference patches are used ONLY after retrieval, to score its output.
 """
 import argparse
+import ast
 import json
 from pathlib import Path
 import re
@@ -17,6 +18,28 @@ from explorer.feature_retriever import is_source_file
 from run_oracle import build_prompt, visible_code_files
 
 
+def visible_symbols(prompt):
+    """Score only definitions actually shown in code, after budget selection."""
+    section = prompt.split("\n<code>\n", 1)[1].split("\n</code>", 1)[0]
+    found = set()
+    for match in re.finditer(r"\[start of ([^\n\]]+)\]\n(.*?)\n\[end of \1\]", section, re.DOTALL):
+        file, source = match.groups()
+        if Path(file).suffix not in {".py", ".pyi"}:
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        def collect(nodes, prefix=""):
+            for node in nodes:
+                if isinstance(node, ast.ClassDef):
+                    collect(node.body, prefix + node.name + ".")
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    found.add(file + "::" + prefix + node.name)
+        collect(tree.body)
+    return sorted(found)
+
+
 def retrieve(instance, repo_dir, mode, max_files):
     # Keep held-out tests and reference patches out of the retrieval interface.
     request = {key: instance.get(key) for key in
@@ -28,11 +51,13 @@ def retrieve(instance, repo_dir, mode, max_files):
     prompt = build_prompt(request, repo_dir, ctx)
     return {
         "files": sorted(set(visible_code_files(prompt))),
+        "visible_symbols": visible_symbols(prompt),
         "candidates": [{"file": c.file, "score": c.score, "reasons": c.reasons,
                         "locations": c.locations}
                        for c in ctx.recalled_files],
         "prompt_chars": len(prompt),
         "parse_failures": ctx.recall_diagnostics.get("parse_failures", []),
+        "request_references": ctx.recall_diagnostics.get("request_references", []),
     }
 
 
@@ -62,6 +87,10 @@ def main():
     parser.add_argument("--dataset-path", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--instance", nargs="+")
+    parser.add_argument("--ids-json", type=Path, help="Evaluation JSON defining the requested case set")
+    parser.add_argument("--ids-key", default="unresolved_ids")
+    parser.add_argument("--require-complete", action="store_true", help="Fail if any requested base tree is missing")
+    parser.add_argument("--location-labels", type=Path, help="Optional existing repair-site labels, used only after retrieval")
     parser.add_argument("--baseline-root", type=Path)
     parser.add_argument("--max-files", type=int, default=12)
     parser.add_argument("--modes", nargs="+", choices=["v1", "v5", "expanded"])
@@ -69,13 +98,21 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.max_files <= 32:
         parser.error("--max-files must be between 1 and 32")
-    instances = [i for i in load_dataset(args.dataset_path)
-                 if (args.repo_root / i["instance_id"]).is_dir()
-                 and (not args.instance or i["instance_id"] in args.instance)]
+    requested = set(args.instance or [])
+    if args.ids_json:
+        requested.update(json.loads(args.ids_json.read_text())[args.ids_key])
+    selected = [i for i in load_dataset(args.dataset_path) if not requested or i["instance_id"] in requested]
+    absent_dataset = sorted(requested - {i["instance_id"] for i in selected})
+    missing_trees = sorted(i["instance_id"] for i in selected if not (args.repo_root / i["instance_id"]).is_dir())
+    if args.require_complete and (absent_dataset or missing_trees):
+        parser.error("Incomplete requested set: %d dataset entries and %d base trees missing" %
+                     (len(absent_dataset), len(missing_trees)))
+    instances = [i for i in selected if (args.repo_root / i["instance_id"]).is_dir()]
     modes = args.modes or (["v1"] if args.baseline_root else []) + ["v5", "expanded"]
     if "v1" in modes and not args.baseline_root:
         parser.error("v1 mode requires --baseline-root")
     records = []
+    location_labels = json.loads(args.location_labels.read_text()) if args.location_labels else {}
     for instance in instances:
         repo_dir = args.repo_root / instance["instance_id"]
         targets = {i["file"] for i in instance.get("new_components") or []}
@@ -90,14 +127,19 @@ def main():
         expected = {p for p in re.findall(r"^diff --git a/(.*?) b/", instance.get("patch", ""), re.MULTILINE)
                     if is_source_file(p)}
         hidden = expected - targets
+        locations = set(location_labels.get(instance["instance_id"], []))
         for result in results.values():
             found = set(result["files"])
             result.update(gold_hits=len(expected & found), gold_total=len(expected),
                           hidden_hits=len(hidden & found), hidden_total=len(hidden),
                           missing=sorted(expected - found),
                           hidden_missing=sorted(hidden - found))
+            if args.location_labels and "visible_symbols" in result:
+                result.update(location_hits=len(locations & set(result["visible_symbols"])),
+                              location_total=len(locations),
+                              location_missing=sorted(locations - set(result["visible_symbols"])))
         records.append({"instance_id": instance["instance_id"], "expected_files": sorted(expected),
-                        "hidden_files": sorted(hidden), "results": results})
+                        "hidden_files": sorted(hidden), "existing_locations": sorted(locations), "results": results})
         print(instance["instance_id"], {mode: "%d/%d hidden" %
               (result["hidden_hits"], result["hidden_total"]) for mode, result in results.items()}, flush=True)
     summary = {}
@@ -114,8 +156,15 @@ def main():
                          "mean_files": sum(len(v["files"]) for v in values) / len(values) if values else None,
                          "mean_prompt_chars": sum(v["prompt_chars"] for v in values) / len(values) if values else None,
                          "seconds": round(sum(v["seconds"] for v in values), 3)}
+        if args.location_labels and values and all("location_hits" in v for v in values):
+            location_total = sum(v["location_total"] for v in values)
+            location_hits = sum(v["location_hits"] for v in values)
+            summary[mode].update(location_hits=location_hits, location_total=location_total,
+                                 location_recall=location_hits / location_total if location_total else None)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps({"summary": summary, "records": records}, indent=2) + "\n")
+    coverage = {"requested": len(requested) if requested else len(selected), "evaluated": len(instances),
+                "missing_dataset_ids": absent_dataset, "missing_base_tree_ids": missing_trees}
+    args.output.write_text(json.dumps({"coverage": coverage, "summary": summary, "records": records}, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
 
 

@@ -168,6 +168,7 @@ class ContextBuilder:
                 "parse_failures": retriever.index.parse_failures,
                 "anchors": retriever.anchor_keys,
                 "target_context_symbols": retriever.target_context_symbols,
+                "request_references": retriever.request_references,
             }
 
         ctx.total_context_chars = self._estimate_context_size(ctx)

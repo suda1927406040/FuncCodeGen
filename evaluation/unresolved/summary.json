@@ -1,0 +1,351 @@
+{
+  "baseline": {
+    "total_instances": 200,
+    "resolved_instances": 55,
+    "unresolved_instances": 121,
+    "empty_patch_instances": 17,
+    "error_instances": 7
+  },
+  "original_prompt_source_recall": {
+    "cases": 121,
+    "repair_files": 195,
+    "visible_repair_files": 155,
+    "extra_repair_files": 58,
+    "visible_extra_repair_files": 18,
+    "cases_with_missing_source_file": 32,
+    "p2p_regression_cases": 31,
+    "f2p_any_pass_cases": 33,
+    "partial_f2p_cases": 31
+  },
+  "missing_source_cases": [
+    {
+      "instance_id": "RDFLib__rdflib-1968",
+      "missing": [
+        "rdflib/plugins/serializers/nt.py"
+      ]
+    },
+    {
+      "instance_id": "Textualize__rich-901",
+      "missing": [
+        "rich/console.py"
+      ]
+    },
+    {
+      "instance_id": "astropy__astropy-13676",
+      "missing": [
+        "astropy/units/quantity.py"
+      ]
+    },
+    {
+      "instance_id": "astropy__astropy-16135",
+      "missing": [
+        "astropy/coordinates/representation/spherical.py"
+      ]
+    },
+    {
+      "instance_id": "astropy__astropy-16677",
+      "missing": [
+        "astropy/modeling/fitting.py"
+      ]
+    },
+    {
+      "instance_id": "aws-powertools__powertools-lambda-python-5588",
+      "missing": [
+        "aws_lambda_powertools/utilities/data_classes/code_pipeline_job_event.py"
+      ]
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3432",
+      "missing": [
+        "src/sagemaker/fw_utils.py"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-10154",
+      "missing": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-11284",
+      "missing": [
+        "conan/tools/gnu/autotools.py",
+        "conans/assets/templates/new_v2_autotools.py"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-12243",
+      "missing": [
+        "conan/cli/commands/graph.py"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-12873",
+      "missing": [
+        "conan/tools/android/__init__.py",
+        "conan/tools/cmake/toolchain/blocks.py"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-16231",
+      "missing": [
+        "conan/tools/cmake/cmakedeps/templates/config.py"
+      ]
+    },
+    {
+      "instance_id": "falconry__falcon-640",
+      "missing": [
+        "falcon/util/misc.py"
+      ]
+    },
+    {
+      "instance_id": "google-deepmind__optax-632",
+      "missing": [
+        "optax/__init__.py",
+        "optax/projections/__init__.py"
+      ]
+    },
+    {
+      "instance_id": "google-deepmind__optax-897",
+      "missing": [
+        "optax/__init__.py"
+      ]
+    },
+    {
+      "instance_id": "huggingface__accelerate-255",
+      "missing": [
+        "src/accelerate/utils.py"
+      ]
+    },
+    {
+      "instance_id": "huggingface__datasets-214",
+      "missing": [
+        "datasets/wikipedia/wikipedia.py"
+      ]
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23692",
+      "missing": [
+        "lib/matplotlib/axes/_base.py"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-1237",
+      "missing": [
+        "supervision/detection/core.py"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-1296",
+      "missing": [
+        "supervision/detection/core.py"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-245",
+      "missing": [
+        "supervision/dataset/core.py",
+        "supervision/detection/utils.py"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-847",
+      "missing": [
+        "supervision/__init__.py",
+        "supervision/detection/core.py"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-910",
+      "missing": [
+        "supervision/detection/tools/polygon_zone.py"
+      ]
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-11196",
+      "missing": [
+        "sklearn/preprocessing/label.py",
+        "sklearn/utils/fixes.py"
+      ]
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-17225",
+      "missing": [
+        "sklearn/metrics/_regression.py",
+        "sklearn/utils/stats.py"
+      ]
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-1766",
+      "missing": [
+        "SoftLayer/CLI/core.py"
+      ]
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-2073",
+      "missing": [
+        "SoftLayer/CLI/routes.py"
+      ]
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9131",
+      "missing": [
+        "sphinx/config.py"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-14745",
+      "missing": [
+        "sympy/discrete/transforms.py"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-14968",
+      "missing": [
+        "sympy/combinatorics/fp_groups.py"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-16522",
+      "missing": [
+        "sympy/combinatorics/homomorphisms.py"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-21510",
+      "missing": [
+        "sympy/logic/inference.py"
+      ]
+    }
+  ],
+  "missing_resource_or_config_cases": [
+    {
+      "instance_id": "astronomer__astronomer-cosmos-758",
+      "missing": [
+        "pyproject.toml"
+      ]
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3423",
+      "missing": [
+        "src/sagemaker/image_uri_config/pytorch-neuron.json"
+      ]
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3432",
+      "missing": [
+        "src/sagemaker/image_uri_config/pytorch.json",
+        "src/sagemaker/image_uri_config/tensorflow.json"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-21510",
+      "missing": [
+        "setup.cfg"
+      ]
+    }
+  ],
+  "historical_location_metrics": {
+    "static_featurespace_eval_lite_standard_with_lexical.json": {
+      "eligible_cases": 74,
+      "channels": {
+        "reference_chain_entities": {
+          "hits": 5,
+          "total": 127,
+          "predicted": 38,
+          "recall": 0.03937007874015748
+        },
+        "selective_local_entities": {
+          "hits": 13,
+          "total": 127,
+          "predicted": 72,
+          "recall": 0.10236220472440945
+        },
+        "class_scope_entities": {
+          "hits": 29,
+          "total": 127,
+          "predicted": 743,
+          "recall": 0.2283464566929134
+        },
+        "featurespace_entities": {
+          "hits": 31,
+          "total": 127,
+          "predicted": 773,
+          "recall": 0.2440944881889764
+        },
+        "repository_wide_lexical_entities": {
+          "hits": 31,
+          "total": 127,
+          "predicted": 894,
+          "recall": 0.2440944881889764
+        }
+      }
+    },
+    "static_featurespace_eval_v2_hybrid.json": {
+      "eligible_cases": 74,
+      "channels": {
+        "reference_chain_entities": {
+          "hits": 5,
+          "total": 127,
+          "predicted": 38,
+          "recall": 0.03937007874015748
+        },
+        "selective_local_entities": {
+          "hits": 13,
+          "total": 127,
+          "predicted": 72,
+          "recall": 0.10236220472440945
+        },
+        "class_scope_entities": {
+          "hits": 29,
+          "total": 127,
+          "predicted": 743,
+          "recall": 0.2283464566929134
+        },
+        "featurespace_entities": {
+          "hits": 68,
+          "total": 127,
+          "predicted": 1225,
+          "recall": 0.5354330708661418
+        },
+        "repository_wide_lexical_entities": {
+          "hits": 50,
+          "total": 127,
+          "predicted": 1406,
+          "recall": 0.3937007874015748
+        }
+      }
+    }
+  },
+  "structural_warning_counts": {
+    "cases": 120,
+    "missing_definition_cases": 19,
+    "syntax_cases": 5,
+    "public_function_removal_cases": 2,
+    "missing_source": 1
+  },
+  "local_regression_unresolved_subset": {
+    "evaluated_unresolved": 5,
+    "requested_unresolved": 121,
+    "ids": [
+      "conan-io__conan-16871",
+      "roboflow__supervision-910",
+      "roboflow__supervision-245",
+      "conan-io__conan-11675",
+      "conan-io__conan-10154"
+    ],
+    "gold_hits": 12,
+    "gold_total": 12,
+    "hidden_hits": 6,
+    "hidden_total": 6,
+    "location_hits": 5,
+    "location_total": 5
+  },
+  "limitations": [
+    "Historical location reports are precomputed server artifacts, not results of this branch.",
+    "Structural warnings can include valid helper relocation or inherited methods.",
+    "File and symbol recall do not establish that the generated patch solves the case.",
+    "No new model generation or SWE-bench evaluation was run."
+  ]
+}

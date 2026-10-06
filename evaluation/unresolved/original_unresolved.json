@@ -1,0 +1,3544 @@
+{
+  "baseline": {
+    "total_instances": 200,
+    "submitted_instances": 200,
+    "completed_instances": 176,
+    "resolved_instances": 55,
+    "unresolved_instances": 121,
+    "empty_patch_instances": 17,
+    "error_instances": 7,
+    "completed_ids": [
+      "Project-MONAI__MONAI-465",
+      "PyThaiNLP__pythainlp-1054",
+      "RDFLib__rdflib-1968",
+      "RDFLib__rdflib-968",
+      "Textualize__rich-1706",
+      "Textualize__rich-1894",
+      "Textualize__rich-376",
+      "Textualize__rich-901",
+      "astronomer__astronomer-cosmos-758",
+      "astropy__astropy-13094",
+      "astropy__astropy-13508",
+      "astropy__astropy-13676",
+      "astropy__astropy-14878",
+      "astropy__astropy-16135",
+      "astropy__astropy-16516",
+      "astropy__astropy-16677",
+      "aws-powertools__powertools-lambda-python-5588",
+      "aws__sagemaker-python-sdk-3423",
+      "aws__sagemaker-python-sdk-3432",
+      "boto__boto3-605",
+      "conan-io__conan-10154",
+      "conan-io__conan-10437",
+      "conan-io__conan-10874",
+      "conan-io__conan-11284",
+      "conan-io__conan-11569",
+      "conan-io__conan-11585",
+      "conan-io__conan-11675",
+      "conan-io__conan-11678",
+      "conan-io__conan-11908",
+      "conan-io__conan-12094",
+      "conan-io__conan-12243",
+      "conan-io__conan-12873",
+      "conan-io__conan-12886",
+      "conan-io__conan-12887",
+      "conan-io__conan-12889",
+      "conan-io__conan-12980",
+      "conan-io__conan-13354",
+      "conan-io__conan-13509",
+      "conan-io__conan-14233",
+      "conan-io__conan-15284",
+      "conan-io__conan-15731",
+      "conan-io__conan-16231",
+      "conan-io__conan-16871",
+      "deepset-ai__haystack-6758",
+      "deepset-ai__haystack-7009",
+      "deepset-ai__haystack-7902",
+      "deepset-ai__haystack-7933",
+      "deepset-ai__haystack-8042",
+      "deepset-ai__haystack-8103",
+      "deepset-ai__haystack-8336",
+      "django__django-16369",
+      "docker__docker-py-1230",
+      "embeddings-benchmark__mteb-1256",
+      "fairlearn__fairlearn-1436",
+      "falconry__falcon-1174",
+      "falconry__falcon-1603",
+      "falconry__falcon-640",
+      "google-deepmind__optax-1063",
+      "google-deepmind__optax-632",
+      "google-deepmind__optax-897",
+      "googleapis__python-aiplatform-4748",
+      "graphql-python__graphene-1506",
+      "huggingface__accelerate-255",
+      "huggingface__accelerate-991",
+      "huggingface__datasets-214",
+      "huggingface__datasets-6318",
+      "huggingface__huggingface_hub-2027",
+      "joke2k__faker-1350",
+      "joke2k__faker-1783",
+      "joke2k__faker-1848",
+      "joke2k__faker-494",
+      "joke2k__faker-738",
+      "joke2k__faker-739",
+      "joke2k__faker-874",
+      "joke2k__faker-964",
+      "lark-parser__lark-1467",
+      "lark-parser__lark-466",
+      "matplotlib__matplotlib-19646",
+      "matplotlib__matplotlib-19663",
+      "matplotlib__matplotlib-20634",
+      "matplotlib__matplotlib-21977",
+      "matplotlib__matplotlib-23692",
+      "matplotlib__matplotlib-25686",
+      "matplotlib__matplotlib-26293",
+      "pgmpy__pgmpy-1753",
+      "pgmpy__pgmpy-1797",
+      "prometheus__client_python-302",
+      "pvlib__pvlib-python-1017",
+      "pvlib__pvlib-python-1045",
+      "pvlib__pvlib-python-1177",
+      "pvlib__pvlib-python-1179",
+      "pvlib__pvlib-python-1190",
+      "pvlib__pvlib-python-1562",
+      "pvlib__pvlib-python-1585",
+      "pvlib__pvlib-python-1705",
+      "pvlib__pvlib-python-1730",
+      "pvlib__pvlib-python-784",
+      "pydata__xarray-4886",
+      "pydicom__pydicom-1648",
+      "pygments__pygments-2654",
+      "pylint-dev__pylint-5315",
+      "pypa__hatch-211",
+      "pyvista__pyvista-3662",
+      "pyvista__pyvista-5055",
+      "roboflow__supervision-1237",
+      "roboflow__supervision-1296",
+      "roboflow__supervision-1340",
+      "roboflow__supervision-245",
+      "roboflow__supervision-620",
+      "roboflow__supervision-847",
+      "roboflow__supervision-910",
+      "rytilahti__python-miio-1984",
+      "scikit-learn__scikit-learn-11196",
+      "scikit-learn__scikit-learn-11281",
+      "scikit-learn__scikit-learn-13336",
+      "scikit-learn__scikit-learn-15304",
+      "scikit-learn__scikit-learn-17225",
+      "scikit-learn__scikit-learn-18393",
+      "scikit-learn__scikit-learn-28936",
+      "scikit-learn__scikit-learn-29136",
+      "scikit-learn__scikit-learn-29210",
+      "scrapy__scrapy-5979",
+      "softlayer__softlayer-python-1766",
+      "softlayer__softlayer-python-2073",
+      "sphinx-doc__sphinx-7327",
+      "sphinx-doc__sphinx-7597",
+      "sphinx-doc__sphinx-9131",
+      "sphinx-doc__sphinx-9154",
+      "sqlfluff__sqlfluff-2369",
+      "sqlfluff__sqlfluff-3937",
+      "sympy__sympy-12417",
+      "sympy__sympy-13304",
+      "sympy__sympy-13345",
+      "sympy__sympy-14171",
+      "sympy__sympy-14745",
+      "sympy__sympy-14826",
+      "sympy__sympy-14853",
+      "sympy__sympy-14928",
+      "sympy__sympy-14954",
+      "sympy__sympy-14968",
+      "sympy__sympy-15247",
+      "sympy__sympy-15333",
+      "sympy__sympy-15661",
+      "sympy__sympy-15693",
+      "sympy__sympy-15825",
+      "sympy__sympy-16142",
+      "sympy__sympy-16248",
+      "sympy__sympy-16253",
+      "sympy__sympy-16423",
+      "sympy__sympy-16522",
+      "sympy__sympy-16685",
+      "sympy__sympy-17077",
+      "sympy__sympy-17153",
+      "sympy__sympy-17472",
+      "sympy__sympy-17617",
+      "sympy__sympy-17806",
+      "sympy__sympy-17974",
+      "sympy__sympy-18085",
+      "sympy__sympy-18335",
+      "sympy__sympy-20238",
+      "sympy__sympy-20886",
+      "sympy__sympy-21052",
+      "sympy__sympy-21118",
+      "sympy__sympy-21510",
+      "sympy__sympy-21600",
+      "sympy__sympy-21634",
+      "sympy__sympy-21689",
+      "sympy__sympy-21712",
+      "sympy__sympy-21973",
+      "sympy__sympy-22476",
+      "sympy__sympy-23111",
+      "sympy__sympy-23329",
+      "sympy__sympy-24070",
+      "sympy__sympy-24437",
+      "sympy__sympy-24698",
+      "tfranzel__drf-spectacular-953"
+    ],
+    "incomplete_ids": [],
+    "empty_patch_ids": [
+      "EleutherAI__lm-evaluation-harness-1566",
+      "boto__boto3-74",
+      "deepset-ai__haystack-7920",
+      "pydata__xarray-4155",
+      "sympy__sympy-19896",
+      "tobymao__sqlglot-3145",
+      "tobymao__sqlglot-3602",
+      "tobymao__sqlglot-3991",
+      "tobymao__sqlglot-4084",
+      "tobymao__sqlglot-415",
+      "tobymao__sqlglot-4217",
+      "tobymao__sqlglot-4249",
+      "tobymao__sqlglot-4433",
+      "tobymao__sqlglot-4486",
+      "tobymao__sqlglot-4537",
+      "tobymao__sqlglot-858",
+      "tobymao__sqlglot-874"
+    ],
+    "submitted_ids": [
+      "EleutherAI__lm-evaluation-harness-1566",
+      "Project-MONAI__MONAI-465",
+      "PyThaiNLP__pythainlp-1054",
+      "RDFLib__rdflib-1968",
+      "RDFLib__rdflib-968",
+      "Textualize__rich-1706",
+      "Textualize__rich-1894",
+      "Textualize__rich-376",
+      "Textualize__rich-901",
+      "Textualize__textual-1517",
+      "astronomer__astronomer-cosmos-758",
+      "astropy__astropy-13094",
+      "astropy__astropy-13508",
+      "astropy__astropy-13676",
+      "astropy__astropy-14878",
+      "astropy__astropy-16135",
+      "astropy__astropy-16516",
+      "astropy__astropy-16677",
+      "astropy__astropy-7970",
+      "aws-powertools__powertools-lambda-python-5588",
+      "aws__sagemaker-python-sdk-3423",
+      "aws__sagemaker-python-sdk-3432",
+      "boto__boto3-605",
+      "boto__boto3-74",
+      "conan-io__conan-10154",
+      "conan-io__conan-10437",
+      "conan-io__conan-10874",
+      "conan-io__conan-11284",
+      "conan-io__conan-11569",
+      "conan-io__conan-11585",
+      "conan-io__conan-11675",
+      "conan-io__conan-11678",
+      "conan-io__conan-11908",
+      "conan-io__conan-12094",
+      "conan-io__conan-12243",
+      "conan-io__conan-12873",
+      "conan-io__conan-12886",
+      "conan-io__conan-12887",
+      "conan-io__conan-12889",
+      "conan-io__conan-12980",
+      "conan-io__conan-13354",
+      "conan-io__conan-13509",
+      "conan-io__conan-14233",
+      "conan-io__conan-15284",
+      "conan-io__conan-15731",
+      "conan-io__conan-16231",
+      "conan-io__conan-16871",
+      "deepset-ai__haystack-6758",
+      "deepset-ai__haystack-7009",
+      "deepset-ai__haystack-7902",
+      "deepset-ai__haystack-7920",
+      "deepset-ai__haystack-7933",
+      "deepset-ai__haystack-8042",
+      "deepset-ai__haystack-8103",
+      "deepset-ai__haystack-8336",
+      "django__django-16369",
+      "docker__docker-py-1230",
+      "embeddings-benchmark__mteb-1256",
+      "fairlearn__fairlearn-1436",
+      "falconry__falcon-1174",
+      "falconry__falcon-1603",
+      "falconry__falcon-640",
+      "google-deepmind__optax-1063",
+      "google-deepmind__optax-632",
+      "google-deepmind__optax-897",
+      "googleapis__python-aiplatform-4748",
+      "graphql-python__graphene-1506",
+      "huggingface__accelerate-255",
+      "huggingface__accelerate-991",
+      "huggingface__datasets-214",
+      "huggingface__datasets-6318",
+      "huggingface__huggingface_hub-2027",
+      "huggingface__pytorch-image-models-876",
+      "joke2k__faker-1350",
+      "joke2k__faker-1783",
+      "joke2k__faker-1848",
+      "joke2k__faker-494",
+      "joke2k__faker-738",
+      "joke2k__faker-739",
+      "joke2k__faker-874",
+      "joke2k__faker-964",
+      "lark-parser__lark-1467",
+      "lark-parser__lark-466",
+      "matplotlib__matplotlib-19646",
+      "matplotlib__matplotlib-19663",
+      "matplotlib__matplotlib-20634",
+      "matplotlib__matplotlib-21977",
+      "matplotlib__matplotlib-23692",
+      "matplotlib__matplotlib-25686",
+      "matplotlib__matplotlib-26293",
+      "open-mmlab__mmengine-609",
+      "pgmpy__pgmpy-1753",
+      "pgmpy__pgmpy-1797",
+      "prometheus__client_python-302",
+      "pvlib__pvlib-python-1017",
+      "pvlib__pvlib-python-1045",
+      "pvlib__pvlib-python-1177",
+      "pvlib__pvlib-python-1179",
+      "pvlib__pvlib-python-1190",
+      "pvlib__pvlib-python-1562",
+      "pvlib__pvlib-python-1585",
+      "pvlib__pvlib-python-1705",
+      "pvlib__pvlib-python-1730",
+      "pvlib__pvlib-python-784",
+      "pydata__xarray-4155",
+      "pydata__xarray-4886",
+      "pydicom__pydicom-1648",
+      "pygments__pygments-2654",
+      "pylint-dev__pylint-5315",
+      "pypa__hatch-211",
+      "pyvista__pyvista-3662",
+      "pyvista__pyvista-5055",
+      "roboflow__supervision-1237",
+      "roboflow__supervision-1296",
+      "roboflow__supervision-1340",
+      "roboflow__supervision-245",
+      "roboflow__supervision-620",
+      "roboflow__supervision-847",
+      "roboflow__supervision-910",
+      "rytilahti__python-miio-1984",
+      "scikit-learn__scikit-learn-11196",
+      "scikit-learn__scikit-learn-11281",
+      "scikit-learn__scikit-learn-13336",
+      "scikit-learn__scikit-learn-15304",
+      "scikit-learn__scikit-learn-17225",
+      "scikit-learn__scikit-learn-18393",
+      "scikit-learn__scikit-learn-28936",
+      "scikit-learn__scikit-learn-29136",
+      "scikit-learn__scikit-learn-29210",
+      "scrapy__scrapy-5821",
+      "scrapy__scrapy-5979",
+      "softlayer__softlayer-python-1766",
+      "softlayer__softlayer-python-2073",
+      "sphinx-doc__sphinx-7327",
+      "sphinx-doc__sphinx-7597",
+      "sphinx-doc__sphinx-9131",
+      "sphinx-doc__sphinx-9154",
+      "sqlfluff__sqlfluff-2369",
+      "sqlfluff__sqlfluff-3937",
+      "sympy__sympy-12417",
+      "sympy__sympy-13304",
+      "sympy__sympy-13345",
+      "sympy__sympy-14171",
+      "sympy__sympy-14745",
+      "sympy__sympy-14826",
+      "sympy__sympy-14853",
+      "sympy__sympy-14928",
+      "sympy__sympy-14954",
+      "sympy__sympy-14968",
+      "sympy__sympy-15247",
+      "sympy__sympy-15333",
+      "sympy__sympy-15661",
+      "sympy__sympy-15693",
+      "sympy__sympy-15825",
+      "sympy__sympy-16142",
+      "sympy__sympy-16248",
+      "sympy__sympy-16253",
+      "sympy__sympy-16423",
+      "sympy__sympy-16522",
+      "sympy__sympy-16685",
+      "sympy__sympy-17077",
+      "sympy__sympy-17153",
+      "sympy__sympy-17472",
+      "sympy__sympy-17617",
+      "sympy__sympy-17806",
+      "sympy__sympy-17974",
+      "sympy__sympy-18085",
+      "sympy__sympy-18335",
+      "sympy__sympy-19896",
+      "sympy__sympy-20238",
+      "sympy__sympy-20886",
+      "sympy__sympy-21052",
+      "sympy__sympy-21118",
+      "sympy__sympy-21510",
+      "sympy__sympy-21600",
+      "sympy__sympy-21634",
+      "sympy__sympy-21689",
+      "sympy__sympy-21712",
+      "sympy__sympy-21973",
+      "sympy__sympy-22476",
+      "sympy__sympy-23111",
+      "sympy__sympy-23329",
+      "sympy__sympy-24070",
+      "sympy__sympy-24437",
+      "sympy__sympy-24698",
+      "tfranzel__drf-spectacular-953",
+      "tobymao__sqlglot-1252",
+      "tobymao__sqlglot-3145",
+      "tobymao__sqlglot-3560",
+      "tobymao__sqlglot-3602",
+      "tobymao__sqlglot-3991",
+      "tobymao__sqlglot-4084",
+      "tobymao__sqlglot-415",
+      "tobymao__sqlglot-4217",
+      "tobymao__sqlglot-4249",
+      "tobymao__sqlglot-4433",
+      "tobymao__sqlglot-4486",
+      "tobymao__sqlglot-4537",
+      "tobymao__sqlglot-858",
+      "tobymao__sqlglot-874"
+    ],
+    "resolved_ids": [
+      "PyThaiNLP__pythainlp-1054",
+      "Textualize__rich-1894",
+      "astropy__astropy-14878",
+      "conan-io__conan-10437",
+      "conan-io__conan-10874",
+      "conan-io__conan-11585",
+      "conan-io__conan-11908",
+      "conan-io__conan-12889",
+      "conan-io__conan-13354",
+      "conan-io__conan-13509",
+      "conan-io__conan-15731",
+      "deepset-ai__haystack-6758",
+      "deepset-ai__haystack-7009",
+      "deepset-ai__haystack-7902",
+      "deepset-ai__haystack-8103",
+      "falconry__falcon-1174",
+      "falconry__falcon-1603",
+      "google-deepmind__optax-1063",
+      "graphql-python__graphene-1506",
+      "joke2k__faker-1350",
+      "joke2k__faker-739",
+      "joke2k__faker-874",
+      "lark-parser__lark-1467",
+      "matplotlib__matplotlib-19646",
+      "matplotlib__matplotlib-19663",
+      "matplotlib__matplotlib-25686",
+      "pgmpy__pgmpy-1753",
+      "pvlib__pvlib-python-1045",
+      "pvlib__pvlib-python-1179",
+      "pvlib__pvlib-python-1730",
+      "roboflow__supervision-1340",
+      "roboflow__supervision-620",
+      "rytilahti__python-miio-1984",
+      "scikit-learn__scikit-learn-11281",
+      "scikit-learn__scikit-learn-15304",
+      "scikit-learn__scikit-learn-28936",
+      "scikit-learn__scikit-learn-29136",
+      "scrapy__scrapy-5979",
+      "sphinx-doc__sphinx-9154",
+      "sqlfluff__sqlfluff-2369",
+      "sympy__sympy-12417",
+      "sympy__sympy-14171",
+      "sympy__sympy-14853",
+      "sympy__sympy-14928",
+      "sympy__sympy-15247",
+      "sympy__sympy-16142",
+      "sympy__sympy-16248",
+      "sympy__sympy-16685",
+      "sympy__sympy-17472",
+      "sympy__sympy-17617",
+      "sympy__sympy-21118",
+      "sympy__sympy-21600",
+      "sympy__sympy-21689",
+      "sympy__sympy-24698",
+      "tfranzel__drf-spectacular-953"
+    ],
+    "unresolved_ids": [
+      "Project-MONAI__MONAI-465",
+      "RDFLib__rdflib-1968",
+      "RDFLib__rdflib-968",
+      "Textualize__rich-1706",
+      "Textualize__rich-376",
+      "Textualize__rich-901",
+      "astronomer__astronomer-cosmos-758",
+      "astropy__astropy-13094",
+      "astropy__astropy-13508",
+      "astropy__astropy-13676",
+      "astropy__astropy-16135",
+      "astropy__astropy-16516",
+      "astropy__astropy-16677",
+      "aws-powertools__powertools-lambda-python-5588",
+      "aws__sagemaker-python-sdk-3423",
+      "aws__sagemaker-python-sdk-3432",
+      "boto__boto3-605",
+      "conan-io__conan-10154",
+      "conan-io__conan-11284",
+      "conan-io__conan-11569",
+      "conan-io__conan-11675",
+      "conan-io__conan-11678",
+      "conan-io__conan-12094",
+      "conan-io__conan-12243",
+      "conan-io__conan-12873",
+      "conan-io__conan-12886",
+      "conan-io__conan-12887",
+      "conan-io__conan-12980",
+      "conan-io__conan-14233",
+      "conan-io__conan-15284",
+      "conan-io__conan-16231",
+      "conan-io__conan-16871",
+      "deepset-ai__haystack-7933",
+      "deepset-ai__haystack-8042",
+      "deepset-ai__haystack-8336",
+      "django__django-16369",
+      "docker__docker-py-1230",
+      "embeddings-benchmark__mteb-1256",
+      "fairlearn__fairlearn-1436",
+      "falconry__falcon-640",
+      "google-deepmind__optax-632",
+      "google-deepmind__optax-897",
+      "googleapis__python-aiplatform-4748",
+      "huggingface__accelerate-255",
+      "huggingface__accelerate-991",
+      "huggingface__datasets-214",
+      "huggingface__datasets-6318",
+      "huggingface__huggingface_hub-2027",
+      "joke2k__faker-1783",
+      "joke2k__faker-1848",
+      "joke2k__faker-494",
+      "joke2k__faker-738",
+      "joke2k__faker-964",
+      "lark-parser__lark-466",
+      "matplotlib__matplotlib-20634",
+      "matplotlib__matplotlib-21977",
+      "matplotlib__matplotlib-23692",
+      "matplotlib__matplotlib-26293",
+      "pgmpy__pgmpy-1797",
+      "prometheus__client_python-302",
+      "pvlib__pvlib-python-1017",
+      "pvlib__pvlib-python-1177",
+      "pvlib__pvlib-python-1190",
+      "pvlib__pvlib-python-1562",
+      "pvlib__pvlib-python-1585",
+      "pvlib__pvlib-python-1705",
+      "pvlib__pvlib-python-784",
+      "pydata__xarray-4886",
+      "pydicom__pydicom-1648",
+      "pygments__pygments-2654",
+      "pylint-dev__pylint-5315",
+      "pypa__hatch-211",
+      "pyvista__pyvista-3662",
+      "pyvista__pyvista-5055",
+      "roboflow__supervision-1237",
+      "roboflow__supervision-1296",
+      "roboflow__supervision-245",
+      "roboflow__supervision-847",
+      "roboflow__supervision-910",
+      "scikit-learn__scikit-learn-11196",
+      "scikit-learn__scikit-learn-13336",
+      "scikit-learn__scikit-learn-17225",
+      "scikit-learn__scikit-learn-18393",
+      "scikit-learn__scikit-learn-29210",
+      "softlayer__softlayer-python-1766",
+      "softlayer__softlayer-python-2073",
+      "sphinx-doc__sphinx-7327",
+      "sphinx-doc__sphinx-7597",
+      "sphinx-doc__sphinx-9131",
+      "sqlfluff__sqlfluff-3937",
+      "sympy__sympy-13304",
+      "sympy__sympy-13345",
+      "sympy__sympy-14745",
+      "sympy__sympy-14826",
+      "sympy__sympy-14954",
+      "sympy__sympy-14968",
+      "sympy__sympy-15333",
+      "sympy__sympy-15661",
+      "sympy__sympy-15693",
+      "sympy__sympy-15825",
+      "sympy__sympy-16253",
+      "sympy__sympy-16423",
+      "sympy__sympy-16522",
+      "sympy__sympy-17077",
+      "sympy__sympy-17153",
+      "sympy__sympy-17806",
+      "sympy__sympy-17974",
+      "sympy__sympy-18085",
+      "sympy__sympy-18335",
+      "sympy__sympy-20238",
+      "sympy__sympy-20886",
+      "sympy__sympy-21052",
+      "sympy__sympy-21510",
+      "sympy__sympy-21634",
+      "sympy__sympy-21712",
+      "sympy__sympy-21973",
+      "sympy__sympy-22476",
+      "sympy__sympy-23111",
+      "sympy__sympy-23329",
+      "sympy__sympy-24070",
+      "sympy__sympy-24437"
+    ],
+    "error_ids": [
+      "Textualize__textual-1517",
+      "astropy__astropy-7970",
+      "huggingface__pytorch-image-models-876",
+      "open-mmlab__mmengine-609",
+      "scrapy__scrapy-5821",
+      "tobymao__sqlglot-1252",
+      "tobymao__sqlglot-3560"
+    ],
+    "schema_version": 2
+  },
+  "records": [
+    {
+      "instance_id": "Project-MONAI__MONAI-465",
+      "repo": "Project-MONAI/MONAI",
+      "target_files": [
+        "monai/data/decathalon_dataloader.py"
+      ],
+      "gold_files": [
+        "monai/data/__init__.py",
+        "monai/data/decathalon_dataloader.py"
+      ],
+      "hidden_files": [
+        "monai/data/__init__.py"
+      ],
+      "original_visible_files": [
+        "monai/data/__init__.py",
+        "monai/data/decathalon_dataloader.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 4,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "RDFLib__rdflib-1968",
+      "repo": "RDFLib/rdflib",
+      "target_files": [
+        "rdflib/tools/chunk_serializer.py"
+      ],
+      "gold_files": [
+        "CHANGELOG.md",
+        "rdflib/plugins/serializers/nt.py",
+        "rdflib/tools/chunk_serializer.py"
+      ],
+      "hidden_files": [
+        "CHANGELOG.md",
+        "rdflib/plugins/serializers/nt.py"
+      ],
+      "original_visible_files": [
+        "rdflib/tools/__init__.py",
+        "rdflib/tools/chunk_serializer.py"
+      ],
+      "original_missing_files": [
+        "CHANGELOG.md",
+        "rdflib/plugins/serializers/nt.py"
+      ],
+      "f2p_pass": 5,
+      "f2p_fail": 6,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "RDFLib__rdflib-968",
+      "repo": "RDFLib/rdflib",
+      "target_files": [
+        "rdflib/graph.py"
+      ],
+      "gold_files": [
+        "rdflib/graph.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "rdflib/__init__.py",
+        "rdflib/graph.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "Textualize__rich-1706",
+      "repo": "Textualize/rich",
+      "target_files": [
+        "rich/text.py"
+      ],
+      "gold_files": [
+        "CHANGELOG.md",
+        "CONTRIBUTORS.md",
+        "rich/text.py"
+      ],
+      "hidden_files": [
+        "CHANGELOG.md",
+        "CONTRIBUTORS.md"
+      ],
+      "original_visible_files": [
+        "rich/__init__.py",
+        "rich/console.py",
+        "rich/jupyter.py",
+        "rich/panel.py",
+        "rich/text.py"
+      ],
+      "original_missing_files": [
+        "CHANGELOG.md",
+        "CONTRIBUTORS.md"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "Textualize__rich-376",
+      "repo": "Textualize/rich",
+      "target_files": [
+        "rich/console.py"
+      ],
+      "gold_files": [
+        "CHANGELOG.md",
+        "rich/console.py"
+      ],
+      "hidden_files": [
+        "CHANGELOG.md"
+      ],
+      "original_visible_files": [
+        "rich/__init__.py",
+        "rich/console.py"
+      ],
+      "original_missing_files": [
+        "CHANGELOG.md"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 45,
+      "error_markers": []
+    },
+    {
+      "instance_id": "Textualize__rich-901",
+      "repo": "Textualize/rich",
+      "target_files": [
+        "rich/segment.py",
+        "rich/style.py"
+      ],
+      "gold_files": [
+        "CHANGELOG.md",
+        "rich/console.py",
+        "rich/segment.py",
+        "rich/style.py"
+      ],
+      "hidden_files": [
+        "CHANGELOG.md",
+        "rich/console.py"
+      ],
+      "original_visible_files": [
+        "rich/__init__.py",
+        "rich/segment.py",
+        "rich/style.py"
+      ],
+      "original_missing_files": [
+        "CHANGELOG.md",
+        "rich/console.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 83,
+      "error_markers": []
+    },
+    {
+      "instance_id": "astronomer__astronomer-cosmos-758",
+      "repo": "astronomer/astronomer-cosmos",
+      "target_files": [
+        "cosmos/profiles/athena/access_key.py"
+      ],
+      "gold_files": [
+        "cosmos/profiles/athena/access_key.py",
+        "pyproject.toml"
+      ],
+      "hidden_files": [
+        "pyproject.toml"
+      ],
+      "original_visible_files": [
+        "cosmos/profiles/__init__.py",
+        "cosmos/profiles/athena/__init__.py",
+        "cosmos/profiles/athena/access_key.py",
+        "cosmos/profiles/base.py"
+      ],
+      "original_missing_files": [
+        "pyproject.toml"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 4,
+      "p2p_fail": 1,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "astropy__astropy-13094",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/wcs/wcs.py"
+      ],
+      "gold_files": [
+        "astropy/wcs/wcs.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "astropy/wcs/__init__.py",
+        "astropy/wcs/wcs.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "astropy__astropy-13508",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/time/core.py"
+      ],
+      "gold_files": [
+        "astropy/time/core.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "astropy/time/__init__.py",
+        "astropy/time/core.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 8,
+      "f2p_fail": 42,
+      "p2p_fail": 15,
+      "error_markers": []
+    },
+    {
+      "instance_id": "astropy__astropy-13676",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/units/structured.py"
+      ],
+      "gold_files": [
+        "astropy/units/quantity.py",
+        "astropy/units/structured.py"
+      ],
+      "hidden_files": [
+        "astropy/units/quantity.py"
+      ],
+      "original_visible_files": [
+        "astropy/units/__init__.py",
+        "astropy/units/structured.py"
+      ],
+      "original_missing_files": [
+        "astropy/units/quantity.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 70,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "astropy__astropy-16135",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/coordinates/representation/cylindrical.py"
+      ],
+      "gold_files": [
+        "astropy/coordinates/representation/cylindrical.py",
+        "astropy/coordinates/representation/spherical.py"
+      ],
+      "hidden_files": [
+        "astropy/coordinates/representation/spherical.py"
+      ],
+      "original_visible_files": [
+        "astropy/coordinates/representation/__init__.py",
+        "astropy/coordinates/representation/cylindrical.py"
+      ],
+      "original_missing_files": [
+        "astropy/coordinates/representation/spherical.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 1,
+      "error_markers": []
+    },
+    {
+      "instance_id": "astropy__astropy-16516",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/units/equivalencies.py"
+      ],
+      "gold_files": [
+        "astropy/units/equivalencies.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "astropy/units/__init__.py",
+        "astropy/units/equivalencies.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "astropy__astropy-16677",
+      "repo": "astropy/astropy",
+      "target_files": [
+        "astropy/modeling/core.py"
+      ],
+      "gold_files": [
+        "astropy/modeling/core.py",
+        "astropy/modeling/fitting.py"
+      ],
+      "hidden_files": [
+        "astropy/modeling/fitting.py"
+      ],
+      "original_visible_files": [
+        "astropy/modeling/__init__.py",
+        "astropy/modeling/core.py"
+      ],
+      "original_missing_files": [
+        "astropy/modeling/fitting.py"
+      ],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "aws-powertools__powertools-lambda-python-5588",
+      "repo": "aws-powertools/powertools-lambda-python",
+      "target_files": [
+        "aws_lambda_powertools/event_handler/appsync.py",
+        "examples/event_handler_graphql/src/exception_handling_graphql.py"
+      ],
+      "gold_files": [
+        "aws_lambda_powertools/event_handler/appsync.py",
+        "aws_lambda_powertools/utilities/data_classes/code_pipeline_job_event.py",
+        "examples/event_handler_graphql/src/exception_handling_graphql.py"
+      ],
+      "hidden_files": [
+        "aws_lambda_powertools/utilities/data_classes/code_pipeline_job_event.py"
+      ],
+      "original_visible_files": [
+        "aws_lambda_powertools/event_handler/__init__.py",
+        "aws_lambda_powertools/event_handler/appsync.py",
+        "aws_lambda_powertools/event_handler/graphql_appsync/router.py",
+        "examples/event_handler_graphql/src/exception_handling_graphql.py"
+      ],
+      "original_missing_files": [
+        "aws_lambda_powertools/utilities/data_classes/code_pipeline_job_event.py"
+      ],
+      "f2p_pass": 2,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3423",
+      "repo": "aws/sagemaker-python-sdk",
+      "target_files": [
+        "src/sagemaker/image_uris.py"
+      ],
+      "gold_files": [
+        "src/sagemaker/image_uri_config/pytorch-neuron.json",
+        "src/sagemaker/image_uris.py"
+      ],
+      "hidden_files": [
+        "src/sagemaker/image_uri_config/pytorch-neuron.json"
+      ],
+      "original_visible_files": [
+        "src/sagemaker/__init__.py",
+        "src/sagemaker/image_uris.py"
+      ],
+      "original_missing_files": [
+        "src/sagemaker/image_uri_config/pytorch-neuron.json"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "aws__sagemaker-python-sdk-3432",
+      "repo": "aws/sagemaker-python-sdk",
+      "target_files": [
+        "src/sagemaker/image_uris.py"
+      ],
+      "gold_files": [
+        "src/sagemaker/fw_utils.py",
+        "src/sagemaker/image_uri_config/pytorch.json",
+        "src/sagemaker/image_uri_config/tensorflow.json",
+        "src/sagemaker/image_uris.py"
+      ],
+      "hidden_files": [
+        "src/sagemaker/fw_utils.py",
+        "src/sagemaker/image_uri_config/pytorch.json",
+        "src/sagemaker/image_uri_config/tensorflow.json"
+      ],
+      "original_visible_files": [
+        "src/sagemaker/__init__.py",
+        "src/sagemaker/image_uris.py"
+      ],
+      "original_missing_files": [
+        "src/sagemaker/fw_utils.py",
+        "src/sagemaker/image_uri_config/pytorch.json",
+        "src/sagemaker/image_uri_config/tensorflow.json"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "boto__boto3-605",
+      "repo": "boto/boto3",
+      "target_files": [
+        "boto3/dynamodb/table.py"
+      ],
+      "gold_files": [
+        ".changes/next-release/feature-DynamoDB.json",
+        "boto3/dynamodb/table.py"
+      ],
+      "hidden_files": [
+        ".changes/next-release/feature-DynamoDB.json"
+      ],
+      "original_visible_files": [
+        "boto3/dynamodb/__init__.py",
+        "boto3/dynamodb/table.py"
+      ],
+      "original_missing_files": [
+        ".changes/next-release/feature-DynamoDB.json"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-10154",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/files/symlinks/symlinks.py"
+      ],
+      "gold_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py",
+        "conan/tools/files/symlinks/symlinks.py"
+      ],
+      "hidden_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/files/symlinks/symlinks.py"
+      ],
+      "original_missing_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-11284",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/gnu/autotoolstoolchain.py"
+      ],
+      "gold_files": [
+        "conan/tools/gnu/autotools.py",
+        "conan/tools/gnu/autotoolstoolchain.py",
+        "conans/assets/templates/new_v2_autotools.py"
+      ],
+      "hidden_files": [
+        "conan/tools/gnu/autotools.py",
+        "conans/assets/templates/new_v2_autotools.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/cmake/toolchain/__init__.py",
+        "conan/tools/cmake/toolchain/blocks.py",
+        "conan/tools/cmake/toolchain/toolchain.py",
+        "conan/tools/gnu/__init__.py",
+        "conan/tools/gnu/autotoolstoolchain.py",
+        "conan/tools/meson/__init__.py",
+        "conan/tools/meson/toolchain.py"
+      ],
+      "original_missing_files": [
+        "conan/tools/gnu/autotools.py",
+        "conans/assets/templates/new_v2_autotools.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-11569",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/files/files.py"
+      ],
+      "gold_files": [
+        "conan/tools/files/files.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/files.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-11675",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conans/paths/__init__.py"
+      ],
+      "gold_files": [
+        "conans/paths/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conans/paths/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 4,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-11678",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/gnu/autotoolstoolchain.py"
+      ],
+      "gold_files": [
+        "conan/tools/gnu/autotoolstoolchain.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conan/tools/gnu/__init__.py",
+        "conan/tools/gnu/autotoolstoolchain.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 4,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-12094",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conans/model/options.py",
+        "conans/model/settings.py"
+      ],
+      "gold_files": [
+        "conans/model/options.py",
+        "conans/model/settings.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conans/model/__init__.py",
+        "conans/model/options.py",
+        "conans/model/settings.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-12243",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/api/subapi/install.py"
+      ],
+      "gold_files": [
+        "conan/api/subapi/install.py",
+        "conan/cli/commands/graph.py"
+      ],
+      "hidden_files": [
+        "conan/cli/commands/graph.py"
+      ],
+      "original_visible_files": [
+        "conan/api/subapi/__init__.py",
+        "conan/api/subapi/install.py"
+      ],
+      "original_missing_files": [
+        "conan/cli/commands/graph.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 16,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-12873",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/android/utils.py"
+      ],
+      "gold_files": [
+        "conan/tools/android/__init__.py",
+        "conan/tools/android/utils.py",
+        "conan/tools/cmake/toolchain/blocks.py"
+      ],
+      "hidden_files": [
+        "conan/tools/android/__init__.py",
+        "conan/tools/cmake/toolchain/blocks.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/android/utils.py"
+      ],
+      "original_missing_files": [
+        "conan/tools/android/__init__.py",
+        "conan/tools/cmake/toolchain/blocks.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-12886",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "gold_files": [
+        "conan/tools/microsoft/__init__.py",
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "hidden_files": [
+        "conan/tools/microsoft/__init__.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/microsoft/__init__.py",
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 5,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-12887",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "gold_files": [
+        "conan/tools/microsoft/__init__.py",
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "hidden_files": [
+        "conan/tools/microsoft/__init__.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/microsoft/__init__.py",
+        "conan/tools/microsoft/subsystems.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 5,
+      "f2p_fail": 10,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-12980",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conans/client/cache/cache.py"
+      ],
+      "gold_files": [
+        "conans/client/cache/cache.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conans/client/cache/cache.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "conan-io__conan-14233",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/gnu/pkgconfigdeps.py"
+      ],
+      "gold_files": [
+        "conan/tools/gnu/pkgconfigdeps.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conan/tools/gnu/__init__.py",
+        "conan/tools/gnu/pkgconfigdeps.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-15284",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/api/subapi/lockfile.py",
+        "conan/cli/commands/lock.py",
+        "conans/model/graph_lock.py"
+      ],
+      "gold_files": [
+        "conan/api/subapi/lockfile.py",
+        "conan/cli/commands/lock.py",
+        "conans/model/graph_lock.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "conan/api/conan_api.py",
+        "conan/api/subapi/graph.py",
+        "conan/api/subapi/lockfile.py",
+        "conan/cli/commands/lock.py",
+        "conans/model/graph_lock.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 5,
+      "f2p_fail": 12,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-16231",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conan/tools/cmake/cmakedeps/templates/__init__.py"
+      ],
+      "gold_files": [
+        "conan/tools/cmake/cmakedeps/templates/__init__.py",
+        "conan/tools/cmake/cmakedeps/templates/config.py"
+      ],
+      "hidden_files": [
+        "conan/tools/cmake/cmakedeps/templates/config.py"
+      ],
+      "original_visible_files": [
+        "conan/tools/cmake/cmakedeps/templates/__init__.py"
+      ],
+      "original_missing_files": [
+        "conan/tools/cmake/cmakedeps/templates/config.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "conan-io__conan-16871",
+      "repo": "conan-io/conan",
+      "target_files": [
+        "conans/client/graph/build_mode.py",
+        "conans/client/graph/graph_binaries.py"
+      ],
+      "gold_files": [
+        "conans/client/graph/build_mode.py",
+        "conans/client/graph/compute_pid.py",
+        "conans/client/graph/graph_binaries.py"
+      ],
+      "hidden_files": [
+        "conans/client/graph/compute_pid.py"
+      ],
+      "original_visible_files": [
+        "conans/client/graph/build_mode.py",
+        "conans/client/graph/compute_pid.py",
+        "conans/client/graph/graph.py",
+        "conans/client/graph/graph_binaries.py",
+        "conans/client/graph/install_graph.py",
+        "conans/client/manager.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 5,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "deepset-ai__haystack-7933",
+      "repo": "deepset-ai/haystack",
+      "target_files": [
+        "haystack/components/preprocessors/document_splitter.py"
+      ],
+      "gold_files": [
+        "haystack/components/preprocessors/document_splitter.py",
+        "releasenotes/notes/add-split_id_and_overlap_to_DocumentSplitter-8180ad8f13495741.yaml"
+      ],
+      "hidden_files": [
+        "releasenotes/notes/add-split_id_and_overlap_to_DocumentSplitter-8180ad8f13495741.yaml"
+      ],
+      "original_visible_files": [
+        "haystack/components/preprocessors/__init__.py",
+        "haystack/components/preprocessors/document_splitter.py"
+      ],
+      "original_missing_files": [
+        "releasenotes/notes/add-split_id_and_overlap_to_DocumentSplitter-8180ad8f13495741.yaml"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "deepset-ai__haystack-8042",
+      "repo": "deepset-ai/haystack",
+      "target_files": [
+        "haystack/document_stores/types/filter_policy.py"
+      ],
+      "gold_files": [
+        "haystack/document_stores/types/__init__.py",
+        "haystack/document_stores/types/filter_policy.py",
+        "releasenotes/notes/implement-merge-filter-logic-99e6785a78f80ae9.yaml"
+      ],
+      "hidden_files": [
+        "haystack/document_stores/types/__init__.py",
+        "releasenotes/notes/implement-merge-filter-logic-99e6785a78f80ae9.yaml"
+      ],
+      "original_visible_files": [
+        "haystack/document_stores/types/__init__.py",
+        "haystack/document_stores/types/filter_policy.py"
+      ],
+      "original_missing_files": [
+        "releasenotes/notes/implement-merge-filter-logic-99e6785a78f80ae9.yaml"
+      ],
+      "f2p_pass": 6,
+      "f2p_fail": 5,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "deepset-ai__haystack-8336",
+      "repo": "deepset-ai/haystack",
+      "target_files": [
+        "haystack/components/preprocessors/document_splitter.py"
+      ],
+      "gold_files": [
+        "haystack/components/preprocessors/document_splitter.py",
+        "releasenotes/notes/feat-documentsplitter-add-split-by-function-77501f439b63bb49.yaml"
+      ],
+      "hidden_files": [
+        "releasenotes/notes/feat-documentsplitter-add-split-by-function-77501f439b63bb49.yaml"
+      ],
+      "original_visible_files": [
+        "haystack/components/preprocessors/__init__.py",
+        "haystack/components/preprocessors/document_splitter.py"
+      ],
+      "original_missing_files": [
+        "releasenotes/notes/feat-documentsplitter-add-split-by-function-77501f439b63bb49.yaml"
+      ],
+      "f2p_pass": 1,
+      "f2p_fail": 6,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "django__django-16369",
+      "repo": "django/django",
+      "target_files": [
+        "django/contrib/sitemaps/__init__.py"
+      ],
+      "gold_files": [
+        "django/contrib/sitemaps/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "django/contrib/sitemaps/__init__.py",
+        "django/contrib/sitemaps/views.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 33,
+      "error_markers": []
+    },
+    {
+      "instance_id": "docker__docker-py-1230",
+      "repo": "docker/docker-py",
+      "target_files": [
+        "docker/api/swarm.py"
+      ],
+      "gold_files": [
+        "docker/api/swarm.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "docker/api/__init__.py",
+        "docker/api/swarm.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "embeddings-benchmark__mteb-1256",
+      "repo": "embeddings-benchmark/mteb",
+      "target_files": [
+        "mteb/cli.py",
+        "mteb/evaluation/MTEB.py"
+      ],
+      "gold_files": [
+        "README.md",
+        "mteb/cli.py",
+        "mteb/evaluation/MTEB.py"
+      ],
+      "hidden_files": [
+        "README.md"
+      ],
+      "original_visible_files": [
+        "mteb/__init__.py",
+        "mteb/cli.py",
+        "mteb/evaluation/MTEB.py",
+        "mteb/evaluation/__init__.py"
+      ],
+      "original_missing_files": [
+        "README.md"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 2,
+      "error_markers": []
+    },
+    {
+      "instance_id": "fairlearn__fairlearn-1436",
+      "repo": "fairlearn/fairlearn",
+      "target_files": [
+        "fairlearn/metrics/_disaggregated_result.py"
+      ],
+      "gold_files": [
+        "fairlearn/metrics/_disaggregated_result.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "fairlearn/metrics/__init__.py",
+        "fairlearn/metrics/_disaggregated_result.py",
+        "fairlearn/metrics/_metric_frame.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 5,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "falconry__falcon-640",
+      "repo": "falconry/falcon",
+      "target_files": [
+        "falcon/request.py",
+        "falcon/util/uri.py"
+      ],
+      "gold_files": [
+        "falcon/request.py",
+        "falcon/util/misc.py",
+        "falcon/util/uri.py"
+      ],
+      "hidden_files": [
+        "falcon/util/misc.py"
+      ],
+      "original_visible_files": [
+        "falcon/__init__.py",
+        "falcon/request.py",
+        "falcon/util/__init__.py",
+        "falcon/util/uri.py"
+      ],
+      "original_missing_files": [
+        "falcon/util/misc.py"
+      ],
+      "f2p_pass": 5,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "google-deepmind__optax-632",
+      "repo": "google-deepmind/optax",
+      "target_files": [
+        "optax/projections/_projections.py"
+      ],
+      "gold_files": [
+        "optax/__init__.py",
+        "optax/projections/__init__.py",
+        "optax/projections/_projections.py"
+      ],
+      "hidden_files": [
+        "optax/__init__.py",
+        "optax/projections/__init__.py"
+      ],
+      "original_visible_files": [
+        "optax/projections/_projections.py"
+      ],
+      "original_missing_files": [
+        "optax/__init__.py",
+        "optax/projections/__init__.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "google-deepmind__optax-897",
+      "repo": "google-deepmind/optax",
+      "target_files": [
+        "optax/losses/_self_supervised.py"
+      ],
+      "gold_files": [
+        "optax/__init__.py",
+        "optax/losses/__init__.py",
+        "optax/losses/_self_supervised.py"
+      ],
+      "hidden_files": [
+        "optax/__init__.py",
+        "optax/losses/__init__.py"
+      ],
+      "original_visible_files": [
+        "optax/losses/__init__.py",
+        "optax/losses/_self_supervised.py"
+      ],
+      "original_missing_files": [
+        "optax/__init__.py"
+      ],
+      "f2p_pass": 131,
+      "f2p_fail": 4,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "googleapis__python-aiplatform-4748",
+      "repo": "googleapis/python-aiplatform",
+      "target_files": [
+        "samples/model-builder/vector_search/vector_search_find_neighbors_sample.py"
+      ],
+      "gold_files": [
+        "samples/model-builder/vector_search/vector_search_find_neighbors_sample.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "samples/model-builder/vector_search/vector_search_find_neighbors_sample.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 2,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "huggingface__accelerate-255",
+      "repo": "huggingface/accelerate",
+      "target_files": [
+        "src/accelerate/accelerator.py"
+      ],
+      "gold_files": [
+        "src/accelerate/accelerator.py",
+        "src/accelerate/utils.py"
+      ],
+      "hidden_files": [
+        "src/accelerate/utils.py"
+      ],
+      "original_visible_files": [
+        "src/accelerate/__init__.py",
+        "src/accelerate/accelerator.py"
+      ],
+      "original_missing_files": [
+        "src/accelerate/utils.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "huggingface__accelerate-991",
+      "repo": "huggingface/accelerate",
+      "target_files": [
+        "src/accelerate/accelerator.py"
+      ],
+      "gold_files": [
+        "src/accelerate/accelerator.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "src/accelerate/__init__.py",
+        "src/accelerate/accelerator.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 3,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "huggingface__datasets-214",
+      "repo": "huggingface/datasets",
+      "target_files": [
+        "src/nlp/arrow_dataset.py"
+      ],
+      "gold_files": [
+        "datasets/wikipedia/wikipedia.py",
+        "src/nlp/arrow_dataset.py"
+      ],
+      "hidden_files": [
+        "datasets/wikipedia/wikipedia.py"
+      ],
+      "original_visible_files": [
+        "src/nlp/__init__.py",
+        "src/nlp/arrow_dataset.py"
+      ],
+      "original_missing_files": [
+        "datasets/wikipedia/wikipedia.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "huggingface__datasets-6318",
+      "repo": "huggingface/datasets",
+      "target_files": [
+        "src/datasets/utils/py_utils.py"
+      ],
+      "gold_files": [
+        "src/datasets/utils/py_utils.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "src/datasets/utils/__init__.py",
+        "src/datasets/utils/py_utils.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 16,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "huggingface__huggingface_hub-2027",
+      "repo": "huggingface/huggingface_hub",
+      "target_files": [
+        "src/huggingface_hub/hf_file_system.py"
+      ],
+      "gold_files": [
+        "src/huggingface_hub/hf_file_system.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "src/huggingface_hub/__init__.py",
+        "src/huggingface_hub/hf_file_system.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 2,
+      "error_markers": []
+    },
+    {
+      "instance_id": "joke2k__faker-1783",
+      "repo": "joke2k/faker",
+      "target_files": [
+        "faker/providers/misc/__init__.py"
+      ],
+      "gold_files": [
+        "faker/providers/misc/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "faker/providers/misc/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 44,
+      "error_markers": []
+    },
+    {
+      "instance_id": "joke2k__faker-1848",
+      "repo": "joke2k/faker",
+      "target_files": [
+        "faker/providers/phone_number/en_US/__init__.py"
+      ],
+      "gold_files": [
+        "faker/providers/phone_number/en_US/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "faker/providers/phone_number/en_US/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "joke2k__faker-494",
+      "repo": "joke2k/faker",
+      "target_files": [
+        "faker/providers/file/__init__.py"
+      ],
+      "gold_files": [
+        "faker/providers/file/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "faker/providers/__init__.py",
+        "faker/providers/file/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "joke2k__faker-738",
+      "repo": "joke2k/faker",
+      "target_files": [
+        "faker/providers/file/__init__.py"
+      ],
+      "gold_files": [
+        "faker/providers/file/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "faker/providers/__init__.py",
+        "faker/providers/file/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "joke2k__faker-964",
+      "repo": "joke2k/faker",
+      "target_files": [
+        "faker/providers/person/pl_PL/__init__.py"
+      ],
+      "gold_files": [
+        "faker/providers/person/pl_PL/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "faker/providers/person/pl_PL/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 6,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "lark-parser__lark-466",
+      "repo": "lark-parser/lark",
+      "target_files": [
+        "lark/visitors.py"
+      ],
+      "gold_files": [
+        "lark/visitors.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "lark/__init__.py",
+        "lark/load_grammar.py",
+        "lark/parsers/earley.py",
+        "lark/visitors.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-20634",
+      "repo": "matplotlib/matplotlib",
+      "target_files": [
+        "lib/matplotlib/type1font.py"
+      ],
+      "gold_files": [
+        "lib/matplotlib/type1font.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "lib/matplotlib/__init__.py",
+        "lib/matplotlib/type1font.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-21977",
+      "repo": "matplotlib/matplotlib",
+      "target_files": [
+        "lib/matplotlib/patches.py"
+      ],
+      "gold_files": [
+        "lib/matplotlib/patches.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "lib/matplotlib/__init__.py",
+        "lib/matplotlib/patches.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-23692",
+      "repo": "matplotlib/matplotlib",
+      "target_files": [
+        "lib/matplotlib/axis.py"
+      ],
+      "gold_files": [
+        "lib/matplotlib/axes/_base.py",
+        "lib/matplotlib/axis.py"
+      ],
+      "hidden_files": [
+        "lib/matplotlib/axes/_base.py"
+      ],
+      "original_visible_files": [
+        "lib/matplotlib/__init__.py",
+        "lib/matplotlib/axis.py"
+      ],
+      "original_missing_files": [
+        "lib/matplotlib/axes/_base.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 702,
+      "error_markers": [
+        "IndentationError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-26293",
+      "repo": "matplotlib/matplotlib",
+      "target_files": [
+        "lib/matplotlib/axes/_base.py",
+        "lib/mpl_toolkits/mplot3d/axes3d.py"
+      ],
+      "gold_files": [
+        "lib/matplotlib/axes/_base.py",
+        "lib/matplotlib/axes/_base.pyi",
+        "lib/mpl_toolkits/mplot3d/axes3d.py"
+      ],
+      "hidden_files": [
+        "lib/matplotlib/axes/_base.pyi"
+      ],
+      "original_visible_files": [
+        "lib/matplotlib/axes/__init__.py",
+        "lib/matplotlib/axes/_base.py",
+        "lib/matplotlib/axes/_base.pyi",
+        "lib/mpl_toolkits/mplot3d/__init__.py",
+        "lib/mpl_toolkits/mplot3d/axes3d.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 2,
+      "f2p_fail": 0,
+      "p2p_fail": 13,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "pgmpy__pgmpy-1797",
+      "repo": "pgmpy/pgmpy",
+      "target_files": [
+        "pgmpy/utils/utils.py"
+      ],
+      "gold_files": [
+        "pgmpy/utils/__init__.py",
+        "pgmpy/utils/utils.py",
+        "requirements/runtime.txt"
+      ],
+      "hidden_files": [
+        "pgmpy/utils/__init__.py",
+        "requirements/runtime.txt"
+      ],
+      "original_visible_files": [
+        "pgmpy/utils/__init__.py",
+        "pgmpy/utils/utils.py"
+      ],
+      "original_missing_files": [
+        "requirements/runtime.txt"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "prometheus__client_python-302",
+      "repo": "prometheus/client_python",
+      "target_files": [
+        "prometheus_client/core.py",
+        "prometheus_client/multiprocess.py"
+      ],
+      "gold_files": [
+        "prometheus_client/core.py",
+        "prometheus_client/multiprocess.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "prometheus_client/__init__.py",
+        "prometheus_client/core.py",
+        "prometheus_client/multiprocess.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1017",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/shading.py"
+      ],
+      "gold_files": [
+        "pvlib/shading.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/__init__.py",
+        "pvlib/shading.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 6,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1177",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/temperature.py"
+      ],
+      "gold_files": [
+        "pvlib/temperature.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/__init__.py",
+        "pvlib/temperature.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1190",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/ivtools/sdm.py"
+      ],
+      "gold_files": [
+        "pvlib/ivtools/sdm.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/ivtools/__init__.py",
+        "pvlib/ivtools/sdm.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1562",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/iam.py"
+      ],
+      "gold_files": [
+        "pvlib/iam.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/__init__.py",
+        "pvlib/iam.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1585",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/ivtools/utils.py"
+      ],
+      "gold_files": [
+        "pvlib/ivtools/utils.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/ivtools/__init__.py",
+        "pvlib/ivtools/utils.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 5,
+      "f2p_fail": 5,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1705",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/irradiance.py"
+      ],
+      "gold_files": [
+        "pvlib/irradiance.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/__init__.py",
+        "pvlib/irradiance.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-784",
+      "repo": "pvlib/pvlib-python",
+      "target_files": [
+        "pvlib/ivtools.py"
+      ],
+      "gold_files": [
+        "pvlib/ivtools.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pvlib/__init__.py",
+        "pvlib/ivtools.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 2,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pydata__xarray-4886",
+      "repo": "pydata/xarray",
+      "target_files": [
+        "xarray/backends/plugins.py"
+      ],
+      "gold_files": [
+        "xarray/backends/plugins.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "xarray/backends/__init__.py",
+        "xarray/backends/plugins.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pydicom__pydicom-1648",
+      "repo": "pydicom/pydicom",
+      "target_files": [
+        "pydicom/tag.py"
+      ],
+      "gold_files": [
+        "pydicom/tag.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pydicom/__init__.py",
+        "pydicom/tag.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pygments__pygments-2654",
+      "repo": "pygments/pygments",
+      "target_files": [
+        "pygments/formatters/rtf.py"
+      ],
+      "gold_files": [
+        "AUTHORS",
+        "pygments/formatters/rtf.py"
+      ],
+      "hidden_files": [
+        "AUTHORS"
+      ],
+      "original_visible_files": [
+        "pygments/__init__.py",
+        "pygments/formatter.py",
+        "pygments/formatters/__init__.py",
+        "pygments/formatters/rtf.py"
+      ],
+      "original_missing_files": [
+        "AUTHORS"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 24,
+      "p2p_fail": 2,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pylint-dev__pylint-5315",
+      "repo": "pylint-dev/pylint",
+      "target_files": [
+        "pylint/lint/run.py"
+      ],
+      "gold_files": [
+        "ChangeLog",
+        "pylint/lint/run.py"
+      ],
+      "hidden_files": [
+        "ChangeLog"
+      ],
+      "original_visible_files": [
+        "pylint/lint/__init__.py",
+        "pylint/lint/run.py"
+      ],
+      "original_missing_files": [
+        "ChangeLog"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 100,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "pypa__hatch-211",
+      "repo": "pypa/hatch",
+      "target_files": [
+        "src/hatch/cli/dep/__init__.py"
+      ],
+      "gold_files": [
+        "src/hatch/cli/dep/__init__.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "src/hatch/cli/dep/__init__.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 3,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "pyvista__pyvista-3662",
+      "repo": "pyvista/pyvista",
+      "target_files": [
+        "pyvista/plotting/camera.py"
+      ],
+      "gold_files": [
+        "pyvista/plotting/camera.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pyvista/plotting/__init__.py",
+        "pyvista/plotting/camera.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 21,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "pyvista__pyvista-5055",
+      "repo": "pyvista/pyvista",
+      "target_files": [
+        "pyvista/plotting/text.py"
+      ],
+      "gold_files": [
+        "pyvista/plotting/text.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "pyvista/plotting/__init__.py",
+        "pyvista/plotting/text.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 7,
+      "p2p_fail": 18,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "roboflow__supervision-1237",
+      "repo": "roboflow/supervision",
+      "target_files": [
+        "supervision/utils/internal.py"
+      ],
+      "gold_files": [
+        "supervision/detection/core.py",
+        "supervision/utils/internal.py"
+      ],
+      "hidden_files": [
+        "supervision/detection/core.py"
+      ],
+      "original_visible_files": [
+        "supervision/utils/internal.py"
+      ],
+      "original_missing_files": [
+        "supervision/detection/core.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 12,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "roboflow__supervision-1296",
+      "repo": "roboflow/supervision",
+      "target_files": [
+        "supervision/detection/lmm.py"
+      ],
+      "gold_files": [
+        "supervision/detection/core.py",
+        "supervision/detection/lmm.py"
+      ],
+      "hidden_files": [
+        "supervision/detection/core.py"
+      ],
+      "original_visible_files": [
+        "supervision/detection/lmm.py"
+      ],
+      "original_missing_files": [
+        "supervision/detection/core.py"
+      ],
+      "f2p_pass": 5,
+      "f2p_fail": 14,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "roboflow__supervision-245",
+      "repo": "roboflow/supervision",
+      "target_files": [
+        "supervision/dataset/formats/pascal_voc.py"
+      ],
+      "gold_files": [
+        "supervision/dataset/core.py",
+        "supervision/dataset/formats/pascal_voc.py",
+        "supervision/detection/utils.py"
+      ],
+      "hidden_files": [
+        "supervision/dataset/core.py",
+        "supervision/detection/utils.py"
+      ],
+      "original_visible_files": [
+        "supervision/dataset/formats/pascal_voc.py"
+      ],
+      "original_missing_files": [
+        "supervision/dataset/core.py",
+        "supervision/detection/utils.py"
+      ],
+      "f2p_pass": 6,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "roboflow__supervision-847",
+      "repo": "roboflow/supervision",
+      "target_files": [
+        "supervision/detection/utils.py"
+      ],
+      "gold_files": [
+        "supervision/__init__.py",
+        "supervision/detection/core.py",
+        "supervision/detection/utils.py"
+      ],
+      "hidden_files": [
+        "supervision/__init__.py",
+        "supervision/detection/core.py"
+      ],
+      "original_visible_files": [
+        "supervision/detection/utils.py"
+      ],
+      "original_missing_files": [
+        "supervision/__init__.py",
+        "supervision/detection/core.py"
+      ],
+      "f2p_pass": 77,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "roboflow__supervision-910",
+      "repo": "roboflow/supervision",
+      "target_files": [
+        "supervision/utils/internal.py"
+      ],
+      "gold_files": [
+        "supervision/detection/tools/polygon_zone.py",
+        "supervision/utils/internal.py"
+      ],
+      "hidden_files": [
+        "supervision/detection/tools/polygon_zone.py"
+      ],
+      "original_visible_files": [
+        "supervision/utils/internal.py"
+      ],
+      "original_missing_files": [
+        "supervision/detection/tools/polygon_zone.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 4,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-11196",
+      "repo": "scikit-learn/scikit-learn",
+      "target_files": [
+        "sklearn/utils/sparsefuncs.py"
+      ],
+      "gold_files": [
+        "sklearn/preprocessing/label.py",
+        "sklearn/utils/fixes.py",
+        "sklearn/utils/sparsefuncs.py"
+      ],
+      "hidden_files": [
+        "sklearn/preprocessing/label.py",
+        "sklearn/utils/fixes.py"
+      ],
+      "original_visible_files": [
+        "sklearn/utils/__init__.py",
+        "sklearn/utils/sparsefuncs.py"
+      ],
+      "original_missing_files": [
+        "sklearn/preprocessing/label.py",
+        "sklearn/utils/fixes.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 24,
+      "p2p_fail": 13,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13336",
+      "repo": "scikit-learn/scikit-learn",
+      "target_files": [
+        "sklearn/linear_model/ridge.py"
+      ],
+      "gold_files": [
+        "sklearn/linear_model/ridge.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sklearn/linear_model/__init__.py",
+        "sklearn/linear_model/ridge.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 43,
+      "error_markers": [
+        "ImportError",
+        "ERROR collecting"
+      ]
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-17225",
+      "repo": "scikit-learn/scikit-learn",
+      "target_files": [
+        "sklearn/utils/fixes.py"
+      ],
+      "gold_files": [
+        "sklearn/metrics/_regression.py",
+        "sklearn/utils/fixes.py",
+        "sklearn/utils/stats.py"
+      ],
+      "hidden_files": [
+        "sklearn/metrics/_regression.py",
+        "sklearn/utils/stats.py"
+      ],
+      "original_visible_files": [
+        "sklearn/utils/__init__.py",
+        "sklearn/utils/fixes.py"
+      ],
+      "original_missing_files": [
+        "sklearn/metrics/_regression.py",
+        "sklearn/utils/stats.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-18393",
+      "repo": "scikit-learn/scikit-learn",
+      "target_files": [
+        "sklearn/compose/_column_transformer.py"
+      ],
+      "gold_files": [
+        "sklearn/compose/_column_transformer.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sklearn/__init__.py",
+        "sklearn/compose/__init__.py",
+        "sklearn/compose/_column_transformer.py",
+        "sklearn/pipeline.py",
+        "sklearn/utils/__init__.py",
+        "sklearn/utils/metaestimators.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 42,
+      "error_markers": []
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-29210",
+      "repo": "scikit-learn/scikit-learn",
+      "target_files": [
+        "sklearn/metrics/_classification.py"
+      ],
+      "gold_files": [
+        "sklearn/metrics/_classification.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sklearn/metrics/__init__.py",
+        "sklearn/metrics/_classification.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 2,
+      "f2p_fail": 6,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-1766",
+      "repo": "softlayer/softlayer-python",
+      "target_files": [
+        "SoftLayer/CLI/formatting.py"
+      ],
+      "gold_files": [
+        "SoftLayer/CLI/core.py",
+        "SoftLayer/CLI/formatting.py"
+      ],
+      "hidden_files": [
+        "SoftLayer/CLI/core.py"
+      ],
+      "original_visible_files": [
+        "SoftLayer/CLI/__init__.py",
+        "SoftLayer/CLI/formatting.py"
+      ],
+      "original_missing_files": [
+        "SoftLayer/CLI/core.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "softlayer__softlayer-python-2073",
+      "repo": "softlayer/softlayer-python",
+      "target_files": [
+        "SoftLayer/CLI/user/vpn_enable_or_disable.py",
+        "SoftLayer/managers/user.py"
+      ],
+      "gold_files": [
+        "SoftLayer/CLI/routes.py",
+        "SoftLayer/CLI/user/vpn_enable_or_disable.py",
+        "SoftLayer/managers/user.py"
+      ],
+      "hidden_files": [
+        "SoftLayer/CLI/routes.py"
+      ],
+      "original_visible_files": [
+        "SoftLayer/CLI/user/__init__.py",
+        "SoftLayer/CLI/user/vpn_enable_or_disable.py",
+        "SoftLayer/managers/__init__.py",
+        "SoftLayer/managers/user.py"
+      ],
+      "original_missing_files": [
+        "SoftLayer/CLI/routes.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 54,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-7327",
+      "repo": "sphinx-doc/sphinx",
+      "target_files": [
+        "sphinx/util/logging.py"
+      ],
+      "gold_files": [
+        "sphinx/util/logging.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sphinx/util/__init__.py",
+        "sphinx/util/logging.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 14,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-7597",
+      "repo": "sphinx-doc/sphinx",
+      "target_files": [
+        "sphinx/domains/python.py"
+      ],
+      "gold_files": [
+        "CHANGES",
+        "sphinx/domains/python.py"
+      ],
+      "hidden_files": [
+        "CHANGES"
+      ],
+      "original_visible_files": [
+        "sphinx/domains/__init__.py",
+        "sphinx/domains/python.py"
+      ],
+      "original_missing_files": [
+        "CHANGES"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 27,
+      "error_markers": [
+        "ModuleNotFoundError",
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-9131",
+      "repo": "sphinx-doc/sphinx",
+      "target_files": [
+        "sphinx/transforms/post_transforms/__init__.py"
+      ],
+      "gold_files": [
+        "sphinx/config.py",
+        "sphinx/transforms/post_transforms/__init__.py"
+      ],
+      "hidden_files": [
+        "sphinx/config.py"
+      ],
+      "original_visible_files": [
+        "sphinx/transforms/post_transforms/__init__.py"
+      ],
+      "original_missing_files": [
+        "sphinx/config.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 6,
+      "error_markers": [
+        "IndentationError"
+      ]
+    },
+    {
+      "instance_id": "sqlfluff__sqlfluff-3937",
+      "repo": "sqlfluff/sqlfluff",
+      "target_files": [
+        "src/sqlfluff/core/linter/linting_result.py",
+        "src/sqlfluff/core/parser/segments/base.py"
+      ],
+      "gold_files": [
+        ".gitignore",
+        "src/sqlfluff/cli/commands.py",
+        "src/sqlfluff/core/linter/linting_result.py",
+        "src/sqlfluff/core/parser/segments/base.py"
+      ],
+      "hidden_files": [
+        ".gitignore",
+        "src/sqlfluff/cli/commands.py"
+      ],
+      "original_visible_files": [
+        "src/sqlfluff/cli/__init__.py",
+        "src/sqlfluff/cli/commands.py",
+        "src/sqlfluff/core/__init__.py",
+        "src/sqlfluff/core/linter/__init__.py",
+        "src/sqlfluff/core/linter/linting_result.py",
+        "src/sqlfluff/core/parser/segments/__init__.py",
+        "src/sqlfluff/core/parser/segments/base.py",
+        "src/sqlfluff/core/timing.py"
+      ],
+      "original_missing_files": [
+        ".gitignore"
+      ],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-13304",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/polys/polyclasses.py",
+        "sympy/polys/polytools.py",
+        "sympy/polys/sqfreetools.py"
+      ],
+      "gold_files": [
+        "sympy/polys/polyclasses.py",
+        "sympy/polys/polytools.py",
+        "sympy/polys/sqfreetools.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/core/__init__.py",
+        "sympy/core/sympify.py",
+        "sympy/polys/__init__.py",
+        "sympy/polys/algorithms.py",
+        "sympy/polys/densearith.py",
+        "sympy/polys/densebasic.py",
+        "sympy/polys/polyclasses.py",
+        "sympy/polys/polytools.py",
+        "sympy/polys/polyutils.py",
+        "sympy/polys/sqfreetools.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-13345",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/printing/repr.py"
+      ],
+      "gold_files": [
+        "sympy/printing/repr.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/printing/__init__.py",
+        "sympy/printing/latex.py",
+        "sympy/printing/mathml.py",
+        "sympy/printing/pretty/__init__.py",
+        "sympy/printing/pretty/pretty.py",
+        "sympy/printing/printer.py",
+        "sympy/printing/repr.py",
+        "sympy/printing/str.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-14745",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/discrete/convolution.py"
+      ],
+      "gold_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/convolution.py",
+        "sympy/discrete/transforms.py"
+      ],
+      "hidden_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/transforms.py"
+      ],
+      "original_visible_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/convolution.py"
+      ],
+      "original_missing_files": [
+        "sympy/discrete/transforms.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ModuleNotFoundError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-14826",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/continuum_mechanics/beam.py"
+      ],
+      "gold_files": [
+        "sympy/physics/continuum_mechanics/beam.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/physics/continuum_mechanics/__init__.py",
+        "sympy/physics/continuum_mechanics/beam.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-14954",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/discrete/convolution.py"
+      ],
+      "gold_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/convolution.py"
+      ],
+      "hidden_files": [
+        "sympy/discrete/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/convolution.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 7,
+      "p2p_fail": 0,
+      "error_markers": [
+        "IndentationError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-14968",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/combinatorics/coset_table.py"
+      ],
+      "gold_files": [
+        "sympy/combinatorics/coset_table.py",
+        "sympy/combinatorics/fp_groups.py"
+      ],
+      "hidden_files": [
+        "sympy/combinatorics/fp_groups.py"
+      ],
+      "original_visible_files": [
+        "sympy/combinatorics/__init__.py",
+        "sympy/combinatorics/coset_table.py",
+        "sympy/printing/__init__.py",
+        "sympy/printing/defaults.py"
+      ],
+      "original_missing_files": [
+        "sympy/combinatorics/fp_groups.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-15333",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/tensor/array/ndim_array.py"
+      ],
+      "gold_files": [
+        "sympy/tensor/array/dense_ndim_array.py",
+        "sympy/tensor/array/ndim_array.py",
+        "sympy/tensor/array/sparse_ndim_array.py"
+      ],
+      "hidden_files": [
+        "sympy/tensor/array/dense_ndim_array.py",
+        "sympy/tensor/array/sparse_ndim_array.py"
+      ],
+      "original_visible_files": [
+        "sympy/tensor/__init__.py",
+        "sympy/tensor/array/__init__.py",
+        "sympy/tensor/array/dense_ndim_array.py",
+        "sympy/tensor/array/ndim_array.py",
+        "sympy/tensor/array/sparse_ndim_array.py",
+        "sympy/tensor/indexed.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 0,
+      "p2p_fail": 1,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-15661",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/functions/elementary/exponential.py"
+      ],
+      "gold_files": [
+        "sympy/functions/elementary/exponential.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/functions/elementary/__init__.py",
+        "sympy/functions/elementary/exponential.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-15693",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/stats/rv_interface.py"
+      ],
+      "gold_files": [
+        "sympy/stats/__init__.py",
+        "sympy/stats/rv_interface.py"
+      ],
+      "hidden_files": [
+        "sympy/stats/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/stats/__init__.py",
+        "sympy/stats/rv_interface.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 21,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-15825",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/crypto/crypto.py"
+      ],
+      "gold_files": [
+        "sympy/crypto/__init__.py",
+        "sympy/crypto/crypto.py"
+      ],
+      "hidden_files": [
+        "sympy/crypto/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/crypto/__init__.py",
+        "sympy/crypto/crypto.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 39,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-16253",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/utilities/misc.py"
+      ],
+      "gold_files": [
+        "sympy/utilities/misc.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/utilities/__init__.py",
+        "sympy/utilities/misc.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 3,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-16423",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/quantum/commutator.py"
+      ],
+      "gold_files": [
+        "sympy/physics/quantum/commutator.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/__init__.py",
+        "sympy/physics/quantum/__init__.py",
+        "sympy/physics/quantum/applyops.py",
+        "sympy/physics/quantum/commutator.py",
+        "sympy/physics/quantum/operator.py",
+        "sympy/physics/quantum/quantum.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 2,
+      "error_markers": [
+        "SyntaxError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-16522",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/combinatorics/fp_groups.py",
+        "sympy/combinatorics/perm_groups.py"
+      ],
+      "gold_files": [
+        "sympy/combinatorics/fp_groups.py",
+        "sympy/combinatorics/homomorphisms.py",
+        "sympy/combinatorics/perm_groups.py"
+      ],
+      "hidden_files": [
+        "sympy/combinatorics/homomorphisms.py"
+      ],
+      "original_visible_files": [
+        "sympy/combinatorics/__init__.py",
+        "sympy/combinatorics/fp_groups.py",
+        "sympy/combinatorics/perm_groups.py",
+        "sympy/printing/__init__.py",
+        "sympy/printing/defaults.py"
+      ],
+      "original_missing_files": [
+        "sympy/combinatorics/homomorphisms.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-17077",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/stats/rv_interface.py"
+      ],
+      "gold_files": [
+        "sympy/stats/__init__.py",
+        "sympy/stats/rv_interface.py"
+      ],
+      "hidden_files": [
+        "sympy/stats/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/stats/__init__.py",
+        "sympy/stats/rv_interface.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 24,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-17153",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/geometry/ellipse.py",
+        "sympy/geometry/polygon.py"
+      ],
+      "gold_files": [
+        "sympy/geometry/ellipse.py",
+        "sympy/geometry/polygon.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/geometry/__init__.py",
+        "sympy/geometry/ellipse.py",
+        "sympy/geometry/polygon.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-17806",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/functions/special/elliptic_integrals.py"
+      ],
+      "gold_files": [
+        "sympy/functions/special/elliptic_integrals.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/functions/__init__.py",
+        "sympy/functions/special/__init__.py",
+        "sympy/functions/special/elliptic_integrals.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 3,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-17974",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/polys/multivariate_resultants.py"
+      ],
+      "gold_files": [
+        "sympy/polys/multivariate_resultants.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/polys/__init__.py",
+        "sympy/polys/multivariate_resultants.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 5,
+      "p2p_fail": 9,
+      "error_markers": [
+        "ImportError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-18085",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/ntheory/factor_.py"
+      ],
+      "gold_files": [
+        "sympy/ntheory/__init__.py",
+        "sympy/ntheory/factor_.py"
+      ],
+      "hidden_files": [
+        "sympy/ntheory/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/ntheory/__init__.py",
+        "sympy/ntheory/factor_.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 30,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-18335",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/geometry/polygon.py"
+      ],
+      "gold_files": [
+        "sympy/geometry/polygon.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/geometry/__init__.py",
+        "sympy/geometry/polygon.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-20238",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/stats/stochastic_process_types.py"
+      ],
+      "gold_files": [
+        "sympy/stats/stochastic_process_types.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/stats/__init__.py",
+        "sympy/stats/stochastic_process_types.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-20886",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/functions/special/bessel.py"
+      ],
+      "gold_files": [
+        "sympy/functions/special/bessel.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/functions/special/__init__.py",
+        "sympy/functions/special/bessel.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-21052",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/matrices/determinant.py"
+      ],
+      "gold_files": [
+        "sympy/matrices/determinant.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/matrices/__init__.py",
+        "sympy/matrices/determinant.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-21510",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/logic/algorithms/minisat22_wrapper.py"
+      ],
+      "gold_files": [
+        ".mailmap",
+        ".travis.yml",
+        "setup.cfg",
+        "sympy/logic/algorithms/minisat22_wrapper.py",
+        "sympy/logic/inference.py"
+      ],
+      "hidden_files": [
+        ".mailmap",
+        ".travis.yml",
+        "setup.cfg",
+        "sympy/logic/inference.py"
+      ],
+      "original_visible_files": [
+        "sympy/logic/algorithms/minisat22_wrapper.py"
+      ],
+      "original_missing_files": [
+        ".mailmap",
+        ".travis.yml",
+        "setup.cfg",
+        "sympy/logic/inference.py"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-21634",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/control/lti.py"
+      ],
+      "gold_files": [
+        "sympy/physics/control/lti.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/physics/control/__init__.py",
+        "sympy/physics/control/lti.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-21712",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/mechanics/body.py"
+      ],
+      "gold_files": [
+        "sympy/physics/mechanics/body.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/physics/mechanics/__init__.py",
+        "sympy/physics/mechanics/body.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 1,
+      "f2p_fail": 4,
+      "p2p_fail": 1,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-21973",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/logic/boolalg.py"
+      ],
+      "gold_files": [
+        "sympy/logic/__init__.py",
+        "sympy/logic/boolalg.py"
+      ],
+      "hidden_files": [
+        "sympy/logic/__init__.py"
+      ],
+      "original_visible_files": [
+        "sympy/logic/__init__.py",
+        "sympy/logic/boolalg.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 78,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-22476",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/matrices/expressions/matexpr.py"
+      ],
+      "gold_files": [
+        "sympy/matrices/expressions/matexpr.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/matrices/expressions/__init__.py",
+        "sympy/matrices/expressions/matexpr.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 6,
+      "p2p_fail": 3,
+      "error_markers": [
+        "ModuleNotFoundError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-23111",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/vector/vector.py"
+      ],
+      "gold_files": [
+        "sympy/physics/vector/vector.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/physics/vector/__init__.py",
+        "sympy/physics/vector/vector.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 0,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-23329",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/combinatorics/group_numbers.py"
+      ],
+      "gold_files": [
+        ".mailmap",
+        "AUTHORS",
+        "sympy/combinatorics/group_numbers.py"
+      ],
+      "hidden_files": [
+        ".mailmap",
+        "AUTHORS"
+      ],
+      "original_visible_files": [
+        "sympy/combinatorics/__init__.py",
+        "sympy/combinatorics/group_numbers.py"
+      ],
+      "original_missing_files": [
+        ".mailmap",
+        "AUTHORS"
+      ],
+      "f2p_pass": 0,
+      "f2p_fail": 2,
+      "p2p_fail": 0,
+      "error_markers": [
+        "ModuleNotFoundError"
+      ]
+    },
+    {
+      "instance_id": "sympy__sympy-24070",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/physics/wigner.py"
+      ],
+      "gold_files": [
+        ".mailmap",
+        "sympy/physics/wigner.py"
+      ],
+      "hidden_files": [
+        ".mailmap"
+      ],
+      "original_visible_files": [
+        "sympy/physics/__init__.py",
+        "sympy/physics/wigner.py"
+      ],
+      "original_missing_files": [
+        ".mailmap"
+      ],
+      "f2p_pass": 6,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    },
+    {
+      "instance_id": "sympy__sympy-24437",
+      "repo": "sympy/sympy",
+      "target_files": [
+        "sympy/utilities/iterables.py"
+      ],
+      "gold_files": [
+        "sympy/utilities/iterables.py"
+      ],
+      "hidden_files": [],
+      "original_visible_files": [
+        "sympy/utilities/__init__.py",
+        "sympy/utilities/iterables.py"
+      ],
+      "original_missing_files": [],
+      "f2p_pass": 44,
+      "f2p_fail": 1,
+      "p2p_fail": 0,
+      "error_markers": []
+    }
+  ],
+  "counts": {
+    "instances": 121,
+    "gold_files": 220,
+    "gold_visible": 155,
+    "hidden_files": 83,
+    "hidden_visible": 18,
+    "missing_instances": 48,
+    "p2p_failure_instances": 31,
+    "partial_f2p_instances": 31,
+    "f2p_any_pass_instances": 33
+  }
+}

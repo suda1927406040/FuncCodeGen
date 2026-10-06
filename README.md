@@ -6,6 +6,8 @@
 默认 `expanded` 检索在 v5 历史共修改文件之外，加入多 anchor、跨文件调用者和
 被调用者、导入别名与重新导出、状态字段生产者/消费者，以及新包的初始化和导出位置。
 候选有具体函数、行号、字段写入和 if/异常分支证据；候选文件不自动成为必改文件。
+检索也从请求点名的 API 出发，解析继承/成员对象调用、已有模块的传递导出，以及
+代码引用的配置和模板；最终代码区为候选的首要完整方法预留空间。
 
 完整文件先做 AST 解析，之后按完整代码块控制最终 prompt 的 80,000 字符预算，
 避免原来的 20,000 字符截断让 AST 失败。编辑解析支持缺少外层结束标签的完整片段；
@@ -68,3 +70,9 @@ python scripts/evaluate_recall.py \
 
 已检查的 17 个真实 base-tree 小样本、统计定义及限制见
 [evaluation/README.md](evaluation/README.md)。召回率与最终解决率需要分别评测。
+
+针对当前 honest 结果全部 **121 个 unresolved** 的逐例诊断、改动依据及验证范围见
+[evaluation/unresolved/README.md](evaluation/unresolved/README.md)。本地 17 个快照中只有
+5 个属于该失败集合。指定全量集合时加 `--ids-json evaluation/unresolved/ids.json
+--require-complete`；`--location-labels evaluation/unresolved/location_labels.json` 可在检索
+完成后评分具体已有方法是否保留在 prompt，标签不会传给检索或生成接口。

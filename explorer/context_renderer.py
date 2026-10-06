@@ -1,9 +1,49 @@
 """Render complete AST blocks under a character budget, after full-file parsing."""
 import ast
+import re
 from pathlib import Path
 from typing import List
 
 from explorer.feature_retriever import identifier_terms
+
+
+def render_resource(source: str, symbols: List[str], request: str, budget: int) -> str:
+    """Keep original resource lines so before snippets still match the real file."""
+    if len(source) <= budget:
+        return source
+    lines = source.splitlines(keepends=True)
+    terms = identifier_terms(request)
+    wanted = set(symbols)
+    windows = []
+    for number, line in enumerate(lines):
+        key = re.search(r'["\']([^"\']+)["\']\s*:', line)
+        score = len(terms & identifier_terms(line))
+        if key and key.group(1) in wanted:
+            score += 10
+        if score:
+            windows.append((score, max(0, number - 4), min(len(lines), number + 5)))
+    chosen = set()
+    remaining = max(0, budget - 150)
+    for _, start, end in sorted(windows, key=lambda item: (-item[0], item[1])):
+        extra = set(range(start, end)) - chosen
+        size = sum(len(lines[n]) for n in extra) + 60
+        if size <= remaining:
+            chosen.update(extra)
+            remaining -= size
+    if not chosen:
+        for number, line in enumerate(lines):
+            if len(line) > remaining:
+                break
+            chosen.add(number)
+            remaining -= len(line)
+    parts = ["# Original resource excerpts; omitted lines are not deleted.\n"]
+    previous = -2
+    for number in sorted(chosen):
+        if number > previous + 1:
+            parts.append("\n# ... other resource lines omitted ...\n")
+        parts.append(lines[number])
+        previous = number
+    return "".join(parts)
 
 
 def render_source(source: str, symbols: List[str], request: str, budget: int) -> str:
@@ -16,6 +56,7 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
         return "# File omitted: cannot select complete AST blocks within this budget."
     lines = source.splitlines(keepends=True)
     wanted = set(symbols)
+    priorities = {name: 25.0 / (position + 1) for position, name in reversed(list(enumerate(symbols)))}
     terms = identifier_terms(request)
     blocks = []
     headers = {}
@@ -26,7 +67,7 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
         text = "".join(lines[start:end])
         score = 1 + len(terms & identifier_terms(name))
         if name in wanted or name.split(".")[-1] in wanted:
-            score += 100
+            score += 100 + priorities.get(name, priorities.get(name.split(".")[-1], 0))
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             score += 40
         if name.endswith(".__init__"):
@@ -37,7 +78,9 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
         if isinstance(node, ast.ClassDef):
             class_start = min([node.lineno] + [d.lineno for d in node.decorator_list]) - 1
             # Include the full multiline class declaration, up to its first body statement.
-            headers[node.name] = (class_start, "".join(lines[class_start:node.body[0].lineno - 1]))
+            first = node.body[0]
+            body_start = min([first.lineno] + [d.lineno for d in getattr(first, "decorator_list", [])]) - 1
+            headers[node.name] = (class_start, "".join(lines[class_start:body_start]))
             for child in node.body:
                 add(child, node.name + "." + getattr(child, "name", ""), node.name)
         else:
@@ -71,6 +114,7 @@ def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int) -> str
     sections = []
     targets = {c.target_file for c in ctx.components} if ctx else set()
     symbols = {}
+    minimum = {file: 1000 for file in files}
     if ctx:
         symbols.update({path: list(names) for path, names in
                         ctx.recall_diagnostics.get("target_context_symbols", {}).items()})
@@ -79,19 +123,32 @@ def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int) -> str
                 [component.name] + [n.class_name + "." + n.method_name for n in component.reference_call_chain])
         for candidate in ctx.recalled_files:
             symbols[candidate.file] = candidate.symbols
+            if candidate.snippets:
+                # Reserve enough room for the primary retrieved function,
+                # imports/class header and omission markers, rather than a
+                # fixed small prefix that may contain no relevant method.
+                minimum[candidate.file] = min(9000, len(candidate.snippets[0]) + 700)
+    sources = {}
+    for file in files:
+        path = repo_dir / file
+        source = path.read_text(errors="replace") if path.is_file() else ""
+        sources[file] = source
+        minimum[file] = min(minimum[file], len(source)) if source else 80
     remaining = budget
     for position, file in enumerate(files):
         path = repo_dir / file
         header, footer = "\n[start of %s]\n" % file, "\n[end of %s]\n" % file
         overhead = len(header) + len(footer)
         # Reserve room for later candidate files rather than letting one file consume everything.
-        reserve = min(1800 * (len(files) - position - 1), max(0, remaining // 2))
+        reserve = min(sum(minimum[later] + len(later) * 2 + 40 for later in files[position + 1:]),
+                      max(0, remaining // 2))
         allocation = min(22000 if file in targets else 9000, remaining - overhead - reserve)
         if allocation < 200:
             continue
         if path.is_file():
-            source = path.read_text(errors="replace")
-            text = render_source(source, symbols.get(file, []), ctx.request if ctx else "", allocation)
+            source = sources[file]
+            render = render_source if path.suffix in {".py", ".pyi"} else render_resource
+            text = render(source, symbols.get(file, []), ctx.request if ctx else "", allocation)
         else:
             text = "(file does not exist yet, needs to be created)"
         section = header + text + footer
