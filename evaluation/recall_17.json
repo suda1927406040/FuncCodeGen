@@ -1,0 +1,2836 @@
+{
+  "summary": {
+    "v1": {
+      "instances": 17,
+      "gold_hits": 19,
+      "gold_total": 27,
+      "file_recall": 0.7037037037037037,
+      "hidden_hits": 1,
+      "hidden_total": 9,
+      "hidden_recall": 0.1111111111111111,
+      "mean_files": 1.7058823529411764,
+      "mean_prompt_chars": 49209.0,
+      "seconds": 2.324
+    },
+    "v5": {
+      "instances": 17,
+      "gold_hits": 20,
+      "gold_total": 27,
+      "file_recall": 0.7407407407407407,
+      "hidden_hits": 2,
+      "hidden_total": 9,
+      "hidden_recall": 0.2222222222222222,
+      "mean_files": 2.823529411764706,
+      "mean_prompt_chars": 39105.0,
+      "seconds": 65.394
+    },
+    "expanded": {
+      "instances": 17,
+      "gold_hits": 27,
+      "gold_total": 27,
+      "file_recall": 1.0,
+      "hidden_hits": 9,
+      "hidden_total": 9,
+      "hidden_recall": 1.0,
+      "mean_files": 11.411764705882353,
+      "mean_prompt_chars": 72619.41176470589,
+      "seconds": 104.503
+    }
+  },
+  "records": [
+    {
+      "instance_id": "conan-io__conan-16871",
+      "expected_files": [
+        "conans/client/graph/build_mode.py",
+        "conans/client/graph/compute_pid.py",
+        "conans/client/graph/graph_binaries.py"
+      ],
+      "hidden_files": [
+        "conans/client/graph/compute_pid.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "conans/client/graph/build_mode.py",
+            "conans/client/graph/graph_binaries.py"
+          ],
+          "prompt_chars": 72565,
+          "seconds": 0.147,
+          "gold_hits": 2,
+          "gold_total": 3,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "conans/client/graph/compute_pid.py"
+          ],
+          "hidden_missing": [
+            "conans/client/graph/compute_pid.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "conans/client/graph/__init__.py",
+            "conans/client/graph/build_mode.py",
+            "conans/client/graph/graph_binaries.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 46713,
+          "parse_failures": [],
+          "seconds": 0.068,
+          "gold_hits": 2,
+          "gold_total": 3,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "conans/client/graph/compute_pid.py"
+          ],
+          "hidden_missing": [
+            "conans/client/graph/compute_pid.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "conans/client/graph/build_mode.py",
+            "conans/client/graph/compatibility.py",
+            "conans/client/graph/compute_pid.py",
+            "conans/client/graph/graph_binaries.py",
+            "conans/client/graph/graph_builder.py",
+            "conans/client/graph/install_graph.py",
+            "conans/client/graph/proxy.py",
+            "conans/client/installer.py",
+            "conans/errors.py",
+            "conans/model/__init__.py",
+            "conans/model/info.py"
+          ],
+          "candidates": [
+            {
+              "file": "conans/client/graph/proxy.py",
+              "score": 16.0,
+              "reasons": [
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._find_existing_compatible_binaries (hop 1)",
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_compatible_node (hop 2)",
+                "caller of conans/client/graph/proxy.py:should_update_reference (hop 2)",
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_in_cache (hop 3)",
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._get_package_from_remotes (hop 3)",
+                "callee of conans/client/graph/proxy.py:ConanProxy._find_newest_recipe_in_remotes (hop 3)",
+                "caller of conans/client/graph/proxy.py:ConanProxy._find_newest_recipe_in_remotes (hop 3)",
+                "callee of conans/client/graph/proxy.py:ConanProxy._get_recipe (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/client/graph/install_graph.py",
+              "score": 14.467786838055364,
+              "reasons": [
+                "producer/consumer of node with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._skip_binaries",
+                "producer/consumer of should_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_build",
+                "producer/consumer of should_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_is_cached",
+                "producer/consumer of invalid, should_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "symbol matches feature terms: build, package",
+                "symbol matches feature terms: graph, order",
+                "symbol matches feature terms: build, graph, order",
+                "symbol matches feature terms: graph, package"
+              ]
+            },
+            {
+              "file": "conans/client/installer.py",
+              "score": 14.242640687119284,
+              "reasons": [
+                "producer/consumer of binary_remote with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_in_cache",
+                "producer/consumer of binary_remote with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_is_cached",
+                "producer/consumer of binary_remote with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._get_package_from_remotes",
+                "producer/consumer of binary_remote with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_locked_node",
+                "symbol matches feature terms: build, package",
+                "symbol matches feature terms: binary, package",
+                "symbol matches feature terms: binary, build"
+              ]
+            },
+            {
+              "file": "conans/errors.py",
+              "score": 14.190890230020663,
+              "reasons": [
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer.evaluate_graph (hop 3)",
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._get_package_from_remotes (hop 3)",
+                "callee of conans/client/graph/range_resolver.py:RangeResolver.resolve (hop 3)",
+                "producer/consumer of pref with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_in_cache",
+                "producer/consumer of pref with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_is_cached",
+                "producer/consumer of pref with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._get_package_from_remotes",
+                "producer/consumer of pref with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_compatible_node",
+                "producer/consumer of pref with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_locked_node"
+              ]
+            },
+            {
+              "file": "conans/client/graph/compute_pid.py",
+              "score": 11.565646152233024,
+              "reasons": [
+                "callee of conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer.evaluate_graph (hop 3)",
+                "producer/consumer of cant_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_build",
+                "producer/consumer of cant_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_compatible_node",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_node"
+              ]
+            },
+            {
+              "file": "conans/model/info.py",
+              "score": 10.898979485566358,
+              "reasons": [
+                "producer/consumer of cant_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_build",
+                "producer/consumer of cant_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_compatible_node",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_node",
+                "producer/consumer of config_version with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer.evaluate_graph",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "symbol matches feature terms: conan, package"
+              ]
+            },
+            {
+              "file": "conans/client/graph/compatibility.py",
+              "score": 10.897366596101028,
+              "reasons": [
+                "producer/consumer of compatibility with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._get_compatible_packages",
+                "producer/consumer of invalid with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "symbol matches feature terms: binary, compatib"
+              ]
+            },
+            {
+              "file": "conans/client/graph/graph_builder.py",
+              "score": 9.7650533436326,
+              "reasons": [
+                "caller of conans/model/recipe_ref.py:ref_matches (hop 3)",
+                "producer/consumer of conan_is_consumer with conans/client/graph/build_mode.py:BuildMode.forced",
+                "producer/consumer of conan_is_consumer with conans/client/graph/build_mode.py:BuildMode.should_build_missing",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_clean_pkg_folder_dirty",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_locked_node",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_node",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._skip_binaries",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer.evaluate_graph"
+              ]
+            },
+            {
+              "file": "conans/client/graph/graph.py",
+              "score": 9.490868839891416,
+              "reasons": [
+                "producer/consumer of node, require with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._skip_binaries",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_clean_pkg_folder_dirty",
+                "producer/consumer of pref_timestamp with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_in_cache",
+                "producer/consumer of binary_remote, build_allowed, pref_timestamp, should_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_is_cached",
+                "producer/consumer of should_build with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_node",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_locked_node",
+                "producer/consumer of recipe with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._process_node",
+                "producer/consumer of build_allowed, recipe, transitive_deps with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._skip_binaries"
+              ]
+            },
+            {
+              "file": "conans/client/graph/range_resolver.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "caller of conans/client/graph/proxy.py:should_update_reference (hop 2)",
+                "callee of conans/client/graph/range_resolver.py:RangeResolver._resolve_remote (hop 3)",
+                "caller of conans/client/graph/range_resolver.py:RangeResolver._resolve_remote (hop 3)",
+                "callee of conans/client/graph/range_resolver.py:RangeResolver.resolve (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/model/recipe_ref.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "callee of conans/client/graph/build_mode.py:BuildMode.should_build_missing (hop 2)",
+                "callee of conans/model/recipe_ref.py:ref_matches (hop 3)",
+                "callee of conans/client/graph/range_resolver.py:RangeResolver.resolve (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/client/rest_client_local_recipe_index.py",
+              "score": 8.242640687119284,
+              "reasons": [
+                "producer/consumer of layout with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer._evaluate_package_id",
+                "producer/consumer of layout with conans/client/graph/graph_binaries.py:GraphBinariesAnalyzer.evaluate_graph"
+              ]
+            }
+          ],
+          "prompt_chars": 79594,
+          "parse_failures": [],
+          "seconds": 0.62,
+          "gold_hits": 3,
+          "gold_total": 3,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "roboflow__supervision-910",
+      "expected_files": [
+        "supervision/detection/tools/polygon_zone.py",
+        "supervision/utils/internal.py"
+      ],
+      "hidden_files": [
+        "supervision/detection/tools/polygon_zone.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "supervision/utils/internal.py"
+          ],
+          "prompt_chars": 10173,
+          "seconds": 0.128,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "supervision/detection/tools/polygon_zone.py"
+          ],
+          "hidden_missing": [
+            "supervision/detection/tools/polygon_zone.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "supervision/utils/__init__.py",
+            "supervision/utils/internal.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 15034,
+          "parse_failures": [],
+          "seconds": 0.142,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "supervision/detection/tools/polygon_zone.py"
+          ],
+          "hidden_missing": [
+            "supervision/detection/tools/polygon_zone.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "supervision/annotators/__init__.py",
+            "supervision/annotators/base.py",
+            "supervision/annotators/core.py",
+            "supervision/dataset/__init__.py",
+            "supervision/dataset/utils.py",
+            "supervision/detection/__init__.py",
+            "supervision/detection/core.py",
+            "supervision/detection/line_zone.py",
+            "supervision/detection/tools/__init__.py",
+            "supervision/detection/tools/polygon_zone.py",
+            "supervision/detection/tools/smoother.py",
+            "supervision/detection/utils.py",
+            "supervision/draw/__init__.py",
+            "supervision/draw/color.py",
+            "supervision/tracker/byte_tracker/__init__.py",
+            "supervision/tracker/byte_tracker/basetrack.py",
+            "supervision/tracker/byte_tracker/core.py",
+            "supervision/utils/__init__.py",
+            "supervision/utils/internal.py",
+            "supervision/utils/video.py"
+          ],
+          "candidates": [
+            {
+              "file": "supervision/detection/core.py",
+              "score": 18.666666666666664,
+              "reasons": [
+                "caller of supervision/utils/internal.py:deprecated (hop 1)",
+                "callee of supervision/detection/core.py:Detections.from_roboflow (hop 2)",
+                "callee of supervision/detection/core.py:Detections.from_inference (hop 3)",
+                "caller of supervision/detection/core.py:Detections.from_inference (hop 3)",
+                "symbol matches feature terms: detection, roboflow",
+                "symbol matches feature terms: anchor, detection"
+              ]
+            },
+            {
+              "file": "supervision/draw/color.py",
+              "score": 16.0,
+              "reasons": [
+                "caller of supervision/utils/internal.py:deprecated (hop 1)",
+                "callee of supervision/draw/color.py:Color.black (hop 2)",
+                "callee of supervision/draw/color.py:Color.blue (hop 2)",
+                "callee of supervision/draw/color.py:Color.green (hop 2)",
+                "callee of supervision/draw/color.py:Color.red (hop 2)",
+                "callee of supervision/draw/color.py:Color.white (hop 2)",
+                "callee of supervision/draw/color.py:ColorPalette.default (hop 2)",
+                "callee of supervision/draw/color.py:Color.from_hex (hop 3)"
+              ]
+            },
+            {
+              "file": "supervision/detection/line_zone.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: line, zone",
+                "symbol matches feature terms: line, trigger, zone",
+                "symbol matches feature terms: annotator, line, zone",
+                "symbol matches feature terms: annotate, annotator, line, zone"
+              ]
+            },
+            {
+              "file": "supervision/detection/tools/polygon_zone.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: polygon, zone",
+                "symbol matches feature terms: polygon, trigger, zone",
+                "symbol matches feature terms: annotator, polygon, zone",
+                "symbol matches feature terms: annotate, annotator, polygon, zone"
+              ]
+            },
+            {
+              "file": "supervision/tracker/byte_tracker/basetrack.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: base, track",
+                "symbol matches feature terms: base, frame, track",
+                "symbol matches feature terms: base, track, update"
+              ]
+            },
+            {
+              "file": "supervision/utils/video.py",
+              "score": 8.0,
+              "reasons": [
+                "caller of supervision/utils/internal.py:deprecated (hop 1)"
+              ]
+            },
+            {
+              "file": "supervision/annotators/core.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: annotate, annotator",
+                "symbol matches feature terms: annotator, polygon",
+                "symbol matches feature terms: annotate, annotator, polygon",
+                "symbol matches feature terms: annotator, map",
+                "symbol matches feature terms: annotate, annotator, map"
+              ]
+            },
+            {
+              "file": "supervision/tracker/byte_tracker/core.py",
+              "score": 5.0,
+              "reasons": [
+                "symbol matches feature terms: detection, track, update",
+                "symbol matches feature terms: track, update"
+              ]
+            },
+            {
+              "file": "supervision/detection/tools/smoother.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: detection, update",
+                "symbol matches feature terms: detection, track"
+              ]
+            },
+            {
+              "file": "supervision/annotators/base.py",
+              "score": 3.0,
+              "reasons": [
+                "symbol matches feature terms: annotate, annotator, base"
+              ]
+            },
+            {
+              "file": "supervision/dataset/utils.py",
+              "score": 3.0,
+              "reasons": [
+                "symbol matches feature terms: class, detection, map"
+              ]
+            },
+            {
+              "file": "supervision/detection/utils.py",
+              "score": 2.6666666666666665,
+              "reasons": [
+                "callee of supervision/detection/core.py:Detections.from_inference (hop 3)"
+              ]
+            }
+          ],
+          "prompt_chars": 79380,
+          "parse_failures": [],
+          "seconds": 0.388,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "roboflow__supervision-245",
+      "expected_files": [
+        "supervision/dataset/core.py",
+        "supervision/dataset/formats/pascal_voc.py",
+        "supervision/detection/utils.py"
+      ],
+      "hidden_files": [
+        "supervision/dataset/core.py",
+        "supervision/detection/utils.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "supervision/dataset/formats/pascal_voc.py"
+          ],
+          "prompt_chars": 10350,
+          "seconds": 0.13,
+          "gold_hits": 1,
+          "gold_total": 3,
+          "hidden_hits": 0,
+          "hidden_total": 2,
+          "missing": [
+            "supervision/dataset/core.py",
+            "supervision/detection/utils.py"
+          ],
+          "hidden_missing": [
+            "supervision/dataset/core.py",
+            "supervision/detection/utils.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "supervision/dataset/__init__.py",
+            "supervision/dataset/core.py",
+            "supervision/dataset/formats/__init__.py",
+            "supervision/dataset/formats/coco.py",
+            "supervision/dataset/formats/pascal_voc.py",
+            "supervision/dataset/formats/yolo.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 49782,
+          "parse_failures": [],
+          "seconds": 0.122,
+          "gold_hits": 2,
+          "gold_total": 3,
+          "hidden_hits": 1,
+          "hidden_total": 2,
+          "missing": [
+            "supervision/detection/utils.py"
+          ],
+          "hidden_missing": [
+            "supervision/detection/utils.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "supervision/__init__.py",
+            "supervision/dataset/__init__.py",
+            "supervision/dataset/core.py",
+            "supervision/dataset/formats/__init__.py",
+            "supervision/dataset/formats/coco.py",
+            "supervision/dataset/formats/pascal_voc.py",
+            "supervision/dataset/formats/yolo.py",
+            "supervision/dataset/utils.py",
+            "supervision/detection/__init__.py",
+            "supervision/detection/core.py",
+            "supervision/detection/utils.py",
+            "supervision/metrics/__init__.py",
+            "supervision/metrics/detection.py",
+            "supervision/utils/__init__.py",
+            "supervision/utils/file.py"
+          ],
+          "candidates": [
+            {
+              "file": "supervision/dataset/core.py",
+              "score": 33.66666666666667,
+              "reasons": [
+                "caller of supervision/dataset/formats/pascal_voc.py:detections_to_pascal_voc (hop 1)",
+                "caller of supervision/dataset/formats/pascal_voc.py:load_pascal_voc_annotations (hop 1)",
+                "caller of supervision/utils/file.py:list_files_with_extensions (hop 3)",
+                "symbol matches feature terms: dataset, detection",
+                "symbol matches feature terms: dataset, detection, pascal, voc",
+                "base-ancestor history: Co-modified with anchor `detections_to_pascal_voc` in commit 36cdcf1. Changes: added 642 line(s) (key names: annotations, classes, images)",
+                "base-ancestor history: Co-modified with anchor `object_to_pascal_voc` in commit 36cdcf1. Changes: added 642 line(s) (key names: annotations, classes, images)"
+              ]
+            },
+            {
+              "file": "supervision/dataset/formats/yolo.py",
+              "score": 26.666666666666664,
+              "reasons": [
+                "caller of supervision/dataset/utils.py:approximate_mask_with_polygons (hop 2)",
+                "caller of supervision/detection/utils.py:polygon_to_xyxy (hop 2)",
+                "callee of supervision/dataset/formats/yolo.py:detections_to_yolo_annotations (hop 3)",
+                "caller of supervision/dataset/formats/yolo.py:detections_to_yolo_annotations (hop 3)",
+                "callee of supervision/dataset/formats/yolo.py:yolo_annotations_to_detections (hop 3)",
+                "caller of supervision/dataset/formats/yolo.py:yolo_annotations_to_detections (hop 3)",
+                "caller of supervision/utils/file.py:list_files_with_extensions (hop 3)",
+                "symbol matches feature terms: parse, polygon",
+                "base-ancestor history: Co-modified with anchor `detections_to_pascal_voc` in commit 36cdcf1. Changes: added 245 line(s)",
+                "base-ancestor history: Co-modified with anchor `object_to_pascal_voc` in commit 36cdcf1. Changes: added 245 line(s)"
+              ]
+            },
+            {
+              "file": "supervision/dataset/formats/coco.py",
+              "score": 22.666666666666664,
+              "reasons": [
+                "caller of supervision/dataset/utils.py:approximate_mask_with_polygons (hop 2)",
+                "caller of supervision/dataset/formats/coco.py:detections_to_coco_annotations (hop 3)",
+                "symbol matches feature terms: mask, polygon",
+                "symbol matches feature terms: annotation, detection",
+                "symbol matches feature terms: annotation, load",
+                "base-ancestor history: Co-modified with anchor `detections_to_pascal_voc` in commit 36cdcf1. Changes: added 237 line(s)",
+                "base-ancestor history: Co-modified with anchor `object_to_pascal_voc` in commit 36cdcf1. Changes: added 237 line(s)"
+              ]
+            },
+            {
+              "file": "supervision/detection/utils.py",
+              "score": 16.666666666666664,
+              "reasons": [
+                "callee of supervision/dataset/formats/pascal_voc.py:detections_to_pascal_voc (hop 1)",
+                "callee of supervision/dataset/utils.py:approximate_mask_with_polygons (hop 2)",
+                "callee of supervision/dataset/formats/yolo.py:detections_to_yolo_annotations (hop 3)",
+                "callee of supervision/dataset/formats/yolo.py:yolo_annotations_to_detections (hop 3)",
+                "symbol matches feature terms: mask, polygon"
+              ]
+            },
+            {
+              "file": "supervision/dataset/utils.py",
+              "score": 15.333333333333332,
+              "reasons": [
+                "callee of supervision/dataset/formats/pascal_voc.py:detections_to_pascal_voc (hop 1)",
+                "caller of supervision/detection/utils.py:approximate_polygon (hop 3)",
+                "caller of supervision/detection/utils.py:filter_polygons_by_area (hop 3)",
+                "caller of supervision/detection/utils.py:mask_to_polygons (hop 3)",
+                "callee of supervision/dataset/formats/coco.py:detections_to_coco_annotations (hop 3)",
+                "callee of supervision/dataset/formats/yolo.py:detections_to_yolo_annotations (hop 3)",
+                "symbol matches feature terms: mask, polygon"
+              ]
+            },
+            {
+              "file": "supervision/metrics/detection.py",
+              "score": 10.0,
+              "reasons": [
+                "producer/consumer of text with supervision/dataset/formats/pascal_voc.py:detections_to_pascal_voc",
+                "producer/consumer of text with supervision/dataset/formats/pascal_voc.py:object_to_pascal_voc"
+              ]
+            },
+            {
+              "file": "supervision/__init__.py",
+              "score": 5.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `detections_to_pascal_voc` in commit 36cdcf1. Changes: added 42 line(s)"
+              ]
+            },
+            {
+              "file": "supervision/detection/core.py",
+              "score": 4.666666666666666,
+              "reasons": [
+                "callee of supervision/dataset/formats/yolo.py:yolo_annotations_to_detections (hop 3)",
+                "symbol matches feature terms: detection, roboflow"
+              ]
+            },
+            {
+              "file": "supervision/utils/file.py",
+              "score": 4.0,
+              "reasons": [
+                "callee of supervision/dataset/core.py:DetectionDataset.from_pascal_voc (hop 2)"
+              ]
+            }
+          ],
+          "prompt_chars": 78890,
+          "parse_failures": [],
+          "seconds": 0.374,
+          "gold_hits": 3,
+          "gold_total": 3,
+          "hidden_hits": 2,
+          "hidden_total": 2,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "astropy__astropy-14878",
+      "expected_files": [
+        "astropy/table/row.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "astropy/table/__init__.py",
+            "astropy/table/row.py"
+          ],
+          "prompt_chars": 22406,
+          "seconds": 0.129,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "astropy/table/__init__.py",
+            "astropy/table/row.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 34115,
+          "parse_failures": [],
+          "seconds": 5.29,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "astropy/extern/configobj/validate.py",
+            "astropy/io/ascii/core.py",
+            "astropy/io/fits/column.py",
+            "astropy/io/fits/hdu/table.py",
+            "astropy/io/votable/tree.py",
+            "astropy/logger.py",
+            "astropy/modeling/core.py",
+            "astropy/table/column.py",
+            "astropy/table/row.py",
+            "astropy/table/table.py",
+            "astropy/units/__init__.py",
+            "astropy/units/function/logarithmic.py",
+            "astropy/units/structured.py"
+          ],
+          "candidates": [
+            {
+              "file": "astropy/io/fits/hdu/table.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: like, match, table",
+                "symbol matches feature terms: column, like, table",
+                "symbol matches feature terms: like, table",
+                "symbol matches feature terms: like, table, update",
+                "symbol matches feature terms: column, like, table, update",
+                "symbol matches feature terms: match, table",
+                "symbol matches feature terms: column, table",
+                "symbol matches feature terms: table, update"
+              ]
+            },
+            {
+              "file": "astropy/units/function/logarithmic.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: default, log, unit",
+                "symbol matches feature terms: log, unit",
+                "symbol matches feature terms: default, unit"
+              ]
+            },
+            {
+              "file": "astropy/extern/configobj/validate.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: check, error",
+                "symbol matches feature terms: error, value",
+                "symbol matches feature terms: check, value",
+                "symbol matches feature terms: default, value"
+              ]
+            },
+            {
+              "file": "astropy/io/ascii/core.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: check, table",
+                "symbol matches feature terms: check, column",
+                "symbol matches feature terms: table, update"
+              ]
+            },
+            {
+              "file": "astropy/io/fits/column.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: column, unit",
+                "symbol matches feature terms: column, value",
+                "symbol matches feature terms: column, guess",
+                "symbol matches feature terms: column, update",
+                "symbol matches feature terms: change, unit"
+              ]
+            },
+            {
+              "file": "astropy/io/votable/tree.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: default, unit",
+                "symbol matches feature terms: column, table",
+                "symbol matches feature terms: default, value",
+                "symbol matches feature terms: column, table, value"
+              ]
+            },
+            {
+              "file": "astropy/logger.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: astropy, make",
+                "symbol matches feature terms: astropy, log",
+                "symbol matches feature terms: astropy, default"
+              ]
+            },
+            {
+              "file": "astropy/modeling/core.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: handle, method",
+                "symbol matches feature terms: ha, unit",
+                "symbol matches feature terms: return, unit",
+                "symbol matches feature terms: dict, make"
+              ]
+            },
+            {
+              "file": "astropy/table/column.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: column, dict",
+                "symbol matches feature terms: column, like",
+                "symbol matches feature terms: column, value",
+                "symbol matches feature terms: column, parent, table",
+                "symbol matches feature terms: column, more",
+                "symbol matches feature terms: column, unit",
+                "symbol matches feature terms: check, column"
+              ]
+            },
+            {
+              "file": "astropy/table/table.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: column, table",
+                "symbol matches feature terms: check, table",
+                "symbol matches feature terms: dict, table",
+                "symbol matches feature terms: make, table",
+                "symbol matches feature terms: parent, table",
+                "symbol matches feature terms: column, ha, table",
+                "symbol matches feature terms: ha, table, value",
+                "symbol matches feature terms: make, row, table"
+              ]
+            },
+            {
+              "file": "astropy/units/structured.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: unit, value",
+                "symbol matches feature terms: key, unit",
+                "symbol matches feature terms: like, unit"
+              ]
+            },
+            {
+              "file": "astropy/extern/configobj/configobj.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: error, handle",
+                "symbol matches feature terms: handle, value"
+              ]
+            }
+          ],
+          "prompt_chars": 79861,
+          "parse_failures": [],
+          "seconds": 6.712,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "tobymao__sqlglot-1252",
+      "expected_files": [
+        "sqlglot/expressions.py",
+        "sqlglot/parser.py"
+      ],
+      "hidden_files": [
+        "sqlglot/parser.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "sqlglot/__init__.py",
+            "sqlglot/expressions.py"
+          ],
+          "prompt_chars": 139057,
+          "seconds": 0.137,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "sqlglot/parser.py"
+          ],
+          "hidden_missing": [
+            "sqlglot/parser.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "sqlglot/__init__.py",
+            "sqlglot/expressions.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 49687,
+          "parse_failures": [],
+          "seconds": 3.252,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "sqlglot/parser.py"
+          ],
+          "hidden_missing": [
+            "sqlglot/parser.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "sqlglot/__init__.py",
+            "sqlglot/diff.py",
+            "sqlglot/expressions.py",
+            "sqlglot/parser.py"
+          ],
+          "candidates": [
+            {
+              "file": "sqlglot/diff.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: change, diff"
+              ]
+            },
+            {
+              "file": "sqlglot/parser.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: create, like"
+              ]
+            }
+          ],
+          "prompt_chars": 67184,
+          "parse_failures": [],
+          "seconds": 3.559,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "tobymao__sqlglot-874",
+      "expected_files": [
+        "sqlglot/dialects/postgres.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "sqlglot/dialects/__init__.py",
+            "sqlglot/dialects/postgres.py"
+          ],
+          "prompt_chars": 15064,
+          "seconds": 0.147,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "sqlglot/__init__.py",
+            "sqlglot/dialects/__init__.py",
+            "sqlglot/dialects/bigquery.py",
+            "sqlglot/dialects/postgres.py",
+            "sqlglot/expressions.py",
+            "sqlglot/parser.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 58125,
+          "parse_failures": [],
+          "seconds": 0.181,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "sqlglot/__init__.py",
+            "sqlglot/dialects/bigquery.py",
+            "sqlglot/dialects/hive.py",
+            "sqlglot/dialects/mysql.py",
+            "sqlglot/dialects/postgres.py",
+            "sqlglot/expressions.py",
+            "sqlglot/helper.py",
+            "sqlglot/optimizer/eliminate_joins.py",
+            "sqlglot/optimizer/eliminate_subqueries.py",
+            "sqlglot/optimizer/normalize.py",
+            "sqlglot/optimizer/pushdown_predicates.py",
+            "sqlglot/optimizer/simplify.py",
+            "sqlglot/parser.py"
+          ],
+          "candidates": [
+            {
+              "file": "sqlglot/optimizer/simplify.py",
+              "score": 14.666666666666666,
+              "reasons": [
+                "callee of sqlglot/dialects/postgres.py:_date_add_sql (hop 1)",
+                "callee of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "caller of sqlglot/expressions.py:replace_children (hop 3)",
+                "caller of sqlglot/helper.py:while_changing (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:absorb_and_eliminate (hop 3)",
+                "caller of sqlglot/optimizer/simplify.py:absorb_and_eliminate (hop 3)",
+                "caller of sqlglot/optimizer/simplify.py:flatten (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:remove_compliments (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/expressions.py",
+              "score": 14.333333333333332,
+              "reasons": [
+                "callee of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "caller of sqlglot/expressions.py:replace_children (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:absorb_and_eliminate (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:remove_compliments (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:rewrite_between (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:simplify_connectors (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:simplify_literals (hop 3)",
+                "callee of sqlglot/optimizer/simplify.py:simplify_not (hop 3)",
+                "base-ancestor history: Co-modified with anchor `_date_add_sql` in commit 030deb97. Changes: added 4 line(s)"
+              ]
+            },
+            {
+              "file": "sqlglot/dialects/bigquery.py",
+              "score": 10.0,
+              "reasons": [
+                "symbol matches feature terms: add, date",
+                "symbol matches feature terms: add, date, sql",
+                "base-ancestor history: Co-modified with anchor `_date_add_sql` in commit 030deb97. Changes: removed 1 line(s), added 36 line(s) (key names: expressions, sql)"
+              ]
+            },
+            {
+              "file": "sqlglot/helper.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "callee of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "callee of sqlglot/expressions.py:replace_children (hop 3)",
+                "callee of sqlglot/optimizer/normalize.py:normalize (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/optimizer/normalize.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "caller of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "caller of sqlglot/expressions.py:replace_children (hop 3)",
+                "caller of sqlglot/helper.py:while_changing (hop 3)",
+                "caller of sqlglot/optimizer/simplify.py:flatten (hop 3)",
+                "caller of sqlglot/optimizer/simplify.py:uniq_sort (hop 3)",
+                "callee of sqlglot/optimizer/eliminate_joins.py:join_condition (hop 3)",
+                "callee of sqlglot/optimizer/normalize.py:normalize (hop 3)",
+                "callee of sqlglot/optimizer/pushdown_predicates.py:pushdown (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/optimizer/pushdown_predicates.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "caller of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "callee of sqlglot/optimizer/pushdown_predicates.py:pushdown (hop 3)",
+                "caller of sqlglot/optimizer/pushdown_predicates.py:pushdown (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/dialects/hive.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: add, date, sql",
+                "symbol matches feature terms: date, diff, sql",
+                "symbol matches feature terms: date, sql"
+              ]
+            },
+            {
+              "file": "sqlglot/parser.py",
+              "score": 7.666666666666666,
+              "reasons": [
+                "caller of sqlglot/expressions.py:replace_children (hop 3)",
+                "base-ancestor history: Co-modified with anchor `_date_add_sql` in commit 030deb97. Changes: removed 8 line(s), added 17 line(s) (key names: FUNC_TOKENS, NO_PAREN_FUNCTIONS, SUBQUERY_PREDICATES, _advance, _curr)"
+              ]
+            },
+            {
+              "file": "sqlglot/dialects/mysql.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: date, sql",
+                "symbol matches feature terms: add, date",
+                "symbol matches feature terms: add, date, sql"
+              ]
+            },
+            {
+              "file": "sqlglot/optimizer/eliminate_joins.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "caller of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "caller of sqlglot/optimizer/eliminate_joins.py:join_condition (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/optimizer/eliminate_subqueries.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "caller of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "callee of sqlglot/optimizer/eliminate_subqueries.py:eliminate_subqueries (hop 3)"
+              ]
+            },
+            {
+              "file": "sqlglot/optimizer/merge_subqueries.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "caller of sqlglot/optimizer/simplify.py:simplify (hop 2)",
+                "caller of sqlglot/optimizer/merge_subqueries.py:_merge_where (hop 3)"
+              ]
+            }
+          ],
+          "prompt_chars": 79895,
+          "parse_failures": [],
+          "seconds": 0.562,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "conan-io__conan-11675",
+      "expected_files": [
+        "conans/paths/__init__.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "conans/paths/__init__.py"
+          ],
+          "prompt_chars": 5713,
+          "seconds": 0.128,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "conans/paths/__init__.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 10716,
+          "parse_failures": [],
+          "seconds": 0.197,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "conan/api/__init__.py",
+            "conan/api/conan_api.py",
+            "conan/api/subapi/__init__.py",
+            "conan/api/subapi/download.py",
+            "conan/api/subapi/graph.py",
+            "conan/api/subapi/install.py",
+            "conan/cli/__init__.py",
+            "conan/cli/cli.py",
+            "conans/client/__init__.py",
+            "conans/client/conf/__init__.py",
+            "conans/client/conf/required_version.py",
+            "conans/client/userio.py",
+            "conans/model/__init__.py",
+            "conans/model/conan_file.py",
+            "conans/model/conanfile_interface.py",
+            "conans/model/version.py",
+            "conans/paths/__init__.py",
+            "conans/server/conf/__init__.py",
+            "conans/util/__init__.py",
+            "conans/util/windows.py"
+          ],
+          "candidates": [
+            {
+              "file": "conans/util/windows.py",
+              "score": 16.333333333333332,
+              "reasons": [
+                "callee of conans/paths/__init__.py:get_conan_user_home (hop 1)",
+                "callee of conans/server/conf/__init__.py:ConanServerConfigParser.disk_storage_path (hop 3)",
+                "callee of conans/server/launcher.py:ServerLauncher.__init__ (hop 3)",
+                "symbol matches feature terms: conan, expand, user"
+              ]
+            },
+            {
+              "file": "conans/server/conf/__init__.py",
+              "score": 15.333333333333332,
+              "reasons": [
+                "caller of conans/util/windows.py:conan_expand_user (hop 2)",
+                "callee of conans/server/conf/__init__.py:ConanServerConfigParser.disk_storage_path (hop 3)",
+                "callee of conans/server/launcher.py:ServerLauncher.__init__ (hop 3)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)",
+                "symbol matches feature terms: conan, file",
+                "symbol matches feature terms: conan, path",
+                "symbol matches feature terms: conan, user"
+              ]
+            },
+            {
+              "file": "conan/api/conan_api.py",
+              "score": 13.333333333333332,
+              "reasons": [
+                "caller of conans/paths/__init__.py:get_conan_user_home (hop 1)",
+                "caller of conan/api/subapi/cache.py:CacheAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/config.py:ConfigAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/download.py:DownloadAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/export.py:ExportAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/graph.py:GraphAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/install.py:InstallAPI.__init__ (hop 3)",
+                "caller of conan/api/subapi/list.py:ListAPI.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/model/conan_file.py",
+              "score": 10.666666666666666,
+              "reasons": [
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)",
+                "symbol matches feature terms: conan, file",
+                "symbol matches feature terms: conan, file, folder",
+                "symbol matches feature terms: conan, file, path"
+              ]
+            },
+            {
+              "file": "conan/cli/cli.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "caller of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)",
+                "callee of conan/cli/cli.py:main (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/client/conf/required_version.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "callee of conans/client/conf/required_version.py:check_required_conan_version (hop 3)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)",
+                "caller of conans/model/version.py:Version.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/client/userio.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "callee of conans/client/userio.py:init_colorama (hop 3)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/model/version.py",
+              "score": 9.333333333333332,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)",
+                "callee of conans/model/version.py:Version.__init__ (hop 3)",
+                "caller of conans/model/version.py:Version.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conans/model/conanfile_interface.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: conan, file",
+                "symbol matches feature terms: conan, file, folder",
+                "symbol matches feature terms: conan, file, path"
+              ]
+            },
+            {
+              "file": "conan/api/subapi/download.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conan/api/subapi/graph.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "conan/api/subapi/install.py",
+              "score": 6.666666666666666,
+              "reasons": [
+                "callee of conan/api/conan_api.py:ConanAPIV2.__init__ (hop 2)",
+                "caller of conans/errors.py:ConanException.__init__ (hop 3)"
+              ]
+            }
+          ],
+          "prompt_chars": 74426,
+          "parse_failures": [],
+          "seconds": 0.542,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "conan-io__conan-10154",
+      "expected_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py",
+        "conan/tools/files/symlinks/symlinks.py"
+      ],
+      "hidden_files": [
+        "conan/tools/files/__init__.py",
+        "conan/tools/files/symlinks/__init__.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "conan/tools/files/symlinks/symlinks.py"
+          ],
+          "prompt_chars": 5322,
+          "seconds": 0.124,
+          "gold_hits": 1,
+          "gold_total": 3,
+          "hidden_hits": 0,
+          "hidden_total": 2,
+          "missing": [
+            "conan/tools/files/__init__.py",
+            "conan/tools/files/symlinks/__init__.py"
+          ],
+          "hidden_missing": [
+            "conan/tools/files/__init__.py",
+            "conan/tools/files/symlinks/__init__.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "conan/tools/files/symlinks/symlinks.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 6145,
+          "parse_failures": [],
+          "seconds": 0.001,
+          "gold_hits": 1,
+          "gold_total": 3,
+          "hidden_hits": 0,
+          "hidden_total": 2,
+          "missing": [
+            "conan/tools/files/__init__.py",
+            "conan/tools/files/symlinks/__init__.py"
+          ],
+          "hidden_missing": [
+            "conan/tools/files/__init__.py",
+            "conan/tools/files/symlinks/__init__.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "conan/tools/cmake/__init__.py",
+            "conan/tools/cmake/file_api.py",
+            "conan/tools/files/__init__.py",
+            "conan/tools/files/symlinks/__init__.py",
+            "conan/tools/files/symlinks/symlinks.py",
+            "conan/tools/gnu/pkgconfigdeps/__init__.py",
+            "conan/tools/gnu/pkgconfigdeps/pc_files_creator.py"
+          ],
+          "candidates": [
+            {
+              "file": "conan/tools/files/__init__.py",
+              "score": 10.0,
+              "reasons": [
+                "package export/initialization path for new module conan/tools/files/symlinks/symlinks.py"
+              ]
+            },
+            {
+              "file": "conan/tools/files/symlinks/__init__.py",
+              "score": 10.0,
+              "reasons": [
+                "package export/initialization path for new module conan/tools/files/symlinks/symlinks.py"
+              ]
+            },
+            {
+              "file": "conan/tools/cmake/file_api.py",
+              "score": 3.0,
+              "reasons": [
+                "symbol matches feature terms: conan, file, package"
+              ]
+            },
+            {
+              "file": "conan/tools/gnu/pkgconfigdeps/pc_files_creator.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: file, package"
+              ]
+            }
+          ],
+          "prompt_chars": 16657,
+          "parse_failures": [],
+          "seconds": 0.543,
+          "gold_hits": 3,
+          "gold_total": 3,
+          "hidden_hits": 2,
+          "hidden_total": 2,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "matplotlib__matplotlib-19663",
+      "expected_files": [
+        "lib/matplotlib/colors.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "lib/matplotlib/__init__.py",
+            "lib/matplotlib/colors.py"
+          ],
+          "prompt_chars": 141626,
+          "seconds": 0.141,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "lib/matplotlib/__init__.py",
+            "lib/matplotlib/colors.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 53851,
+          "parse_failures": [],
+          "seconds": 0.996,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "lib/matplotlib/axes/_base.py",
+            "lib/matplotlib/backend_tools.py",
+            "lib/matplotlib/backends/backend_pdf.py",
+            "lib/matplotlib/colors.py",
+            "lib/matplotlib/figure.py",
+            "lib/matplotlib/image.py",
+            "lib/matplotlib/markers.py",
+            "lib/matplotlib/sphinxext/plot_directive.py",
+            "lib/matplotlib/testing/jpl_units/UnitDbl.py",
+            "lib/matplotlib/transforms.py",
+            "lib/mpl_toolkits/mplot3d/__init__.py"
+          ],
+          "candidates": [
+            {
+              "file": "lib/matplotlib/axes/_base.py",
+              "score": 7.279204298133663,
+              "reasons": [
+                "producer/consumer of dict__ with lib/matplotlib/colors.py:Colormap.__copy__",
+                "symbol matches feature terms: next, plot",
+                "symbol matches feature terms: change, unit"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/sphinxext/plot_directive.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: mark, plot",
+                "symbol matches feature terms: plot, run",
+                "symbol matches feature terms: copy, file"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/backend_tools.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: entry, help",
+                "symbol matches feature terms: help, html"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/backends/backend_pdf.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: create, file",
+                "symbol matches feature terms: add, file"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/image.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: check, non",
+                "symbol matches feature terms: cmap, non"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/markers.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: point, style",
+                "symbol matches feature terms: right, style"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/testing/jpl_units/UnitDbl.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: add, unit",
+                "symbol matches feature terms: check, unit"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/figure.py",
+              "score": 3.2792042981336627,
+              "reasons": [
+                "producer/consumer of dict__ with lib/matplotlib/colors.py:Colormap.__copy__"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/transforms.py",
+              "score": 3.2792042981336627,
+              "reasons": [
+                "producer/consumer of dict__ with lib/matplotlib/colors.py:Colormap.__copy__"
+              ]
+            },
+            {
+              "file": "lib/mpl_toolkits/mplot3d/art3d.py",
+              "score": 3.176696810829104,
+              "reasons": [
+                "producer/consumer of class__ with lib/matplotlib/colors.py:Colormap.__copy__"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/__init__.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: add, doc"
+              ]
+            },
+            {
+              "file": "lib/matplotlib/_enums.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: next, value"
+              ]
+            }
+          ],
+          "prompt_chars": 79597,
+          "parse_failures": [],
+          "seconds": 2.352,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "pvlib__pvlib-python-1045",
+      "expected_files": [
+        "pvlib/temperature.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "pvlib/__init__.py",
+            "pvlib/temperature.py"
+          ],
+          "prompt_chars": 31030,
+          "seconds": 0.149,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "pvlib/__init__.py",
+            "pvlib/temperature.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 24704,
+          "parse_failures": [],
+          "seconds": 0.005,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "pvlib/__init__.py",
+            "pvlib/forecast.py",
+            "pvlib/modelchain.py",
+            "pvlib/pvsystem.py",
+            "pvlib/temperature.py"
+          ],
+          "candidates": [
+            {
+              "file": "pvlib/modelchain.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: model, temperature",
+                "symbol matches feature terms: complete, model"
+              ]
+            },
+            {
+              "file": "pvlib/forecast.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: model, temperature"
+              ]
+            },
+            {
+              "file": "pvlib/pvsystem.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: model, temperature"
+              ]
+            }
+          ],
+          "prompt_chars": 50836,
+          "parse_failures": [],
+          "seconds": 0.205,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "pydata__xarray-4155",
+      "expected_files": [
+        "xarray/core/missing.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "xarray/core/missing.py"
+          ],
+          "prompt_chars": 27414,
+          "seconds": 0.136,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "xarray/core/__init__.py",
+            "xarray/core/computation.py",
+            "xarray/core/dataarray.py",
+            "xarray/core/dataset.py",
+            "xarray/core/missing.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 70357,
+          "parse_failures": [],
+          "seconds": 0.406,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "xarray/backends/__init__.py",
+            "xarray/core/common.py",
+            "xarray/core/computation.py",
+            "xarray/core/dataarray.py",
+            "xarray/core/dataset.py",
+            "xarray/core/duck_array_ops.py",
+            "xarray/core/groupby.py",
+            "xarray/core/missing.py",
+            "xarray/core/utils.py",
+            "xarray/core/variable.py",
+            "xarray/plot/utils.py"
+          ],
+          "candidates": [
+            {
+              "file": "xarray/core/dataarray.py",
+              "score": 30.666666666666664,
+              "reasons": [
+                "caller of xarray/core/missing.py:interp_na (hop 1)",
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "caller of xarray/core/variable.py:as_compatible_data (hop 3)",
+                "callee of xarray/core/coordinates.py:remap_label_indexers (hop 3)",
+                "caller of xarray/core/coordinates.py:remap_label_indexers (hop 3)",
+                "callee of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "caller of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "callee of xarray/core/dataset.py:_get_virtual_variable (hop 3)",
+                "base-ancestor history: Co-modified with anchor `_interpnd` in commit e3972992. Changes: removed 1 line(s), added 45 line(s) (key names: _from_temp_dataset, _to_temp_dataset, dtype)",
+                "base-ancestor history: Co-modified with anchor `_interp1d` in commit e3972992. Changes: removed 1 line(s), added 45 line(s) (key names: _from_temp_dataset, _to_temp_dataset, dtype)"
+              ]
+            },
+            {
+              "file": "xarray/core/computation.py",
+              "score": 30.0,
+              "reasons": [
+                "callee of xarray/core/missing.py:interp_na (hop 1)",
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "callee of xarray/core/computation.py:apply_ufunc (hop 2)",
+                "caller of xarray/core/computation.py:apply_ufunc (hop 2)",
+                "caller of xarray/core/missing.py:get_clean_interp_index (hop 2)",
+                "caller of xarray/core/variable.py:as_compatible_data (hop 3)",
+                "callee of xarray/core/computation.py:apply_variable_ufunc (hop 3)",
+                "caller of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "base-ancestor history: Co-modified with anchor `_interpnd` in commit e3972992. Changes: removed 1 line(s), added 1 line(s)",
+                "base-ancestor history: Co-modified with anchor `_interp1d` in commit e3972992. Changes: removed 1 line(s), added 1 line(s)"
+              ]
+            },
+            {
+              "file": "xarray/core/dataset.py",
+              "score": 22.0,
+              "reasons": [
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "caller of xarray/core/variable.py:broadcast_variables (hop 2)",
+                "caller of xarray/core/missing.py:get_clean_interp_index (hop 2)",
+                "caller of xarray/core/options.py:_get_keep_attrs (hop 2)",
+                "caller of xarray/core/utils.py:is_scalar (hop 2)",
+                "caller of xarray/core/common.py:_contains_datetime_like_objects (hop 3)",
+                "caller of xarray/core/coordinates.py:remap_label_indexers (hop 3)",
+                "caller of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "base-ancestor history: Co-modified with anchor `_interpnd` in commit e3972992. Changes: removed 1 line(s), added 88 line(s) (key names: _validate_indexers, sortby)",
+                "base-ancestor history: Co-modified with anchor `_interp1d` in commit e3972992. Changes: removed 1 line(s), added 88 line(s) (key names: _validate_indexers, sortby)"
+              ]
+            },
+            {
+              "file": "xarray/core/utils.py",
+              "score": 22.0,
+              "reasons": [
+                "callee of xarray/core/missing.py:interp (hop 1)",
+                "callee of xarray/core/missing.py:interp_na (hop 1)",
+                "callee of xarray/core/computation.py:apply_ufunc (hop 2)",
+                "callee of xarray/core/variable.py:Variable._broadcast_indexes_vectorized (hop 3)",
+                "callee of xarray/core/coordinates.py:remap_label_indexers (hop 3)",
+                "callee of xarray/core/computation.py:apply_groupby_func (hop 3)",
+                "caller of xarray/core/utils.py:is_dict_like (hop 3)",
+                "callee of xarray/core/common.py:DataWithCoords.coarsen (hop 3)"
+              ]
+            },
+            {
+              "file": "xarray/core/duck_array_ops.py",
+              "score": 19.0,
+              "reasons": [
+                "callee of xarray/core/missing.py:interp_na (hop 1)",
+                "callee of xarray/core/duck_array_ops.py:timedelta_to_numeric (hop 2)",
+                "callee of xarray/core/missing.py:get_clean_interp_index (hop 2)",
+                "callee of xarray/core/dataset.py:Dataset._integrate_one (hop 3)",
+                "caller of xarray/core/duck_array_ops.py:np_timedelta64_to_float (hop 3)",
+                "callee of xarray/core/duck_array_ops.py:pd_timedelta_to_float (hop 3)",
+                "caller of xarray/core/duck_array_ops.py:pd_timedelta_to_float (hop 3)",
+                "caller of xarray/core/duck_array_ops.py:py_timedelta_to_float (hop 3)"
+              ]
+            },
+            {
+              "file": "xarray/core/variable.py",
+              "score": 18.0,
+              "reasons": [
+                "callee of xarray/core/missing.py:interp (hop 1)",
+                "caller of xarray/core/utils.py:OrderedSet.__init__ (hop 2)",
+                "callee of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "callee of xarray/core/variable.py:broadcast_variables (hop 2)",
+                "caller of xarray/core/variable.py:broadcast_variables (hop 2)",
+                "caller of xarray/core/computation.py:apply_ufunc (hop 2)",
+                "callee of xarray/core/missing.py:_get_nan_block_lengths (hop 2)"
+              ]
+            },
+            {
+              "file": "xarray/core/groupby.py",
+              "score": 17.666666666666664,
+              "reasons": [
+                "caller of xarray/core/options.py:_get_keep_attrs (hop 2)",
+                "caller of xarray/core/utils.py:is_scalar (hop 2)",
+                "caller of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "caller of xarray/core/variable.py:as_variable (hop 3)",
+                "callee of xarray/core/groupby.py:DataArrayGroupBy.reduce (hop 3)",
+                "callee of xarray/core/groupby.py:DatasetGroupBy.reduce (hop 3)",
+                "caller of xarray/core/groupby.py:GroupBy._first_or_last (hop 3)",
+                "caller of xarray/core/groupby.py:check_reduce_dims (hop 3)"
+              ]
+            },
+            {
+              "file": "xarray/core/common.py",
+              "score": 16.0,
+              "reasons": [
+                "callee of xarray/core/missing.py:_floatize_x (hop 2)",
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "caller of xarray/core/computation.py:apply_ufunc (hop 2)",
+                "callee of xarray/core/missing.py:_get_nan_block_lengths (hop 2)",
+                "caller of xarray/core/options.py:_get_keep_attrs (hop 2)",
+                "caller of xarray/core/utils.py:is_scalar (hop 2)",
+                "callee of xarray/core/common.py:_contains_datetime_like_objects (hop 3)",
+                "callee of xarray/coding/times.py:CFDatetimeCoder.encode (hop 3)"
+              ]
+            },
+            {
+              "file": "xarray/plot/utils.py",
+              "score": 15.333333333333332,
+              "reasons": [
+                "caller of xarray/core/utils.py:is_scalar (hop 2)",
+                "callee of xarray/plot/utils.py:_determine_cmap_params (hop 3)",
+                "caller of xarray/plot/utils.py:_determine_cmap_params (hop 3)",
+                "producer/consumer of left, right with xarray/core/missing.py:NumpyInterpolator.__init__"
+              ]
+            },
+            {
+              "file": "xarray/core/coordinates.py",
+              "score": 14.666666666666666,
+              "reasons": [
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "caller of xarray/core/dataarray.py:DataArray.__init__ (hop 3)",
+                "symbol matches feature terms: array, data",
+                "symbol matches feature terms: array, data, dim",
+                "symbol matches feature terms: array, coord, data"
+              ]
+            },
+            {
+              "file": "xarray/core/options.py",
+              "score": 13.333333333333332,
+              "reasons": [
+                "callee of xarray/core/missing.py:interp_na (hop 1)",
+                "callee of xarray/core/variable.py:Variable._binary_op (hop 3)",
+                "callee of xarray/core/variable.py:Variable._unravel_argminmax (hop 3)",
+                "callee of xarray/core/variable.py:Variable.reduce (hop 3)",
+                "callee of xarray/core/variable.py:Variable.quantile (hop 3)",
+                "callee of xarray/core/common.py:DataWithCoords.coarsen (hop 3)",
+                "callee of xarray/core/common.py:DataWithCoords.resample (hop 3)",
+                "callee of xarray/core/common.py:DataWithCoords.rolling (hop 3)"
+              ]
+            },
+            {
+              "file": "xarray/backends/cfgrib_.py",
+              "score": 11.333333333333332,
+              "reasons": [
+                "caller of xarray/core/variable.py:Variable.__init__ (hop 2)",
+                "callee of xarray/backends/cfgrib_.py:CfGribDataStore.open_store_variable (hop 3)",
+                "caller of xarray/backends/cfgrib_.py:CfGribDataStore.open_store_variable (hop 3)",
+                "symbol matches feature terms: data, dimension"
+              ]
+            }
+          ],
+          "prompt_chars": 79860,
+          "parse_failures": [],
+          "seconds": 0.904,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-17472",
+      "expected_files": [
+        "sympy/functions/elementary/complexes.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "sympy/functions/elementary/__init__.py",
+            "sympy/functions/elementary/complexes.py"
+          ],
+          "prompt_chars": 49880,
+          "seconds": 0.137,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "sympy/core/__init__.py",
+            "sympy/core/function.py",
+            "sympy/functions/elementary/__init__.py",
+            "sympy/functions/elementary/complexes.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 51504,
+          "parse_failures": [],
+          "seconds": 3.21,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "sympy/codegen/cfunctions.py",
+            "sympy/core/function.py",
+            "sympy/core/mul.py",
+            "sympy/core/numbers.py",
+            "sympy/core/power.py",
+            "sympy/functions/elementary/complexes.py",
+            "sympy/functions/elementary/exponential.py",
+            "sympy/functions/elementary/integers.py",
+            "sympy/functions/elementary/trigonometric.py",
+            "sympy/functions/special/__init__.py",
+            "sympy/physics/quantum/sho1d.py"
+          ],
+          "candidates": [
+            {
+              "file": "sympy/functions/elementary/exponential.py",
+              "score": 8.0,
+              "reasons": [
+                "symbol matches feature terms: conjugate, eval, exp",
+                "symbol matches feature terms: eval, exp",
+                "symbol matches feature terms: ab, eval, exp",
+                "symbol matches feature terms: eval, exp, real",
+                "symbol matches feature terms: exp, real",
+                "symbol matches feature terms: eval, exp, rewrite",
+                "symbol matches feature terms: eval, real"
+              ]
+            },
+            {
+              "file": "sympy/codegen/cfunctions.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: eval, exp, rewrite",
+                "symbol matches feature terms: eval, real",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, exp"
+              ]
+            },
+            {
+              "file": "sympy/core/numbers.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: eval, number",
+                "symbol matches feature terms: conjugate, eval, number",
+                "symbol matches feature terms: ab, exp",
+                "symbol matches feature terms: eval, exp",
+                "symbol matches feature terms: eval, exp, rewrite",
+                "symbol matches feature terms: conjugate, eval"
+              ]
+            },
+            {
+              "file": "sympy/functions/elementary/integers.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: eval, function, real",
+                "symbol matches feature terms: eval, number",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, real"
+              ]
+            },
+            {
+              "file": "sympy/functions/elementary/trigonometric.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: function, real",
+                "symbol matches feature terms: eval, exp, rewrite",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: conjugate, eval",
+                "symbol matches feature terms: eval, real",
+                "symbol matches feature terms: function, rewrite",
+                "symbol matches feature terms: eval, exp, function, rewrite"
+              ]
+            },
+            {
+              "file": "sympy/physics/quantum/sho1d.py",
+              "score": 7.0,
+              "reasons": [
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, number",
+                "symbol matches feature terms: eval, number, rewrite"
+              ]
+            },
+            {
+              "file": "sympy/core/function.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: application, eval",
+                "symbol matches feature terms: function, should",
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: exp, function"
+              ]
+            },
+            {
+              "file": "sympy/core/mul.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: eval, real",
+                "symbol matches feature terms: conjugate, eval"
+              ]
+            },
+            {
+              "file": "sympy/core/power.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: eval, real",
+                "symbol matches feature terms: conjugate, eval",
+                "symbol matches feature terms: eval, exp",
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: eval, exp, rewrite"
+              ]
+            },
+            {
+              "file": "sympy/functions/combinatorial/factorials.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, real"
+              ]
+            },
+            {
+              "file": "sympy/functions/elementary/hyperbolic.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: exp, rewrite",
+                "symbol matches feature terms: conjugate, eval",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, exp, rewrite",
+                "symbol matches feature terms: eval, real",
+                "symbol matches feature terms: eval, function",
+                "symbol matches feature terms: function, rewrite",
+                "symbol matches feature terms: eval, exp, function, rewrite"
+              ]
+            },
+            {
+              "file": "sympy/functions/special/bessel.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: conjugate, eval",
+                "symbol matches feature terms: eval, rewrite",
+                "symbol matches feature terms: eval, real"
+              ]
+            }
+          ],
+          "prompt_chars": 79969,
+          "parse_failures": [],
+          "seconds": 11.944,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-16248",
+      "expected_files": [
+        "sympy/combinatorics/perm_groups.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "sympy/combinatorics/__init__.py",
+            "sympy/combinatorics/perm_groups.py"
+          ],
+          "prompt_chars": 163562,
+          "seconds": 0.141,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "sympy/combinatorics/__init__.py",
+            "sympy/combinatorics/perm_groups.py",
+            "sympy/core/__init__.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 49068,
+          "parse_failures": [],
+          "seconds": 50.368,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "sympy/assumptions/handlers/__init__.py",
+            "sympy/combinatorics/fp_groups.py",
+            "sympy/combinatorics/free_groups.py",
+            "sympy/combinatorics/perm_groups.py",
+            "sympy/combinatorics/permutations.py",
+            "sympy/core/numbers.py",
+            "sympy/liealgebras/weyl_group.py",
+            "sympy/polys/rings.py",
+            "sympy/printing/str.py",
+            "sympy/series/fourier.py",
+            "sympy/stats/frv.py"
+          ],
+          "candidates": [
+            {
+              "file": "sympy/combinatorics/fp_groups.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: group, order",
+                "symbol matches feature terms: finite, group",
+                "symbol matches feature terms: group, perm",
+                "symbol matches feature terms: abelian, group",
+                "symbol matches feature terms: group, solvable",
+                "symbol matches feature terms: element, group"
+              ]
+            },
+            {
+              "file": "sympy/combinatorics/free_groups.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: group, order",
+                "symbol matches feature terms: element, group",
+                "symbol matches feature terms: abelian, group",
+                "symbol matches feature terms: add, element, group",
+                "symbol matches feature terms: element, group, order",
+                "symbol matches feature terms: element, group, number"
+              ]
+            },
+            {
+              "file": "sympy/core/numbers.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: number, order",
+                "symbol matches feature terms: finite, number",
+                "symbol matches feature terms: add, number",
+                "symbol matches feature terms: one, order"
+              ]
+            },
+            {
+              "file": "sympy/liealgebras/weyl_group.py",
+              "score": 5.0,
+              "reasons": [
+                "symbol matches feature terms: group, order",
+                "symbol matches feature terms: element, group, order"
+              ]
+            },
+            {
+              "file": "sympy/combinatorics/permutations.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: add, permutation",
+                "symbol matches feature terms: order, permutation"
+              ]
+            },
+            {
+              "file": "sympy/polys/rings.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: element, one",
+                "symbol matches feature terms: add, element"
+              ]
+            },
+            {
+              "file": "sympy/printing/str.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: group, permutation",
+                "symbol matches feature terms: element, group"
+              ]
+            },
+            {
+              "file": "sympy/series/fourier.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: check, finite",
+                "symbol matches feature terms: add, finite"
+              ]
+            },
+            {
+              "file": "sympy/stats/frv.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: element, finite",
+                "symbol matches feature terms: finite, where"
+              ]
+            },
+            {
+              "file": "sympy/tensor/tensor.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: check, permutation",
+                "symbol matches feature terms: add, check"
+              ]
+            },
+            {
+              "file": "sympy/assumptions/handlers/calculus.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: add, finite"
+              ]
+            },
+            {
+              "file": "sympy/assumptions/handlers/matrices.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: add, element"
+              ]
+            }
+          ],
+          "prompt_chars": 79849,
+          "parse_failures": [],
+          "seconds": 57.146,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-15247",
+      "expected_files": [
+        "sympy/utilities/misc.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "sympy/utilities/__init__.py",
+            "sympy/utilities/misc.py"
+          ],
+          "prompt_chars": 17141,
+          "seconds": 0.14,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "sympy/utilities/__init__.py",
+            "sympy/utilities/misc.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 17963,
+          "parse_failures": [],
+          "seconds": 0.004,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "sympy/codegen/ast.py",
+            "sympy/core/__init__.py",
+            "sympy/core/function.py",
+            "sympy/core/numbers.py",
+            "sympy/functions/elementary/hyperbolic.py",
+            "sympy/functions/elementary/trigonometric.py",
+            "sympy/holonomic/holonomic.py",
+            "sympy/logic/boolalg.py",
+            "sympy/parsing/latex/_build_latex_antlr.py",
+            "sympy/parsing/mathematica.py",
+            "sympy/sets/__init__.py",
+            "sympy/sets/ordinals.py",
+            "sympy/utilities/__init__.py",
+            "sympy/utilities/misc.py"
+          ],
+          "candidates": [
+            {
+              "file": "sympy/core/function.py",
+              "score": 6.0,
+              "reasons": [
+                "symbol matches feature terms: function, wrt",
+                "symbol matches feature terms: function, should",
+                "symbol matches feature terms: derivative, function",
+                "symbol matches feature terms: derivative, wrt"
+              ]
+            },
+            {
+              "file": "sympy/logic/boolalg.py",
+              "score": 4.0,
+              "reasons": [
+                "symbol matches feature terms: check, function",
+                "symbol matches feature terms: derivative, function"
+              ]
+            },
+            {
+              "file": "sympy/codegen/ast.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: check, int"
+              ]
+            },
+            {
+              "file": "sympy/core/numbers.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: int, number"
+              ]
+            },
+            {
+              "file": "sympy/functions/elementary/hyperbolic.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: calculate, function"
+              ]
+            },
+            {
+              "file": "sympy/functions/elementary/trigonometric.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: calculate, function"
+              ]
+            },
+            {
+              "file": "sympy/holonomic/holonomic.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: function, have"
+              ]
+            },
+            {
+              "file": "sympy/parsing/latex/_build_latex_antlr.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: check, version"
+              ]
+            },
+            {
+              "file": "sympy/parsing/mathematica.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: convert, function"
+              ]
+            },
+            {
+              "file": "sympy/sets/ordinals.py",
+              "score": 2.0,
+              "reasons": [
+                "symbol matches feature terms: convert, ordinal"
+              ]
+            }
+          ],
+          "prompt_chars": 79844,
+          "parse_failures": [],
+          "seconds": 7.437,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-14853",
+      "expected_files": [
+        "sympy/discrete/__init__.py",
+        "sympy/discrete/transforms.py"
+      ],
+      "hidden_files": [
+        "sympy/discrete/__init__.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "sympy/discrete/__init__.py",
+            "sympy/discrete/transforms.py"
+          ],
+          "prompt_chars": 15164,
+          "seconds": 0.145,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "sympy/discrete/__init__.py",
+            "sympy/discrete/transforms.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 34354,
+          "parse_failures": [],
+          "seconds": 0.819,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "sympy/core/compatibility.py",
+            "sympy/core/containers.py",
+            "sympy/core/function.py",
+            "sympy/core/numbers.py",
+            "sympy/core/sympify.py",
+            "sympy/discrete/__init__.py",
+            "sympy/discrete/convolution.py",
+            "sympy/discrete/transforms.py",
+            "sympy/ntheory/primetest.py",
+            "sympy/ntheory/residue_ntheory.py",
+            "sympy/series/__init__.py",
+            "sympy/series/sequences.py",
+            "sympy/utilities/iterables.py"
+          ],
+          "candidates": [
+            {
+              "file": "sympy/discrete/convolution.py",
+              "score": 27.0,
+              "reasons": [
+                "caller of sympy/core/function.py:expand_mul (hop 2)",
+                "caller of sympy/discrete/transforms.py:fft (hop 2)",
+                "caller of sympy/discrete/transforms.py:ifft (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "caller of sympy/discrete/transforms.py:intt (hop 2)",
+                "caller of sympy/discrete/transforms.py:ntt (hop 2)",
+                "caller of sympy/discrete/transforms.py:fwht (hop 2)",
+                "caller of sympy/discrete/transforms.py:ifwht (hop 2)",
+                "base-ancestor history: Co-modified with anchor `_walsh_hadamard_transform` in commit fe173d7c. Changes: removed 8 line(s), added 5 line(s)",
+                "base-ancestor history: Co-modified with anchor `_walsh_hadamard_transform` in commit fe173d7c. Changes: removed 8 line(s), added 5 line(s)",
+                "base-ancestor history: Co-modified with anchor `_walsh_hadamard_transform` in commit fe173d7c. Changes: removed 8 line(s), added 5 line(s)"
+              ]
+            },
+            {
+              "file": "sympy/core/compatibility.py",
+              "score": 24.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_fourier_transform (hop 1)",
+                "callee of sympy/discrete/transforms.py:_number_theoretic_transform (hop 1)",
+                "callee of sympy/discrete/transforms.py:_walsh_hadamard_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "callee of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "callee of sympy/utilities/iterables.py:ibin (hop 2)",
+                "callee of sympy/ntheory/residue_ntheory.py:primitive_root (hop 2)"
+              ]
+            },
+            {
+              "file": "sympy/core/sympify.py",
+              "score": 20.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_fourier_transform (hop 1)",
+                "callee of sympy/discrete/transforms.py:_walsh_hadamard_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "callee of sympy/core/function.py:expand_mul (hop 2)",
+                "callee of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "callee of sympy/categories/baseclasses.py:Diagram.__new__ (hop 3)",
+                "callee of sympy/codegen/ast.py:For.__new__ (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/utilities/iterables.py",
+              "score": 20.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_fourier_transform (hop 1)",
+                "callee of sympy/discrete/transforms.py:_number_theoretic_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "callee of sympy/utilities/iterables.py:ibin (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "callee of sympy/combinatorics/prufer.py:Prufer.__new__ (hop 3)",
+                "caller of sympy/core/compatibility.py:default_sort_key (hop 3)",
+                "caller of sympy/core/compatibility.py:is_sequence (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/core/function.py",
+              "score": 16.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_fourier_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "callee of sympy/core/function.py:expand_mul (hop 2)",
+                "caller of sympy/core/function.py:expand_mul (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "caller of sympy/calculus/finite_diff.py:_as_finite_diff (hop 3)",
+                "caller of sympy/core/compatibility.py:is_sequence (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/ntheory/primetest.py",
+              "score": 16.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_number_theoretic_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "callee of sympy/ntheory/primetest.py:isprime (hop 2)",
+                "caller of sympy/core/numbers.py:igcd (hop 3)",
+                "callee of sympy/ntheory/factor_.py:divisors (hop 3)",
+                "callee of sympy/ntheory/factor_.py:factorint (hop 3)",
+                "callee of sympy/ntheory/factor_.py:udivisors (hop 3)",
+                "callee of sympy/ntheory/generate.py:composite (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/ntheory/residue_ntheory.py",
+              "score": 16.0,
+              "reasons": [
+                "callee of sympy/discrete/transforms.py:_number_theoretic_transform (hop 1)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "caller of sympy/ntheory/primetest.py:isprime (hop 2)",
+                "callee of sympy/ntheory/residue_ntheory.py:primitive_root (hop 2)",
+                "caller of sympy/ntheory/residue_ntheory.py:primitive_root (hop 2)",
+                "caller of sympy/core/numbers.py:mod_inverse (hop 3)",
+                "caller of sympy/core/numbers.py:igcd (hop 3)",
+                "caller of sympy/ntheory/factor_.py:factorint (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/discrete/__init__.py",
+              "score": 15.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `_fourier_transform` in commit 99975e18. Changes: added 9 line(s)",
+                "base-ancestor history: Co-modified with anchor `_fourier_transform` in commit 99975e18. Changes: added 9 line(s)",
+                "base-ancestor history: Co-modified with anchor `_fourier_transform` in commit 99975e18. Changes: added 9 line(s)"
+              ]
+            },
+            {
+              "file": "sympy/series/sequences.py",
+              "score": 12.666666666666666,
+              "reasons": [
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/compatibility.py:is_sequence (hop 3)",
+                "callee of sympy/series/formal.py:FormalPowerSeries.integrate (hop 3)",
+                "callee of sympy/series/sequences.py:SeqAdd.__new__ (hop 3)",
+                "callee of sympy/series/sequences.py:SeqMul.__new__ (hop 3)",
+                "caller of sympy/simplify/simplify.py:simplify (hop 3)",
+                "symbol matches feature terms: seq, symbol"
+              ]
+            },
+            {
+              "file": "sympy/core/containers.py",
+              "score": 12.0,
+              "reasons": [
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "callee of sympy/simplify/cse_main.py:opt_cse (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/core/numbers.py",
+              "score": 12.0,
+              "reasons": [
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)",
+                "caller of sympy/ntheory/primetest.py:isprime (hop 2)",
+                "callee of sympy/ntheory/residue_ntheory.py:primitive_root (hop 2)",
+                "caller of sympy/core/sympify.py:_convert_numpy_types (hop 3)",
+                "caller of sympy/core/expr.py:Expr.__ge__ (hop 3)",
+                "caller of sympy/core/expr.py:Expr.__gt__ (hop 3)",
+                "caller of sympy/core/expr.py:Expr.__le__ (hop 3)"
+              ]
+            },
+            {
+              "file": "sympy/discrete/recurrence.py",
+              "score": 12.0,
+              "reasons": [
+                "caller of sympy/core/compatibility.py:iterable (hop 2)",
+                "caller of sympy/core/sympify.py:sympify (hop 2)",
+                "caller of sympy/core/compatibility.py:as_int (hop 2)"
+              ]
+            }
+          ],
+          "prompt_chars": 79788,
+          "parse_failures": [],
+          "seconds": 10.474,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "falconry__falcon-1174",
+      "expected_files": [
+        "falcon/request.py"
+      ],
+      "hidden_files": [],
+      "results": {
+        "v1": {
+          "files": [
+            "falcon/__init__.py",
+            "falcon/request.py"
+          ],
+          "prompt_chars": 78641,
+          "seconds": 0.136,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "v5": {
+          "files": [
+            "falcon/__init__.py",
+            "falcon/api.py",
+            "falcon/request.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 56266,
+          "parse_failures": [],
+          "seconds": 0.231,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        },
+        "expanded": {
+          "files": [
+            "falcon/__init__.py",
+            "falcon/api.py",
+            "falcon/request.py",
+            "falcon/request_helpers.py",
+            "falcon/util/__init__.py",
+            "falcon/util/uri.py"
+          ],
+          "candidates": [
+            {
+              "file": "falcon/api.py",
+              "score": 5.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `get_param` in commit 5cea1b6. Changes: removed 9 line(s), added 30 line(s) (key names: _compile_uri_template, routes)"
+              ]
+            },
+            {
+              "file": "falcon/request_helpers.py",
+              "score": 5.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `get_param_as_bool` in commit c69c983. Changes: removed 1 line(s), added 1 line(s)"
+              ]
+            },
+            {
+              "file": "falcon/util/uri.py",
+              "score": 5.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `params` in commit 78ded67. Changes: removed 1 line(s), added 10 line(s)"
+              ]
+            }
+          ],
+          "prompt_chars": 70680,
+          "parse_failures": [],
+          "seconds": 0.453,
+          "gold_hits": 1,
+          "gold_total": 1,
+          "hidden_hits": 0,
+          "hidden_total": 0,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    },
+    {
+      "instance_id": "boto__boto3-74",
+      "expected_files": [
+        "boto3/docs.py",
+        "boto3/resources/factory.py"
+      ],
+      "hidden_files": [
+        "boto3/resources/factory.py"
+      ],
+      "results": {
+        "v1": {
+          "files": [
+            "boto3/__init__.py",
+            "boto3/docs.py"
+          ],
+          "prompt_chars": 31445,
+          "seconds": 0.129,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "boto3/resources/factory.py"
+          ],
+          "hidden_missing": [
+            "boto3/resources/factory.py"
+          ]
+        },
+        "v5": {
+          "files": [
+            "boto3/__init__.py",
+            "boto3/docs.py"
+          ],
+          "candidates": [],
+          "prompt_chars": 36401,
+          "parse_failures": [],
+          "seconds": 0.102,
+          "gold_hits": 1,
+          "gold_total": 2,
+          "hidden_hits": 0,
+          "hidden_total": 1,
+          "missing": [
+            "boto3/resources/factory.py"
+          ],
+          "hidden_missing": [
+            "boto3/resources/factory.py"
+          ]
+        },
+        "expanded": {
+          "files": [
+            "boto3/__init__.py",
+            "boto3/docs.py",
+            "boto3/resources/__init__.py",
+            "boto3/resources/action.py",
+            "boto3/resources/base.py",
+            "boto3/resources/collection.py",
+            "boto3/resources/factory.py",
+            "boto3/resources/model.py",
+            "boto3/session.py"
+          ],
+          "candidates": [
+            {
+              "file": "boto3/resources/model.py",
+              "score": 23.94791081271851,
+              "reasons": [
+                "callee of boto3/docs.py:docs_for (hop 2)",
+                "caller of boto3/resources/model.py:ResourceModel.__init__ (hop 3)",
+                "producer/consumer of path, resource with boto3/docs.py:docs_for",
+                "producer/consumer of path, request, resource with boto3/docs.py:document_action",
+                "producer/consumer of request, resource with boto3/docs.py:document_collection",
+                "producer/consumer of request, resource with boto3/docs.py:document_resource",
+                "producer/consumer of request with boto3/docs.py:document_waiter",
+                "producer/consumer of path with boto3/docs.py:docs_for"
+              ]
+            },
+            {
+              "file": "boto3/resources/factory.py",
+              "score": 15.666666666666666,
+              "reasons": [
+                "caller of boto3/resources/model.py:ResourceModel.__init__ (hop 3)",
+                "symbol matches feature terms: load, resource",
+                "symbol matches feature terms: attribute, load, resource",
+                "symbol matches feature terms: ha, load, resource",
+                "symbol matches feature terms: reference, resource",
+                "base-ancestor history: Co-modified with anchor `document_collection` in commit 30463ab5. Changes: removed 5 line(s), added 14 line(s) (key names: _collection_factory, _create_collection)"
+              ]
+            },
+            {
+              "file": "boto3/__init__.py",
+              "score": 14.666666666666666,
+              "reasons": [
+                "callee of boto3/docs.py:document_client (hop 1)",
+                "callee of boto3/__init__.py:client (hop 2)",
+                "callee of boto3/docs.py:document_client_waiter (hop 3)",
+                "callee of boto3/__init__.py:_get_default_session (hop 3)",
+                "caller of boto3/__init__.py:_get_default_session (hop 3)",
+                "callee of boto3/resources/base.py:ServiceResource.__init__ (hop 3)"
+              ]
+            },
+            {
+              "file": "boto3/resources/base.py",
+              "score": 13.464101615137755,
+              "reasons": [
+                "caller of boto3/__init__.py:client (hop 2)",
+                "producer/consumer of client with boto3/docs.py:document_client",
+                "producer/consumer of client with boto3/docs.py:document_client_waiter",
+                "producer/consumer of identifiers with boto3/docs.py:document_resource",
+                "symbol matches feature terms: meta, resource"
+              ]
+            },
+            {
+              "file": "boto3/resources/collection.py",
+              "score": 13.267786838055363,
+              "reasons": [
+                "producer/consumer of model with boto3/docs.py:docs_for",
+                "producer/consumer of params with boto3/docs.py:document_action",
+                "producer/consumer of params with boto3/docs.py:document_waiter",
+                "base-ancestor history: Co-modified with anchor `document_collection` in commit 30463ab5. Changes: removed 27 line(s), added 177 line(s) (key names: __class__, _collection_cls, _create_batch_action, _handler, _load_batch_actions)"
+              ]
+            },
+            {
+              "file": "boto3/resources/action.py",
+              "score": 5.0,
+              "reasons": [
+                "base-ancestor history: Co-modified with anchor `document_collection` in commit 30463ab5. Changes: removed 7 line(s), added 77 line(s) (key names: _action_model, _response_handler, action_model, response_handler)"
+              ]
+            },
+            {
+              "file": "boto3/session.py",
+              "score": 4.121320343559642,
+              "reasons": [
+                "producer/consumer of session with boto3/docs.py:docs_for"
+              ]
+            }
+          ],
+          "prompt_chars": 78220,
+          "parse_failures": [],
+          "seconds": 0.288,
+          "gold_hits": 2,
+          "gold_total": 2,
+          "hidden_hits": 1,
+          "hidden_total": 1,
+          "missing": [],
+          "hidden_missing": []
+        }
+      }
+    }
+  ]
+}

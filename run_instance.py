@@ -62,6 +62,7 @@ def main():
         definitions=parsed["definitions"],
         has_extra_changes=parsed["has_extra_changes"],
         new_components_raw=instance.get("new_components"),
+        base_commit=instance.get("base_commit", ""),
     )
     print(f"Context size: {ctx.total_context_chars} chars")
     print(f"Components: {len(ctx.components)}")

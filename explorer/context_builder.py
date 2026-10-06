@@ -14,6 +14,7 @@ from explorer.ast_analyzer import ASTAnalyzer, ModuleInfo, ClassInfo, FunctionIn
 from explorer.import_tracer import ImportTracer, ImportNode
 from repo_manager import get_file_content
 from config import MAX_CONTEXT_CHARS, MAX_SIBLING_METHODS
+from explorer.feature_retriever import FeatureRetriever, RecallCandidate, identifier_terms
 
 
 @dataclass
@@ -65,6 +66,9 @@ class ComponentContext:
     # Call chain: the most similar sibling's full call graph
     reference_call_chain: List[CallChainNode] = field(default_factory=list)
 
+    # FeatureSpace: files discovered via anchor's git commit history
+    feature_space_files: List[Any] = field(default_factory=list)
+
     # Inter-component deps
     depends_on_components: List[str] = field(default_factory=list)  # names of other new components
 
@@ -83,20 +87,26 @@ class InstanceContext:
     components: List[ComponentContext] = field(default_factory=list)
     has_extra_changes: bool = False
     total_context_chars: int = 0
+    recalled_files: List[RecallCandidate] = field(default_factory=list)
+    recall_diagnostics: Dict[str, Any] = field(default_factory=dict)
 
 
 class ContextBuilder:
     """Build structured context deterministically for LLM generation."""
 
-    def __init__(self, repo_dir: Path, max_context_chars: int = MAX_CONTEXT_CHARS):
+    def __init__(self, repo_dir: Path, max_context_chars: int = MAX_CONTEXT_CHARS,
+                 recall_mode: str = "expanded", max_recalled_files: int = 12):
         self.repo_dir = repo_dir
         self.analyzer = ASTAnalyzer()
         self.tracer = ImportTracer(repo_dir, self.analyzer)
         self.max_context_chars = max_context_chars
+        self.recall_mode = recall_mode
+        self.max_recalled_files = max_recalled_files
 
     def build_context(self, instance_id: str, problem_statement: str,
                       definitions: List[Dict], has_extra_changes: bool = False,
-                      new_components_raw: Optional[List[Dict]] = None) -> InstanceContext:
+                      new_components_raw: Optional[List[Dict]] = None,
+                      base_commit: str = "") -> InstanceContext:
         from data_loader import parse_problem_statement
         parsed = parse_problem_statement(problem_statement)
 
@@ -125,6 +135,40 @@ class ContextBuilder:
         # Build reference call chains (needs inter-component info)
         for comp in ctx.components:
             self._build_reference_call_chain(comp)
+
+        retriever = None
+        if self.recall_mode == "expanded":
+            retriever = FeatureRetriever(self.repo_dir, self.max_recalled_files, base_commit=base_commit)
+            retriever.retrieve(ctx)  # Resolve multiple anchors before history expansion.
+
+        # Every history query is limited to ancestors of the supplied base commit.
+        if base_commit:
+            from explorer.commit_tracer import CommitTracer
+            target_files = {comp.target_file for comp in ctx.components}
+            fs_tracer = CommitTracer(self.repo_dir)
+            for comp in ctx.components:
+                anchors = [n.method_name for n in comp.reference_call_chain[:1]]
+                if retriever:
+                    anchors = [retriever.index.symbols[k].name.split(".")[-1]
+                               for k in retriever.anchor_keys.get(comp.name, [])]
+                by_file = {}
+                for anchor in dict.fromkeys(anchors):
+                    for candidate in fs_tracer.trace_anchor_co_modified_files(
+                            anchor, comp.target_file, base_commit, target_files,
+                            new_component_name=comp.name.split(".")[-1]):
+                        by_file.setdefault(candidate.file, candidate)
+                comp.feature_space_files = list(by_file.values())
+
+        if retriever:
+            ctx.recalled_files = retriever.retrieve(ctx)
+            ctx.recall_diagnostics = {
+                "mode": self.recall_mode,
+                "indexed_files": len(retriever.index.imports),
+                "indexed_symbols": len(retriever.index.symbols),
+                "parse_failures": retriever.index.parse_failures,
+                "anchors": retriever.anchor_keys,
+                "target_context_symbols": retriever.target_context_symbols,
+            }
 
         ctx.total_context_chars = self._estimate_context_size(ctx)
         return ctx
@@ -211,6 +255,10 @@ class ContextBuilder:
         ref_class_name = best_ref["class"]
 
         # BFS: trace the call chain from the reference method
+        methods = comp.sibling_methods
+        if not ref_class_name:
+            module = self.analyzer.parse_file(self.repo_dir, comp.target_file)
+            methods = module.functions if module else {}
         visited = set()
         queue = [ref_method_name]
         chain = []
@@ -221,8 +269,8 @@ class ContextBuilder:
                 continue
             visited.add(current)
 
-            if current in comp.sibling_methods:
-                method = comp.sibling_methods[current]
+            if current in methods:
+                method = methods[current]
                 callees = self.analyzer.find_method_callees(method)
                 chain.append(CallChainNode(
                     method_name=current,
@@ -290,30 +338,22 @@ class ContextBuilder:
         comp_ctx.init_py_exports = self._check_init_py(comp_ctx.target_file)
 
     def _find_similar_functions(self, comp_ctx: ComponentContext,
-                                 module: ModuleInfo) -> List[Dict[str, Any]]:
+                                module: ModuleInfo) -> List[Dict[str, Any]]:
+        wanted = identifier_terms(comp_ctx.name.split(".")[-1])
         similar = []
-        comp_base_name = comp_ctx.name.split(".")[-1]
-        comp_words = set(re.findall(r'[a-z]+', comp_base_name))
-
-        for cls_name, cls in module.classes.items():
-            for mname, method in cls.methods.items():
-                if mname == comp_base_name:
-                    continue
-                method_words = set(re.findall(r'[a-z]+', mname))
-                overlap = len(comp_words & method_words)
-                if overlap >= 1 and len(comp_words) > 0:
-                    similarity = overlap / max(len(comp_words), len(method_words))
-                    if similarity >= 0.2:
-                        similar.append({
-                            "class": cls_name,
-                            "method": mname,
-                            "signature": f"def {mname}(self, {', '.join(method.args)})",
-                            "body": method.body_source,
-                            "similarity": similarity,
-                        })
-
-        similar.sort(key=lambda x: x["similarity"], reverse=True)
-        return similar[:5]
+        functions = [("", name, fn) for name, fn in module.functions.items()]
+        for class_name, cls in module.classes.items():
+            functions.extend((class_name, name, fn) for name, fn in cls.methods.items())
+        for class_name, name, method in functions:
+            if name == comp_ctx.name.split(".")[-1]:
+                continue
+            words = identifier_terms(name)
+            score = len(wanted & words) / max(1, len(wanted | words))
+            if score >= 0.2:
+                similar.append({"class": class_name, "method": name,
+                                "signature": "def %s(%s)" % (name, ", ".join(method.args)),
+                                "body": method.body_source, "similarity": score})
+        return sorted(similar, key=lambda item: (-item["similarity"], item["class"], item["method"]))[:5]
 
     def _check_init_py(self, file_path: str) -> Optional[InitPyInfo]:
         """Check __init__.py with sibling export pattern analysis."""
@@ -588,6 +628,14 @@ class ContextBuilder:
         result = "\n".join(parts)
         if len(result) > self.max_context_chars:
             result = result[:self.max_context_chars] + "\n\n# [Context truncated due to size limit]"
+        if ctx.recalled_files:
+            parts.append("\n## Retrieved integration locations\n")
+            for candidate in ctx.recalled_files:
+                parts.append("File: %s (score %.2f)" % (candidate.file, candidate.score))
+                parts.extend("- " + reason for reason in candidate.reasons)
+                for snippet in candidate.snippets:
+                    parts.append(snippet)
+
         return result
 
     def _format_method_signature(self, method: FunctionInfo) -> str:

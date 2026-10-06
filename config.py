@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 
 # ============ Paths ============
-FEABENCH_DATA_PATH = Path("/data/ymz/FEA-Bench/feabench-data/FEA-Bench-v1.0-Lite-Standard/test/data-00000-of-00001.arrow")
-REPOS_DIR = Path("/data2/ymz/tmp/feabench_repos")
-OUTPUT_DIR = Path("/data2/ymz/TOSEM2026/outputs")
-PROJECT_DIR = Path("/data2/ymz/TOSEM2026")
+PROJECT_DIR = Path(__file__).resolve().parent
+FEABENCH_DATA_PATH = Path(os.environ.get("FEABENCH_DATA_PATH", str(
+    PROJECT_DIR / "feabench-data/FEA-Bench-v1.0-Lite-Standard/test/data-00000-of-00001.arrow")))
+REPOS_DIR = Path(os.environ.get("FEABENCH_REPOS_DIR", str(PROJECT_DIR / "repos")))
+OUTPUT_DIR = Path(os.environ.get("FUNCGEN_OUTPUT_DIR", str(PROJECT_DIR / "outputs")))
 
 # CoderEval
 CODEREVAL_DATA = Path("/data2/ymz/codereval_data/data/converted.jsonl")

@@ -78,8 +78,8 @@ class ASTAnalyzer:
             return None
 
         source = full_path.read_text(errors="replace")
-        if len(source) > self.max_file_chars:
-            source = source[:self.max_file_chars]
+        # Parse complete files; truncating before AST parsing loses symbols or
+        # creates a SyntaxError in the middle of a function. Rendering owns budgets.
 
         try:
             tree = ast.parse(source, filename=file_path)
@@ -199,7 +199,8 @@ class ASTAnalyzer:
 
         # Extract args (skip 'self' and 'cls')
         all_args = node.args
-        skip_first = not is_static
+        skip_first = (not is_static and bool(all_args.args)
+                      and all_args.args[0].arg in {"self", "cls"})
         arg_list = all_args.args[1:] if skip_first and all_args.args else all_args.args
         for arg in arg_list:
             args.append(arg.arg)
@@ -211,7 +212,7 @@ class ASTAnalyzer:
 
         # Extract body source
         body_lines = source.split("\n")
-        start = node.lineno - 1
+        start = min([node.lineno] + [d.lineno for d in node.decorator_list]) - 1
         end = node.end_lineno or node.lineno
         body_source = "\n".join(body_lines[start:end])
 
@@ -300,7 +301,7 @@ class ASTAnalyzer:
         """
         import re
         pattern = r'self\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
-        return list(set(re.findall(pattern, func_info.body_source)))
+        return sorted(set(re.findall(pattern, func_info.body_source)))
 
     def get_sibling_methods(self, module_info: ModuleInfo,
                             class_name: str, nested_class: Optional[str] = None) -> Dict[str, FunctionInfo]:

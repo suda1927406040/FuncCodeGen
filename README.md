@@ -1,93 +1,70 @@
-# FuncGenV1
+# FuncGen v5：修复位置召回
 
+`change_1007` 将 `/data2/ymz/TOSEM2026/v5/v5.py` 的生成流程迁入
+`run_oracle.py`，`v5.py` 提供兼容入口，并增加无需调用模型的召回评估。
 
+默认 `expanded` 检索在 v5 历史共修改文件之外，加入多 anchor、跨文件调用者和
+被调用者、导入别名与重新导出、状态字段生产者/消费者，以及新包的初始化和导出位置。
+候选有具体函数、行号、字段写入和 if/异常分支证据；候选文件不自动成为必改文件。
 
-## Getting started
+完整文件先做 AST 解析，之后按完整代码块控制最终 prompt 的 80,000 字符预算，
+避免原来的 20,000 字符截断让 AST 失败。编辑解析支持缺少外层结束标签的完整片段；
+补丁导出和应用使用同一补丁，拒绝无法定位、歧义、语法错误及空补丁。
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## 本地运行
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+安装 `requirements.txt` 中的依赖。数据与仓库路径通过环境变量配置，默认位于本项目：
 
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+export FEABENCH_DATA_PATH=/Users/shiroha123/projects/feabench-local/feabench-data/FEA-Bench-v1.0-Lite-Standard/test/data-00000-of-00001.arrow
+export FEABENCH_REPOS_DIR=/path/to/instance-repos
+export OPENAI_API_KEY=你的已有凭据
+export OPENAI_BASE_URL=你的已有接口地址
+export LLM_MODEL_GENERATE=deepseek-chat
 ```
-cd existing_repo
-git remote add origin https://git.nju.edu.cn/Shiroha123321/funcgenv1.git
-git branch -M main
-git push -uf origin main
+
+只做检索、保存 `recall.json`、`prompt.md` 和 `explorer_context.md`：
+
+```bash
+python run_oracle.py --instance conan-io__conan-16871 \
+  --recall-only --output outputs/recall
 ```
 
-## Integrate with your tools
+正常生成并导出补丁：
 
-* [Set up project integrations](https://git.nju.edu.cn/Shiroha123321/funcgenv1/-/settings/integrations)
+```bash
+python v5.py --instance conan-io__conan-16871 --output outputs/v5
+```
 
-## Collaborate with your team
+不设置 `--apply` 时只生成补丁。普通运行会按数据集中的 base commit 准备实例仓库。
+若已有准确的 base-tree 源码目录，可加 `--repo-dir /path/to/base-tree` 跳过 checkout；
+这个选项只允许单个实例，并禁止 `--apply`。提供的源码必须确实来自该实例的 base commit。
+`--dataset-path` 可以代替数据环境变量。
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+检索模式：`--recall-mode v5` 使用迁入后的单 anchor 历史逻辑；`expanded` 使用增强检索。
+`--recall-max-files 12` 控制最多增加的候选文件数。迁入后的 v5 模式也包含完整 AST
+解析和 prompt 预算修正，因此并非原始 55/200 实验代码的逐字节重放。
 
-## Test and Deploy
+## 检查与召回实验
 
-Use the built-in continuous integration in GitLab.
+单元测试仅需 Python 标准库和 Git：
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```bash
+python -m unittest discover -s tests -v
+```
 
-***
+在准确的 base-tree 快照上比较修复文件召回，不调用模型：
 
-# Editing this README
+```bash
+python scripts/evaluate_recall.py \
+  --dataset-path "$FEABENCH_DATA_PATH" \
+  --repo-root /path/to/base-tree-snapshots \
+  --output evaluation/recall.json
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+快照目录按实例 ID 命名。`--baseline-root /path/to/b67f93b-source` 可增加原始 main
+版本的比较；`--modes expanded` 可仅运行增强检索。参考补丁仅在检索完成后用于评分，
+新测试和参考补丁均不传给检索或 prompt 构造接口。
 
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+已检查的 17 个真实 base-tree 小样本、统计定义及限制见
+[evaluation/README.md](evaluation/README.md)。召回率与最终解决率需要分别评测。

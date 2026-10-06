@@ -1,5 +1,4 @@
 """Load FEA-bench dataset from arrow format."""
-import pyarrow as pa
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from config import FEABENCH_DATA_PATH
@@ -7,6 +6,7 @@ from config import FEABENCH_DATA_PATH
 
 def load_dataset(path: Optional[Path] = None) -> List[Dict[str, Any]]:
     """Load all instances from FEA-bench arrow file."""
+    import pyarrow as pa
     path = path or FEABENCH_DATA_PATH
     reader = pa.ipc.open_stream(str(path))
     table = reader.read_all()

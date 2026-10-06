@@ -104,6 +104,7 @@ def run_instance(instance: dict, dry_run: bool = False,
         definitions=parsed["definitions"],
         has_extra_changes=parsed["has_extra_changes"],
         new_components_raw=instance.get("new_components"),
+        base_commit=instance.get("base_commit", ""),
     )
     result["timing"]["context_building"] = time.time() - t0
     print(f"  Context size: {ctx.total_context_chars} chars")
