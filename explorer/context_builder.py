@@ -89,19 +89,26 @@ class InstanceContext:
     total_context_chars: int = 0
     recalled_files: List[RecallCandidate] = field(default_factory=list)
     recall_diagnostics: Dict[str, Any] = field(default_factory=dict)
+    base_commit: str = ""
+    history_patterns: List[Any] = field(default_factory=list)
+    request_reference_keys: List[str] = field(default_factory=list)
 
 
 class ContextBuilder:
     """Build structured context deterministically for LLM generation."""
 
     def __init__(self, repo_dir: Path, max_context_chars: int = MAX_CONTEXT_CHARS,
-                 recall_mode: str = "expanded", max_recalled_files: int = 12):
+                 recall_mode: str = "expanded", max_recalled_files: int = 12,
+                 history_mode: str = "patterns"):
         self.repo_dir = repo_dir
         self.analyzer = ASTAnalyzer()
         self.tracer = ImportTracer(repo_dir, self.analyzer)
         self.max_context_chars = max_context_chars
         self.recall_mode = recall_mode
         self.max_recalled_files = max_recalled_files
+        if history_mode not in {"patterns", "legacy", "off"}:
+            raise ValueError("Unknown history mode: " + history_mode)
+        self.history_mode = "legacy" if recall_mode == "v5" and history_mode != "off" else history_mode
 
     def build_context(self, instance_id: str, problem_statement: str,
                       definitions: List[Dict], has_extra_changes: bool = False,
@@ -116,6 +123,7 @@ class ContextBuilder:
             problem_statement=problem_statement,
             request=parsed["request"],
             has_extra_changes=has_extra_changes or parsed["has_extra_changes"],
+            base_commit=base_commit,
         )
 
         defs = parsed["definitions"] if parsed["definitions"] else definitions
@@ -139,10 +147,24 @@ class ContextBuilder:
         retriever = None
         if self.recall_mode == "expanded":
             retriever = FeatureRetriever(self.repo_dir, self.max_recalled_files, base_commit=base_commit)
-            retriever.retrieve(ctx)  # Resolve multiple anchors before history expansion.
+            retriever.prepare_anchors(ctx)  # Full call/state traversal runs once, after history discovery.
+            ctx.request_reference_keys = retriever.request_references
+
+        history_diagnostics = {}
+        if base_commit and self.history_mode == "patterns" and retriever:
+            from explorer.history_patterns import CommitPatternRetriever, companion_files
+            history = CommitPatternRetriever(self.repo_dir, retriever.index)
+            ctx.history_patterns = history.retrieve(ctx, retriever.anchor_keys)
+            history_diagnostics = history.diagnostics
+            targets = {comp.target_file for comp in ctx.components}
+            files = companion_files(ctx.history_patterns, targets)
+            # Keep one global set; repeated components must not multiply a
+            # historical file's score or duplicate its diff in the prompt.
+            if ctx.components:
+                ctx.components[0].feature_space_files = files
 
         # Every history query is limited to ancestors of the supplied base commit.
-        if base_commit:
+        if base_commit and self.history_mode == "legacy":
             from explorer.commit_tracer import CommitTracer
             target_files = {comp.target_file for comp in ctx.components}
             fs_tracer = CommitTracer(self.repo_dir)
@@ -170,6 +192,9 @@ class ContextBuilder:
                 "target_context_symbols": retriever.target_context_symbols,
                 "request_references": retriever.request_references,
             }
+
+        ctx.recall_diagnostics.update(history_mode=self.history_mode, history=history_diagnostics,
+                                      history_commits=[pattern.commit for pattern in ctx.history_patterns])
 
         ctx.total_context_chars = self._estimate_context_size(ctx)
         return ctx
@@ -478,6 +503,9 @@ class ContextBuilder:
 
         # Header
         parts.append(f"# Feature Request\n{ctx.request}\n")
+        if ctx.history_patterns:
+            from explorer.history_patterns import render_commit_patterns
+            parts.append(render_commit_patterns(ctx.history_patterns))
 
         # Components overview
         parts.append(f"# Components to Implement ({len(ctx.components)} total)")

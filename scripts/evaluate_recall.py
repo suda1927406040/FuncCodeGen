@@ -40,11 +40,11 @@ def visible_symbols(prompt):
     return sorted(found)
 
 
-def retrieve(instance, repo_dir, mode, max_files):
+def retrieve(instance, repo_dir, mode, max_files, history_mode="patterns"):
     # Keep held-out tests and reference patches out of the retrieval interface.
     request = {key: instance.get(key) for key in
                ["instance_id", "repo", "base_commit", "problem_statement", "new_components"]}
-    ctx = ContextBuilder(repo_dir, recall_mode=mode, max_recalled_files=max_files).build_context(
+    ctx = ContextBuilder(repo_dir, recall_mode=mode, max_recalled_files=max_files, history_mode=history_mode).build_context(
         request["instance_id"], request["problem_statement"],
         parse_problem_statement(request["problem_statement"])["definitions"],
         new_components_raw=request["new_components"], base_commit=request["base_commit"])
@@ -58,6 +58,13 @@ def retrieve(instance, repo_dir, mode, max_files):
         "prompt_chars": len(prompt),
         "parse_failures": ctx.recall_diagnostics.get("parse_failures", []),
         "request_references": ctx.recall_diagnostics.get("request_references", []),
+        "history_diagnostics": ctx.recall_diagnostics.get("history", {}),
+        "history_patterns": [{"commit": p.commit, "subject": p.subject, "score": p.score,
+                              "origins": p.origins, "anchors": p.anchors, "reasons": p.reasons,
+                              "relationships": p.relationships,
+                              "files": [{"file": c.file, "roles": c.roles, "current_symbols": c.current_symbols}
+                                        for c in p.changes]} for p in ctx.history_patterns],
+        "visible_history_commits": re.findall(r"^COMMIT ([0-9a-f]{12}) —", prompt, re.MULTILINE),
     }
 
 
@@ -94,6 +101,7 @@ def main():
     parser.add_argument("--baseline-root", type=Path)
     parser.add_argument("--max-files", type=int, default=12)
     parser.add_argument("--modes", nargs="+", choices=["v1", "v5", "expanded"])
+    parser.add_argument("--history-mode", choices=["patterns", "legacy", "off"], default="patterns")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if not 1 <= args.max_files <= 32:
@@ -120,7 +128,7 @@ def main():
         for mode in modes:
             start = time.monotonic()
             result = (legacy_retrieve(instance, repo_dir, args.baseline_root) if mode == "v1"
-                      else retrieve(instance, repo_dir, mode, args.max_files))
+                      else retrieve(instance, repo_dir, mode, args.max_files, args.history_mode))
             result["seconds"] = round(time.monotonic() - start, 3)
             results[mode] = result
         # Scoring begins only after all retrieval modes finish.

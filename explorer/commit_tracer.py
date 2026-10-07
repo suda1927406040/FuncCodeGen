@@ -18,11 +18,14 @@ from typing import List, Optional, Set
 class FeatureSpaceFile:
     """A file discovered via FeatureSpace expansion of an anchor's commit history."""
     file: str               # relative path
-    anchor_commit: str      # the commit that introduced the anchor
+    anchor_commit: str      # ancestral reference commit (introduction or related change)
     diff_summary: str       # short description of what changed
     diff_content: str       # actual diff for this file in that commit
     reason: str             # why this file is relevant to the new feature
     key_entities: List[str] = field(default_factory=list)  # key variables/functions in diff
+    current_symbols: List[str] = field(default_factory=list)
+    commit_subject: str = ""
+    roles: List[str] = field(default_factory=list)
 
 
 class CommitTracer:

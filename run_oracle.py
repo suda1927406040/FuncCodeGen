@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config import REPOS_DIR, OUTPUT_DIR, MAX_CONTEXT_CHARS, LLM_MODEL_GENERATE, LLM_MAX_TOKENS, LLM_TEMPERATURE
 from explorer.context_renderer import render_code_files
+from explorer.history_patterns import render_commit_patterns
 from dataclasses import asdict
 from data_loader import load_dataset, load_instance, parse_problem_statement
 from repo_manager import prepare_repo, get_file_content
@@ -99,7 +100,12 @@ def build_code_section(repo_dir: Path, instance: dict, extra_files: set = None,
     target_files.update(d["file"] for d in parse_problem_statement(
         instance["problem_statement"]).get("definitions", []))
     ranked = [c.file for c in ctx.recalled_files] if ctx else []
-    files = list(dict.fromkeys(sorted(target_files) + ranked + sorted(extra_files or set())))
+    target_companions = []
+    for file in sorted(target_files):
+        for companion in [str(Path(file).parent / "__init__.py"), file + "i"]:
+            if (repo_dir / companion).is_file():
+                target_companions.append(companion)
+    files = list(dict.fromkeys(sorted(target_files) + target_companions + ranked + sorted(extra_files or set())))
     companions = []
     for file in files:
         for companion in [str(Path(file).parent / "__init__.py"), file + "i"]:
@@ -383,7 +389,7 @@ def _trace_call_chain_introduction(repo_dir: Path,
 
             subject = body.split('\n')[0] if body else ""
             parts.append(
-                f"  **`{mname}()`** was introduced in `{intro_commit[:8]}` "
+                f"  **`{mname}()`** definition-count change in `{intro_commit[:8]}` "
                 f"({date[:10]}): {subject[:80]}"
             )
             parts.append(f"  Target file diff:")
@@ -400,8 +406,8 @@ def _trace_call_chain_introduction(repo_dir: Path,
         return ""
 
     return (
-        "**CALL CHAIN INTRODUCTIONS** — how each reference method was originally added "
-        "(full commit including __init__ changes, dispatcher edits, etc.):\n"
+        "**CALL CHAIN HISTORY** — selected historical changes to reference definitions "
+        "(target-file diffs):\n"
         + "\n".join(parts)
     )
 
@@ -576,6 +582,9 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
     - Base class methods
     """
     parts = ["\nHere is a detailed analysis of the codebase to help you implement correctly:\n"]
+    history_mode = ctx.recall_diagnostics.get("history_mode", "legacy")
+    grouped_history = render_commit_patterns(getattr(ctx, "history_patterns", []),
+                                            budget=min(8000, MAX_CONTEXT_CHARS // 10))
 
     for comp in ctx.components:
         # Detect dispatcher→worker structural sibling pattern early
@@ -825,7 +834,7 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
                     parts.append("")
 
         # Branch condition analysis: help LLM distinguish similar conditions
-        if comp.reference_call_chain and comp.feature_space_files:
+        if history_mode == "legacy" and comp.reference_call_chain and comp.feature_space_files:
             branch_hints = _analyze_branch_conditions(comp)
             if branch_hints:
                 parts.append("**CRITICAL: Branch condition guidance**:")
@@ -838,7 +847,7 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
             parts.append(f"You MUST make `{comp.name}` call `self.{comp.depends_on_components[0]}()` (or similar) — do NOT reimplement the logic.\n")
 
         # Reference commit: show the focused diff that introduced the anchor method
-        if comp.feature_space_files and comp.reference_call_chain:
+        if history_mode == "legacy" and comp.feature_space_files and comp.reference_call_chain:
             anchor_name = comp.reference_call_chain[0].method_name
             anchor_commit = comp.feature_space_files[0].anchor_commit
             # Get clean diff for the anchor file (like a gold patch)
@@ -852,20 +861,19 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
                 diff_lines = diff.count('\n')
                 if diff and diff_lines < 120:
                     parts.append(
-                        f"**REFERENCE COMMIT DIFF** — how `{anchor_name}` was added "
+                        f"**REFERENCE COMMIT DIFF** — historical target-file changes retrieved using `{anchor_name}` "
                         f"(commit `{anchor_commit[:8]}`):"
                     )
                     parts.append(
-                        f"Your new method follows `{anchor_name}`'s pattern. "
-                        f"The diff below shows exactly how that feature was implemented. "
-                        f"Follow this pattern for your implementation.\n"
+                        f"Compare this historical pattern with the current requirement and base code. "
+                        f"Use only the responsibilities that apply to the new feature.\n"
                     )
                     parts.append(f"```diff\n{diff}\n```\n")
             except Exception:
                 pass
 
         # FeatureSpace: co-modified files discovered via anchor's git history
-        if comp.feature_space_files:
+        if history_mode == "legacy" and comp.feature_space_files:
             anchor_name = comp.reference_call_chain[0].method_name if comp.reference_call_chain else "anchor"
             parts.append(f"**FEATURESPACE — Candidate integration files from base-ancestor history**:")
             parts.append(
@@ -894,7 +902,7 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
             )
 
         # Call chain introductions: show how each reference method was added (full commit)
-        if ctx and ctx.repo_dir and base_commit:
+        if history_mode == "legacy" and ctx and ctx.repo_dir and base_commit:
             try:
                 if comp.reference_call_chain:
                     hist = _trace_call_chain_introduction(
@@ -991,12 +999,12 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
         parts.append("")
 
     selected = []
-    remaining = max(1000, MAX_CONTEXT_CHARS // 4)
+    remaining = max(1000, MAX_CONTEXT_CHARS // 4) - len(grouped_history)
     for part in parts:
         if len(part) + 1 <= remaining:
             selected.append(part)
             remaining -= len(part) + 1
-    return "\n".join(selected)
+    return grouped_history + "\n".join(selected)
 
 
 
@@ -1394,7 +1402,7 @@ def apply_edits_to_repo(edits: List[Dict], repo_dir: Path, dry_run: bool = False
 def run_single(instance: dict, output_base: Path, dry_run: bool = False,
                apply: bool = False, repo_dir_override: Optional[Path] = None,
                recall_only: bool = False, recall_mode: str = "expanded",
-               max_recalled_files: int = 12) -> dict:
+               max_recalled_files: int = 12, history_mode: str = "patterns") -> dict:
     """Run oracle-style generation for one instance."""
     iid = instance["instance_id"]
     out_dir = output_base / iid
@@ -1425,7 +1433,8 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
     print(f"[2/4] Running AST analysis & building prompt...")
     t0 = time.time()
     parsed = parse_problem_statement(instance["problem_statement"])
-    builder = ContextBuilder(repo_dir, recall_mode=recall_mode, max_recalled_files=max_recalled_files)
+    builder = ContextBuilder(repo_dir, recall_mode=recall_mode, max_recalled_files=max_recalled_files,
+                             history_mode=history_mode)
     ctx = builder.build_context(
         instance_id=iid,
         problem_statement=instance["problem_statement"],
@@ -1468,6 +1477,8 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         "candidates": [asdict(candidate) for candidate in ctx.recalled_files],
         "history_files": sorted({f.file for c in ctx.components for f in c.feature_space_files}),
         "diagnostics": ctx.recall_diagnostics,
+        "history_patterns": [asdict(pattern) for pattern in ctx.history_patterns],
+        "visible_history_commits": re.findall(r"^COMMIT ([0-9a-f]{12}) —", prompt, re.MULTILINE),
         "visible_code_files": visible_code_files(prompt),
         "prompt_chars": len(prompt),
     }
@@ -1565,6 +1576,7 @@ def main():
     parser.add_argument("--recall-only", action="store_true", help="Save retrieval and prompt without calling a model")
     parser.add_argument("--recall-mode", choices=["v5", "expanded"], default="expanded")
     parser.add_argument("--recall-max-files", type=int, default=12)
+    parser.add_argument("--history-mode", choices=["patterns", "legacy", "off"], default="patterns")
     args = parser.parse_args()
     if args.repo_dir and (not args.instance or len(args.instance) != 1):
         parser.error("--repo-dir requires exactly one --instance")
@@ -1601,7 +1613,8 @@ def main():
         try:
             r = run_single(inst, output_base, dry_run=args.dry_run, apply=args.apply,
                            repo_dir_override=args.repo_dir, recall_only=args.recall_only,
-                           recall_mode=args.recall_mode, max_recalled_files=args.recall_max_files)
+                           recall_mode=args.recall_mode, max_recalled_files=args.recall_max_files,
+                           history_mode=args.history_mode)
             results.append(r)
         except Exception as e:
             import traceback

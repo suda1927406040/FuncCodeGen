@@ -332,6 +332,7 @@ class FeatureRetriever:
         self.anchor_keys = {}
         self.target_context_symbols = {}
         self.request_references = []
+        self._prepared_signature = None
 
     def _request_symbols(self, request):
         """Resolve explicit API references from the requirement, independent of targets."""
@@ -341,15 +342,29 @@ class FeatureRetriever:
         references.update(re.findall(r"\b[A-Za-z_]\w*_[A-Za-z_]\w*\b", request))
         matches = set()
         for reference in sorted(references):
+            if reference in index.modules:
+                continue  # A namespace like conan.tools.files is not a method named files.
             candidates = index.by_name.get(reference.split(".")[-1], [])
             exact = [key for key in candidates if index.symbols[key].name == reference]
             if "." in reference:
+                exact.extend(key for key in candidates if '.' in index.symbols[key].name
+                             and reference.endswith('.' + index.symbols[key].name))
                 for module, file in index.modules.items():
                     if reference.startswith(module + "."):
-                        key = file + ":" + reference[len(module) + 1:]
-                        if key in index.symbols:
+                        key = index._resolve_symbol(file, reference[len(module) + 1:])
+                        if key:
                             exact.append(key)
-            selected = exact or (candidates if len(candidates) <= 3 else [])
+                # Short module references still need evidence of that module,
+                # instead of matching an arbitrary same-named function.
+                owner, _, leaf = reference.rpartition('.')
+                for module, file in index.modules.items():
+                    if module.endswith('.' + owner) or module == owner:
+                        key = index._resolve_symbol(file, leaf)
+                        if key:
+                            exact.append(key)
+                selected = exact
+            else:
+                selected = exact or (candidates if len(candidates) <= 3 else [])
             matches.update(selected)
         # Requests also name APIs in prose, e.g. "Sympy's satisfiable". Accept
         # distinctive exact identifiers with very few repository definitions;
@@ -363,11 +378,11 @@ class FeatureRetriever:
                 plain.update(candidates)
         return (sorted(matches) + sorted(plain - matches))[:12]
 
-    def retrieve(self, ctx) -> List[RecallCandidate]:
+    def prepare_anchors(self, ctx):
+        signature = (ctx.request, tuple((c.target_file, c.name) for c in ctx.components))
+        if signature == self._prepared_signature:
+            return
         index = self.index
-        targets = {c.target_file for c in ctx.components}
-        candidates = {}
-        evidence = defaultdict(set)
         terms = identifier_terms(ctx.request)
         seeds = set()
         for component in ctx.components:
@@ -385,6 +400,19 @@ class FeatureRetriever:
                            if wanted & identifier_terms(s.source)][:3]
             self.anchor_keys[component.name] = anchors
             seeds.update(anchors)
+        self.request_references = self._request_symbols(ctx.request)
+        self._prepared_terms = terms
+        self._prepared_seeds = seeds
+        self._prepared_signature = signature
+
+    def retrieve(self, ctx) -> List[RecallCandidate]:
+        self.prepare_anchors(ctx)
+        index = self.index
+        targets = {c.target_file for c in ctx.components}
+        candidates = {}
+        evidence = defaultdict(set)
+        terms = set(self._prepared_terms)
+        seeds = set(self._prepared_seeds)
 
         def add(symbol, weight, channel, reason, fields=()):
             if symbol.file in targets:
@@ -410,10 +438,29 @@ class FeatureRetriever:
                 if location["symbol"] == symbol.name:
                     location["related_fields"] = sorted(set(location["related_fields"]) | set(fields))
 
-        self.request_references = self._request_symbols(ctx.request)
         for key in self.request_references:
             add(index.symbols[key], 18.0, "request", "explicit API reference in requirement: " + key)
             seeds.add(key)
+
+        # Historical companions carry current-base symbols, so retrieval can
+        # preserve the relevant method instead of only including a file name.
+        seen_history = set()
+        for component in ctx.components:
+            for historical in component.feature_space_files:
+                marker = (historical.file, historical.anchor_commit)
+                if marker in seen_history:
+                    continue
+                seen_history.add(marker)
+                reason = "base-ancestor history: " + historical.reason
+                resolved = [index.symbols[historical.file + ':' + name]
+                            for name in getattr(historical, 'current_symbols', [])
+                            if historical.file + ':' + name in index.symbols]
+                for symbol in resolved:
+                    add(symbol, 5.0, "history", reason)
+                if not resolved:
+                    candidate = candidates.setdefault(historical.file, RecallCandidate(historical.file, 0.0))
+                    candidate.score += 5.0
+                    candidate.reasons.append(reason)
 
         queue = deque((key, 0) for key in sorted(seeds))
         visited = set(seeds)
@@ -471,10 +518,6 @@ class FeatureRetriever:
                     "symbol matches feature terms: " + ", ".join(sorted(overlap)))
 
         for component in ctx.components:
-            for historical in component.feature_space_files:
-                candidate = candidates.setdefault(historical.file, RecallCandidate(historical.file, 0.0))
-                candidate.score += 5.0
-                candidate.reasons.append("base-ancestor history: " + historical.reason)
             # A new module can require both its new package initializer and the
             # nearest existing public export module. No analogous function exists
             # in the target file yet, so anchor-only retrieval cannot find these.

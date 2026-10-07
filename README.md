@@ -76,3 +76,7 @@ python scripts/evaluate_recall.py \
 5 个属于该失败集合。指定全量集合时加 `--ids-json evaluation/unresolved/ids.json
 --require-complete`；`--location-labels evaluation/unresolved/location_labels.json` 可在检索
 完成后评分具体已有方法是否保留在 prompt，标签不会传给检索或生成接口。
+
+默认历史检索现按同一 commit 成组展示定义、调用、状态、导出及配置变更，并映射到
+当前 base 方法。`--history-mode patterns|legacy|off` 用于比较。实现、真实历史示例
+和验证结果见 [evaluation/history_patterns.md](evaluation/history_patterns.md)。
