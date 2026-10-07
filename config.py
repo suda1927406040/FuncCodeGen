@@ -19,6 +19,7 @@ LLM_MODEL_UNDERSTAND = os.environ.get("LLM_MODEL_UNDERSTAND", "deepseek-chat")
 LLM_MODEL_PATTERN = os.environ.get("LLM_MODEL_PATTERN", "deepseek-chat")
 LLM_MODEL_GENERATE = os.environ.get("LLM_MODEL_GENERATE", "deepseek-chat")
 LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "8192"))
+LLM_PLAN_MAX_TOKENS = int(os.environ.get("LLM_PLAN_MAX_TOKENS", "2048"))
 LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0.0"))
 LLM_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com")
 

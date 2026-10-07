@@ -38,6 +38,11 @@ python run_oracle.py --instance conan-io__conan-16871 \
 python v5.py --instance conan-io__conan-16871 --output outputs/v5
 ```
 
+默认使用 `--generation-mode plan-edit`：结构化计划 → 位置核验与补充检索 → 唯一补丁。
+`--generation-mode single` 保留单轮对照；`--plan-max-tokens` 调整第一轮输出预算。
+两轮 prompt 和原始响应、核验记录及真实 token/耗时都会保存。详见
+[两阶段生成说明](evaluation/two_stage_generation.md)。
+
 不设置 `--apply` 时只生成补丁。普通运行会按数据集中的 base commit 准备实例仓库。
 若已有准确的 base-tree 源码目录，可加 `--repo-dir /path/to/base-tree` 跳过 checkout；
 这个选项只允许单个实例，并禁止 `--apply`。提供的源码必须确实来自该实例的 base commit。

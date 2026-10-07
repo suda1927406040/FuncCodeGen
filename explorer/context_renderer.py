@@ -82,7 +82,11 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
             body_start = min([first.lineno] + [d.lineno for d in getattr(first, "decorator_list", [])]) - 1
             headers[node.name] = (class_start, "".join(lines[class_start:body_start]))
             for child in node.body:
-                add(child, node.name + "." + getattr(child, "name", ""), node.name)
+                member = getattr(child, 'name', '')
+                if isinstance(child, (ast.Assign, ast.AnnAssign)):
+                    targets = child.targets if isinstance(child, ast.Assign) else [child.target]
+                    member = next((target.id for target in targets if isinstance(target, ast.Name)), '')
+                add(child, node.name + "." + member, node.name)
         else:
             add(node, getattr(node, "name", ""))
     selected = []
@@ -110,7 +114,8 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
     return "".join(parts) if selected else "# File omitted: no complete block fits the budget."
 
 
-def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int) -> str:
+def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int,
+                      file_caps=None, minimum_budgets=None) -> str:
     sections = []
     targets = {c.target_file for c in ctx.components} if ctx else set()
     symbols = {}
@@ -134,6 +139,8 @@ def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int) -> str
         source = path.read_text(errors="replace") if path.is_file() else ""
         sources[file] = source
         minimum[file] = min(minimum[file], len(source)) if source else 80
+    if minimum_budgets:
+        minimum.update(minimum_budgets)
     remaining = budget
     for position, file in enumerate(files):
         path = repo_dir / file
@@ -142,7 +149,8 @@ def render_code_files(repo_dir: Path, files: List[str], ctx, budget: int) -> str
         # Reserve room for later candidate files rather than letting one file consume everything.
         reserve = min(sum(minimum[later] + len(later) * 2 + 40 for later in files[position + 1:]),
                       max(0, remaining // 2))
-        allocation = min(22000 if file in targets else 9000, remaining - overhead - reserve)
+        cap = (file_caps or {}).get(file, 22000 if file in targets else 9000)
+        allocation = min(cap, remaining - overhead - reserve)
         if allocation < 200:
             continue
         if path.is_file():

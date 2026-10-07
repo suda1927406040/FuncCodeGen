@@ -19,14 +19,15 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import REPOS_DIR, OUTPUT_DIR, MAX_CONTEXT_CHARS, LLM_MODEL_GENERATE, LLM_MAX_TOKENS, LLM_TEMPERATURE
+from config import REPOS_DIR, OUTPUT_DIR, MAX_CONTEXT_CHARS, LLM_MODEL_GENERATE, LLM_MAX_TOKENS, LLM_TEMPERATURE, LLM_PLAN_MAX_TOKENS
 from explorer.context_renderer import render_code_files
 from explorer.history_patterns import render_commit_patterns
 from dataclasses import asdict
 from data_loader import load_dataset, load_instance, parse_problem_statement
 from repo_manager import prepare_repo, get_file_content
 from explorer.context_builder import ContextBuilder
-from generator.llm_interface import call_llm
+from generator.llm_interface import call_llm_with_usage, LLMCallError
+from generator.planned_generation import PlanContext, PlanError
 
 # ============================================================================
 # Output format template (extracted from Oracle natural-detailed)
@@ -1402,11 +1403,23 @@ def apply_edits_to_repo(edits: List[Dict], repo_dir: Path, dry_run: bool = False
 def run_single(instance: dict, output_base: Path, dry_run: bool = False,
                apply: bool = False, repo_dir_override: Optional[Path] = None,
                recall_only: bool = False, recall_mode: str = "expanded",
-               max_recalled_files: int = 12, history_mode: str = "patterns") -> dict:
+               max_recalled_files: int = 12, history_mode: str = "patterns",
+               generation_mode: str = "plan-edit", plan_max_tokens: int = LLM_PLAN_MAX_TOKENS,
+               planner_model: Optional[str] = None, planner_json_mode: str = "api") -> dict:
     """Run oracle-style generation for one instance."""
     iid = instance["instance_id"]
     out_dir = output_base / iid
     out_dir.mkdir(parents=True, exist_ok=True)
+    if generation_mode not in {'single', 'plan-edit'} or planner_json_mode not in {'api', 'prompt'}:
+        raise ValueError('Invalid generation or planner JSON mode')
+    if plan_max_tokens <= 0:
+        raise ValueError('plan_max_tokens must be positive')
+    # Re-running an instance must never submit a successful previous patch
+    # after the new plan or generation failed.
+    for stale in ['generated.patch', 'edits.json', 'response.md', 'plan.json', 'plan_response.md',
+                  'plan_validation.json', 'planning_prompt.md', 'generation_prompt.md', 'generation_recall.json',
+                  'llm_usage.json', 'parse_failure.txt', 'apply_results.json']:
+        (out_dir / stale).unlink(missing_ok=True)
 
     result = {
         "instance_id": iid,
@@ -1415,7 +1428,13 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         "n_edits": 0,
         "files": [],
         "timing": {},
+        "generation_mode": generation_mode,
+        "pipeline_attempts": 1,
+        "max_final_candidates": 1,
+        "submitted_patch_count": 0,
+        "stage": "analysis",
     }
+    (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
 
     import time
     t_start = time.time()
@@ -1482,23 +1501,76 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         "visible_code_files": visible_code_files(prompt),
         "prompt_chars": len(prompt),
     }
+    plan_context = None
+    if generation_mode == 'plan-edit':
+        plan_context = PlanContext(repo_dir, ctx, builder.repository_index)
+        planning_prompt = plan_context.planning_prompt(instance)
+        (out_dir / 'planning_prompt.md').write_text(planning_prompt)
     (out_dir / "recall.json").write_text(json.dumps(recall, indent=2))
     if recall_only:
-        result.update(success=True, mode="recall_only", recall=recall)
+        result.update(success=True, mode="recall_only", recall=recall, stage='recall_complete', llm_calls=0)
         result["timing"]["total"] = time.time() - t_start
         (out_dir / "result.json").write_text(json.dumps(result, indent=2))
         return result
 
-    # Step 3: Call LLM
+    # Step 3: One workflow, optionally a planning call plus one code call.
     print(f"[3/4] Calling LLM...")
+    calls = []
+    def save_usage():
+        usage = {'pipeline_attempts': 1, 'max_final_candidates': 1,
+                 'logical_calls': len(calls), 'provider_attempts': sum(c['attempts'] for c in calls),
+                 'calls': calls}
+        for field in ['input_tokens', 'output_tokens', 'total_tokens']:
+            values = [c.get(field) for c in calls]
+            usage[field] = sum(values) if values and all(v is not None for v in values) else None
+            usage['reported_' + field] = sum(v for v in values if v is not None)
+        usage['seconds'] = round(sum(c['seconds'] for c in calls), 6)
+        result['llm_calls'] = len(calls)
+        result['llm_usage'] = usage
+        (out_dir / 'llm_usage.json').write_text(json.dumps(usage, indent=2))
+    def invoke(stage, text, **kwargs):
+        result['stage'] = stage
+        try:
+            reply = call_llm_with_usage(text, **kwargs)
+        except LLMCallError as error:
+            calls.append(dict(error.metrics, stage=stage, prompt_chars=len(text), max_tokens=kwargs['max_tokens']))
+            save_usage()
+            raise
+        calls.append(dict(reply.metrics(), stage=stage, prompt_chars=len(text), max_tokens=kwargs['max_tokens']))
+        save_usage()
+        return reply
     t0 = time.time()
-    response = call_llm(
-        prompt,
-        system="You are an expert Python developer. Output exact code edits in the specified format.",
-        model=LLM_MODEL_GENERATE,
-        max_tokens=LLM_MAX_TOKENS,
-        temperature=LLM_TEMPERATURE,
-    )
+    try:
+        if plan_context:
+            planned = invoke('planning', planning_prompt,
+                             system='You plan repository changes from supplied evidence. Return only the requested JSON object, no code.',
+                             model=planner_model or LLM_MODEL_GENERATE, max_tokens=plan_max_tokens,
+                             temperature=LLM_TEMPERATURE, json_mode=planner_json_mode == 'api')
+            (out_dir / 'plan_response.md').write_text(planned.text)
+            result['timing']['planning'] = planned.seconds
+            result['stage'] = 'plan_validation'
+            if planned.finish_reason in {'length', 'max_tokens'}:
+                raise PlanError('Planner output was truncated')
+            plan, validation = plan_context.parse_validate(planned.text)
+            (out_dir / 'plan.json').write_text(json.dumps(plan, indent=2))
+            (out_dir / 'plan_validation.json').write_text(json.dumps(validation, indent=2))
+            result['stage'] = 'generation_context'
+            prompt, generation_recall = plan_context.generation_prompt(instance, plan, OUTPUT_FORMAT_INSTRUCTION)
+            (out_dir / 'generation_recall.json').write_text(json.dumps(generation_recall, indent=2))
+            (out_dir / 'generation_prompt.md').write_text(prompt)
+            (out_dir / 'prompt.md').write_text(prompt)
+        reply = invoke('generation', prompt,
+                       system="You are an expert Python developer. Output exact code edits in the specified format.",
+                       model=LLM_MODEL_GENERATE, max_tokens=LLM_MAX_TOKENS, temperature=LLM_TEMPERATURE)
+        response = reply.text
+    except Exception as error:
+        result.update(success=False, error=str(error), error_type=type(error).__name__)
+        result['timing']['total'] = time.time() - t_start
+        if isinstance(error, PlanError):
+            (out_dir / 'plan_validation.json').write_text(json.dumps(error.report, indent=2))
+        save_usage()
+        (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
+        return result
     result["timing"]["llm_call"] = time.time() - t0
     print(f"  Response: {len(response)} chars")
 
@@ -1507,6 +1579,7 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
 
     # Step 4: Parse edits → generate patch
     print(f"[4/4] Parsing edits...")
+    result['stage'] = 'patch'
     t0 = time.time()
     edits = parse_edits(response)
     edits = _fix_edit_name_consistency(edits)
@@ -1518,10 +1591,17 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         (out_dir / "edits.json").write_text(json.dumps(edits, indent=2))
 
         # Generate patch
-        patch = edits_to_patch(edits, repo_dir)
-        if not patch.strip():
-            raise ValueError("Parsed edits produced an empty patch")
+        try:
+            patch = edits_to_patch(edits, repo_dir)
+            if not patch.strip():
+                raise ValueError("Parsed edits produced an empty patch")
+        except Exception as error:
+            result.update(error=str(error), error_type=type(error).__name__)
+            result['timing']['total'] = time.time() - t_start
+            (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
+            return result
         (out_dir / "generated.patch").write_text(patch)
+        result['submitted_patch_count'] = 1
 
         # Save each edit as before/after files for easy inspection
         for i, edit in enumerate(edits):
@@ -1534,7 +1614,14 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
 
         # Apply edits to repo if requested
         if apply:
-            outcomes = apply_edits_to_repo(edits, repo_dir, dry_run=dry_run)
+            result['stage'] = 'apply'
+            try:
+                outcomes = apply_edits_to_repo(edits, repo_dir, dry_run=dry_run)
+            except Exception as error:
+                result.update(error=str(error), error_type=type(error).__name__)
+                result['timing']['total'] = time.time() - t_start
+                (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
+                return result
             (out_dir / "apply_results.json").write_text(json.dumps(outcomes, indent=2))
             for fp, status in outcomes.items():
                 print(f"  [{status}] {fp}")
@@ -1549,6 +1636,7 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
 
     result["timing"]["parse"] = time.time() - t0
     result["timing"]["total"] = time.time() - t_start
+    result['stage'] = 'complete' if result['success'] else 'parse_failure'
 
     # Save gold patch for comparison
     if instance.get("patch"):
@@ -1577,6 +1665,10 @@ def main():
     parser.add_argument("--recall-mode", choices=["v5", "expanded"], default="expanded")
     parser.add_argument("--recall-max-files", type=int, default=12)
     parser.add_argument("--history-mode", choices=["patterns", "legacy", "off"], default="patterns")
+    parser.add_argument("--generation-mode", choices=['single', 'plan-edit'], default='plan-edit')
+    parser.add_argument("--plan-max-tokens", type=int, default=LLM_PLAN_MAX_TOKENS)
+    parser.add_argument("--planner-model", help='Defaults to the generation model')
+    parser.add_argument("--planner-json-mode", choices=['api', 'prompt'], default='api')
     args = parser.parse_args()
     if args.repo_dir and (not args.instance or len(args.instance) != 1):
         parser.error("--repo-dir requires exactly one --instance")
@@ -1584,6 +1676,8 @@ def main():
         parser.error("--repo-dir is read-only; omit --apply")
     if not 1 <= args.recall_max_files <= 32:
         parser.error("--recall-max-files must be between 1 and 32")
+    if not 1 <= args.plan_max_tokens <= 32768:
+        parser.error('--plan-max-tokens must be between 1 and 32768')
 
     # Ensure env vars
     os.environ.setdefault("OPENAI_BASE_URL", "https://api.deepseek.com")
@@ -1614,7 +1708,9 @@ def main():
             r = run_single(inst, output_base, dry_run=args.dry_run, apply=args.apply,
                            repo_dir_override=args.repo_dir, recall_only=args.recall_only,
                            recall_mode=args.recall_mode, max_recalled_files=args.recall_max_files,
-                           history_mode=args.history_mode)
+                           history_mode=args.history_mode, generation_mode=args.generation_mode,
+                           plan_max_tokens=args.plan_max_tokens, planner_model=args.planner_model,
+                           planner_json_mode=args.planner_json_mode)
             results.append(r)
         except Exception as e:
             import traceback

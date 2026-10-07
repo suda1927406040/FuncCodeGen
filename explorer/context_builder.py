@@ -106,6 +106,7 @@ class ContextBuilder:
         self.max_context_chars = max_context_chars
         self.recall_mode = recall_mode
         self.max_recalled_files = max_recalled_files
+        self.repository_index = None
         if history_mode not in {"patterns", "legacy", "off"}:
             raise ValueError("Unknown history mode: " + history_mode)
         self.history_mode = "legacy" if recall_mode == "v5" and history_mode != "off" else history_mode
@@ -147,6 +148,7 @@ class ContextBuilder:
         retriever = None
         if self.recall_mode == "expanded":
             retriever = FeatureRetriever(self.repo_dir, self.max_recalled_files, base_commit=base_commit)
+            self.repository_index = retriever.index
             retriever.prepare_anchors(ctx)  # Full call/state traversal runs once, after history discovery.
             ctx.request_reference_keys = retriever.request_references
 

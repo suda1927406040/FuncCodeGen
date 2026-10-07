@@ -1,0 +1,214 @@
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from explorer.context_builder import ContextBuilder
+from generator.llm_interface import LLMCallError, LLMResponse
+from generator.planned_generation import PlanContext, PlanError
+from run_oracle import OUTPUT_FORMAT_INSTRUCTION, run_single
+
+
+def edit(file, before, after):
+    return ('<edit>\n[start of the snippet before editing in %s]\n%s\n'
+            '[end of the snippet before editing in %s]\n'
+            '[start of the snippet after editing in %s]\n%s\n'
+            '[end of the snippet after editing in %s]\n</edit>') % (file, before, file, file, after, file)
+
+
+class PlannedGenerationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name) / 'repo'
+        self.root.mkdir()
+        self.output = Path(self.temp.name) / 'out'
+        self.write('engine/select.py', 'def select_profile(node):\n    return node.profile\n')
+        self.write('model/state.py', 'def initialize_hidden(node):\n    node.profile = 1\n')
+        self.git('init', '-q')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'base')
+        self.base = self.git('rev-parse', 'HEAD')
+        self.instance = {'instance_id': 'case', 'repo': 'test/repo', 'base_commit': self.base,
+                         'problem_statement': '<request>Support compatible profile selection</request>',
+                         'new_components': [{'file': 'engine/select.py', 'components': [{'name': 'select_profile', 'type': 'function'}]}],
+                         'patch': 'GOLD_PATCH_POISON', 'test_patch': 'HIDDEN_TEST_POISON'}
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def git(self, *args):
+        return subprocess.check_output(['git', *args], cwd=self.root, text=True).strip()
+
+    def write(self, file, source):
+        path = self.root / file
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(source)
+
+    def context(self):
+        builder = ContextBuilder(self.root, history_mode='off')
+        ctx = builder.build_context('case', self.instance['problem_statement'], [],
+                                    new_components_raw=self.instance['new_components'], base_commit=self.instance['base_commit'])
+        return PlanContext(self.root, ctx, builder.repository_index)
+
+    def plan(self):
+        return {'contracts': ['Support compatible selection while preserving normal profiles'],
+                'steps': [{'id': 'S1', 'file': 'engine/select.py', 'symbol': 'select_profile', 'action': 'modify',
+                           'purpose': 'Extend profile selection', 'depends_on': [], 'constraints': ['Keep normal profiles'],
+                           'evidence': [{'source': 'current', 'file': 'engine/select.py', 'symbol': 'select_profile'}]}],
+                'missing_context': [{'file': '', 'symbol': 'initialize_hidden', 'reason': 'Inspect the state producer'}]}
+
+    def reply(self, text, tokens=10, finish='stop'):
+        return LLMResponse(text, 'openai', 'test-model', finish, 100, tokens, 100 + tokens,
+                           {'prompt_tokens': 100, 'completion_tokens': tokens}, seconds=0.1)
+
+    def test_two_calls_supplement_unseen_source_and_export_one_patch(self):
+        planned = json.dumps(self.plan())
+        generated = edit('engine/select.py', 'def select_profile(node):\n    return node.profile',
+                         'def select_profile(node):\n    return node.profile if node.profile is not None else 0')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(planned), self.reply(generated)]) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertTrue(result['success'])
+        self.assertEqual(llm.call_count, 2)
+        planning_prompt, code_prompt = [call.args[0] for call in llm.call_args_list]
+        self.assertNotIn('[start of model/state.py]', planning_prompt)
+        self.assertIn('[start of model/state.py]', code_prompt)
+        self.assertIn('def initialize_hidden(node):', code_prompt)
+        self.assertNotIn('MUST add an import', code_prompt)
+        for prompt in [planning_prompt, code_prompt]:
+            self.assertNotIn('GOLD_PATCH_POISON', prompt)
+            self.assertNotIn('HIDDEN_TEST_POISON', prompt)
+            self.assertLessEqual(len(prompt), 80000)
+        out = self.output / 'case'
+        self.assertTrue((out / 'generated.patch').is_file())
+        self.assertEqual(result['pipeline_attempts'], 1)
+        self.assertEqual(result['submitted_patch_count'], 1)
+        self.assertEqual(result['llm_usage']['logical_calls'], 2)
+        self.assertEqual(result['llm_usage']['total_tokens'], 220)
+        self.assertEqual((self.root / 'engine/select.py').read_text(), 'def select_profile(node):\n    return node.profile\n')
+        self.assertTrue((out / 'plan_validation.json').is_file())
+
+    def test_invalid_plan_does_not_call_codegen_or_reuse_previous_patch(self):
+        out = self.output / 'case'
+        out.mkdir(parents=True)
+        (out / 'generated.patch').write_text('PREVIOUS_SUCCESS')
+        with patch('run_oracle.call_llm_with_usage', return_value=self.reply('{"steps":[')) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertFalse(result['success'])
+        self.assertEqual(llm.call_count, 1)
+        self.assertEqual(result['stage'], 'plan_validation')
+        self.assertFalse((out / 'generated.patch').exists())
+        self.assertEqual(result['submitted_patch_count'], 0)
+        self.assertFalse(json.loads((out / 'plan_validation.json').read_text())['valid'])
+
+    def test_truncated_plan_is_not_retried(self):
+        with patch('run_oracle.call_llm_with_usage', return_value=self.reply(json.dumps(self.plan()), finish='length')) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertFalse(result['success'])
+        self.assertEqual(llm.call_count, 1)
+
+    def test_single_mode_still_makes_one_code_call(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return 2')
+        with patch('run_oracle.call_llm_with_usage', return_value=self.reply(generated)) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, generation_mode='single', history_mode='off')
+        self.assertTrue(result['success'])
+        self.assertEqual(llm.call_count, 1)
+        self.assertEqual(result['llm_calls'], 1)
+
+    def test_recall_only_previews_planning_without_model_calls(self):
+        with patch('run_oracle.call_llm_with_usage') as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, recall_only=True, history_mode='off')
+        self.assertTrue(result['success'])
+        llm.assert_not_called()
+        self.assertTrue((self.output / 'case/planning_prompt.md').is_file())
+        self.assertEqual(result['llm_calls'], 0)
+
+    def test_invalid_patch_keeps_usage_and_does_not_add_repair_call(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return (')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), self.reply(generated)]) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertFalse(result['success'])
+        self.assertEqual(llm.call_count, 2)
+        self.assertEqual(result['llm_usage']['total_tokens'], 220)
+        self.assertFalse((self.output / 'case/generated.patch').exists())
+
+    def test_generation_api_failure_keeps_both_stage_metrics(self):
+        error = LLMCallError('openai', 'test-model', 3, 0.2, RuntimeError('server'))
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), error]) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertFalse(result['success'])
+        self.assertEqual(result['stage'], 'generation')
+        self.assertEqual(llm.call_count, 2)
+        self.assertEqual(result['llm_usage']['provider_attempts'], 4)
+        self.assertIsNone(result['llm_usage']['total_tokens'])
+        self.assertEqual(result['llm_usage']['reported_total_tokens'], 110)
+
+    def test_cycles_unknown_symbols_and_escaping_paths_are_rejected(self):
+        context = self.context()
+        for mutate in ['cycle', 'symbol', 'path']:
+            plan = self.plan()
+            if mutate == 'cycle': plan['steps'][0]['depends_on'] = ['S1']
+            if mutate == 'symbol': plan['steps'][0]['symbol'] = 'made_up_function'
+            if mutate == 'path': plan['steps'][0]['file'] = '../outside.py'
+            with self.assertRaises(PlanError, msg=mutate):
+                context.parse_validate(json.dumps(plan))
+
+    def test_optional_missing_context_warning_is_explicit(self):
+        context = self.context()
+        plan = self.plan()
+        plan['missing_context'].append({'file': '', 'symbol': 'does_not_exist', 'reason': 'guess'})
+        checked, report = context.parse_validate(json.dumps(plan))
+        self.assertTrue(report['warnings'])
+        self.assertEqual(checked['context'][0]['file'], 'model/state.py')
+
+    def test_fully_qualified_module_reference_maps_to_current_symbol(self):
+        self.assertEqual(self.context().resolve('engine/select.py', 'engine.select.select_profile'),
+                         ('engine/select.py', ['select_profile']))
+
+    def test_unprovided_history_evidence_is_rejected(self):
+        plan = self.plan()
+        plan['steps'][0]['evidence'] = [{'source': 'history', 'file': 'engine/select.py', 'commit': 'f' * 40}]
+        with self.assertRaises(PlanError):
+            self.context().parse_validate(json.dumps(plan))
+
+    def test_inherited_method_and_common_fields_resolve_current_owners(self):
+        self.write('engine/base.py', 'class Parent:\n    def __init__(self):\n        self.value = 0\n'
+                   '    def normalize(self, value):\n        return value\n')
+        self.write('engine/child.py', 'from engine.base import Parent\nclass Child(Parent):\n'
+                   '    slots = ("data",)\n    def __init__(self):\n        self.data = 1\n')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'classes')
+        self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
+        context = self.context()
+        self.assertEqual(context.resolve('engine/child.py', 'Child.normalize'), ('engine/base.py', ['Parent.normalize']))
+        self.assertEqual(context.resolve('engine/child.py', 'Child.data'), ('engine/child.py', ['Child.__init__']))
+        self.assertEqual(context.resolve('engine/child.py', 'Child.slots'), ('engine/child.py', ['Child.slots']))
+        self.assertEqual(context.resolve('engine/child.py', 'Child.value'), ('engine/base.py', ['Parent.__init__']))
+
+    def test_unfittable_required_context_stops_before_second_call(self):
+        self.write('model/state.py', 'def initialize_hidden(node):\n' + '    node.profile = 1\n' * 5000)
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'oversized')
+        self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
+        with patch('run_oracle.call_llm_with_usage', return_value=self.reply(json.dumps(self.plan()))) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertFalse(result['success'])
+        self.assertEqual(result['stage'], 'generation_context')
+        self.assertEqual(llm.call_count, 1)
+        self.assertFalse((self.output / 'case/generated.patch').exists())
+
+    def test_required_large_function_is_visible_or_fails_before_codegen(self):
+        self.write('model/state.py', 'def initialize_hidden(node):\n' + '    node.profile = 1\n' * 700)
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'large function')
+        self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
+        context = self.context()
+        checked, _ = context.parse_validate(json.dumps(self.plan()))
+        prompt, recall = context.generation_prompt(self.instance, checked, OUTPUT_FORMAT_INSTRUCTION)
+        self.assertIn('model/state.py:initialize_hidden', recall['visible_symbols'])
+        self.assertLessEqual(len(prompt), 80000)
+
+
+if __name__ == '__main__':
+    unittest.main()

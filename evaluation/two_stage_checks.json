@@ -1,0 +1,32 @@
+{
+  "live_llm_calls": 0,
+  "new_swe_bench_run": false,
+  "static_input_regression": {
+    "expanded": {
+      "instances": 17,
+      "gold_hits": 27,
+      "gold_total": 27,
+      "file_recall": 1.0,
+      "hidden_hits": 9,
+      "hidden_total": 9,
+      "hidden_recall": 1.0,
+      "mean_files": 13.647058823529411,
+      "mean_prompt_chars": 77051.29411764706,
+      "seconds": 104.513,
+      "location_hits": 5,
+      "location_total": 5,
+      "location_recall": 1.0
+    }
+  },
+  "planning_preview": {
+    "instance_id": "conan-io__conan-16871",
+    "prompt_chars": 79767,
+    "llm_calls": 0
+  },
+  "scope": "Static input regression and offline mocked pipeline checks, not two-stage solve-rate evaluation",
+  "unit_tests": {
+    "total": 59,
+    "failed": 0,
+    "sdk_responses": "mocked"
+  }
+}

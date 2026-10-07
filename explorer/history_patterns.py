@@ -356,17 +356,18 @@ def companion_files(patterns, targets, max_files=6):
     return [record for _, record in sorted(candidates.values(), key=lambda value: (-value[0], value[1].file))[:max_files]]
 
 
-def render_commit_patterns(patterns, budget=8000):
+def render_commit_patterns(patterns, budget=8000, include_plan_instruction=True):
     if not patterns:
         return ""
     intro = ("\nCOORDINATED HISTORICAL REFERENCES (commits at/before this instance's base):\n"
              "Read each commit as one change across responsibilities. Roles and name links below are static observations, "
              "not proof of runtime behavior. For each relevant historical role, check the current base implementation "
              "in <code>, decide whether the requirement needs an analogous edit, and keep existing behavior intact. "
-             "Historical code may have been renamed or superseded; copy edit-before snippets only from current <code>. "
-             "Before the edit blocks, give a brief integration plan mapping the required behavior to current entry points, "
-             "helpers, state/guard paths, and exports/configuration. Explain which historical roles apply. "
-             "Then emit all edits needed for that plan, preserving old API signatures and behavior unless the requirement changes them.\n")
+             "Historical code may have been renamed or superseded; copy edit-before snippets only from current <code>.\n")
+    if include_plan_instruction:
+        intro += ("Before the edit blocks, give a brief integration plan mapping the required behavior to current entry points, "
+                  "helpers, state/guard paths, and exports/configuration. Explain which historical roles apply. "
+                  "Then emit all edits needed for that plan, preserving old API signatures and behavior unless the requirement changes them.\n")
     groups = []
     remaining = budget - len(intro)
     for position, pattern in enumerate(patterns):
