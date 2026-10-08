@@ -89,24 +89,27 @@ class PlannedGenerationTests(unittest.TestCase):
         self.assertEqual((self.root / 'engine/select.py').read_text(), 'def select_profile(node):\n    return node.profile\n')
         self.assertTrue((out / 'plan_validation.json').is_file())
 
-    def test_invalid_plan_does_not_call_codegen_or_reuse_previous_patch(self):
+    def test_invalid_plan_falls_back_without_reusing_previous_patch(self):
         out = self.output / 'case'
         out.mkdir(parents=True)
         (out / 'generated.patch').write_text('PREVIOUS_SUCCESS')
-        with patch('run_oracle.call_llm_with_usage', return_value=self.reply('{"steps":[')) as llm:
+        generated = edit('engine/select.py', 'return node.profile', 'return 2')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply('{"steps":['), self.reply(generated)]) as llm:
             result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
-        self.assertFalse(result['success'])
-        self.assertEqual(llm.call_count, 1)
-        self.assertEqual(result['stage'], 'plan_validation')
-        self.assertFalse((out / 'generated.patch').exists())
-        self.assertEqual(result['submitted_patch_count'], 0)
+        self.assertTrue(result['success'])
+        self.assertEqual(llm.call_count, 2)
+        self.assertTrue(result['planning_fallback'])
+        self.assertNotIn('PREVIOUS_SUCCESS', (out / 'generated.patch').read_text())
+        self.assertEqual(result['submitted_patch_count'], 1)
         self.assertFalse(json.loads((out / 'plan_validation.json').read_text())['valid'])
 
-    def test_truncated_plan_is_not_retried(self):
-        with patch('run_oracle.call_llm_with_usage', return_value=self.reply(json.dumps(self.plan()), finish='length')) as llm:
+    def test_truncated_plan_uses_direct_codegen(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return 2')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan()), finish='length'), self.reply(generated)]) as llm:
             result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
-        self.assertFalse(result['success'])
-        self.assertEqual(llm.call_count, 1)
+        self.assertTrue(result['success'])
+        self.assertEqual(llm.call_count, 2)
+        self.assertTrue(result['planning_fallback'])
 
     def test_single_mode_still_makes_one_code_call(self):
         generated = edit('engine/select.py', 'return node.profile', 'return 2')
@@ -127,7 +130,7 @@ class PlannedGenerationTests(unittest.TestCase):
     def test_invalid_patch_keeps_usage_and_does_not_add_repair_call(self):
         generated = edit('engine/select.py', 'return node.profile', 'return (')
         with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), self.reply(generated)]) as llm:
-            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off', max_repair_attempts=0)
         self.assertFalse(result['success'])
         self.assertEqual(llm.call_count, 2)
         self.assertEqual(result['llm_usage']['total_tokens'], 220)
@@ -186,17 +189,87 @@ class PlannedGenerationTests(unittest.TestCase):
         self.assertEqual(context.resolve('engine/child.py', 'Child.slots'), ('engine/child.py', ['Child.slots']))
         self.assertEqual(context.resolve('engine/child.py', 'Child.value'), ('engine/base.py', ['Parent.__init__']))
 
-    def test_unfittable_required_context_stops_before_second_call(self):
+    def test_unfittable_required_context_uses_direct_codegen(self):
         self.write('model/state.py', 'def initialize_hidden(node):\n' + '    node.profile = 1\n' * 5000)
         self.git('add', '.')
         self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'oversized')
         self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
-        with patch('run_oracle.call_llm_with_usage', return_value=self.reply(json.dumps(self.plan()))) as llm:
+        generated = edit('engine/select.py', 'return node.profile', 'return 2')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), self.reply(generated)]) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertTrue(result['success'])
+        self.assertTrue(result['planning_fallback'])
+        self.assertEqual(llm.call_count, 2)
+        self.assertTrue((self.output / 'case/generated.patch').exists())
+
+    def test_invalid_code_is_repaired_from_base_and_only_final_patch_is_exported(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return (')
+        repaired = json.dumps({'edits': [{'file_path': 'engine/select.py', 'before': 'return node.profile', 'after': 'return 2'}]})
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), self.reply(generated), self.reply(repaired)]) as llm:
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertTrue(result['success'])
+        self.assertEqual(llm.call_count, 3)
+        self.assertEqual(result['repair_attempts'], 1)
+        self.assertIn('def select_profile(node):', llm.call_args_list[-1].args[0])
+        self.assertNotIn('GOLD_PATCH_POISON', llm.call_args_list[-1].args[0])
+        self.assertTrue(llm.call_args_list[-1].kwargs['json_mode'])
+        self.assertEqual(result['submitted_patch_count'], 1)
+        self.assertEqual(result['llm_usage']['total_tokens'], 330)
+
+    def test_truncated_code_does_not_submit_a_partial_candidate(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return 2')
+        repaired = json.dumps({'edits': [{'file_path': 'engine/select.py', 'before': 'return node.profile', 'after': 'return 3'}]})
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan())), self.reply(generated, finish='length'), self.reply(repaired)]):
+            result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
+        self.assertTrue(result['success'])
+        self.assertIn('+    return 3', (self.output / 'case/generated.patch').read_text())
+        self.assertEqual(result['repair_attempts'], 1)
+
+    def test_repair_limit_keeps_usage_and_never_submits_invalid_code(self):
+        generated = edit('engine/select.py', 'return node.profile', 'return (')
+        with patch('run_oracle.call_llm_with_usage', side_effect=[self.reply(json.dumps(self.plan()))] + [self.reply(generated)] * 3) as llm:
             result = run_single(self.instance, self.output, repo_dir_override=self.root, history_mode='off')
         self.assertFalse(result['success'])
-        self.assertEqual(result['stage'], 'generation_context')
-        self.assertEqual(llm.call_count, 1)
+        self.assertEqual(llm.call_count, 4)
+        self.assertEqual(result['repair_attempts'], 2)
+        self.assertEqual(result['submitted_patch_count'], 0)
         self.assertFalse((self.output / 'case/generated.patch').exists())
+
+    def test_new_file_can_be_defined_in_dependency_order(self):
+        self.instance['new_components'] = [{'file': 'engine/new.py', 'components': [{'name': 'feature', 'type': 'function'}]}]
+        plan = self.plan()
+        plan['steps'] = [
+            {'id': 'S1', 'file': 'engine/new.py', 'symbol': '', 'action': 'create', 'purpose': 'Create module', 'depends_on': [],
+             'evidence': [{'source': 'requirement', 'file': 'engine/new.py', 'symbol': 'feature'}]},
+            {'id': 'S2', 'file': 'engine/new.py', 'symbol': 'feature', 'action': 'create_symbol', 'purpose': 'Define feature', 'depends_on': ['S1'],
+             'evidence': [{'source': 'requirement', 'file': 'engine/new.py', 'symbol': 'feature'}]},
+        ]
+        checked, _ = self.context().parse_validate(json.dumps(plan))
+        self.assertEqual([s['id'] for s in checked['steps']], ['S1', 'S2'])
+        plan['steps'][1]['depends_on'] = []
+        with self.assertRaises(PlanError):
+            self.context().parse_validate(json.dumps(plan))
+
+    def test_module_bindings_are_existing_symbols_and_rendered(self):
+        self.write('engine/select.py', 'LIMITS = {"normal": 1}\n__all__ = ["select_profile"]\n'
+                   'def select_profile(node):\n    return node.profile\n')
+        context = self.context()
+        self.assertEqual(context.resolve('engine/select.py', 'LIMITS'), ('engine/select.py', ['LIMITS']))
+        self.assertEqual(context.resolve('engine/select.py', '__all__'), ('engine/select.py', ['__all__']))
+        plan = self.plan()
+        plan['steps'][0]['symbol'] = 'LIMITS'
+        plan['steps'][0]['evidence'][0]['symbol'] = 'LIMITS'
+        checked, _ = context.parse_validate(json.dumps(plan))
+        _, recall = context.generation_prompt(self.instance, checked, OUTPUT_FORMAT_INSTRUCTION)
+        self.assertIn('engine/select.py:LIMITS', recall['visible_symbols'])
+
+    def test_nonproduction_steps_are_ignored_without_discarding_production_plan(self):
+        plan = self.plan()
+        plan['steps'].append({'id': 'S2', 'file': 'tests/test_select.py', 'symbol': '', 'action': 'create',
+                              'purpose': 'Test feature', 'depends_on': ['S1'], 'evidence': []})
+        checked, report = self.context().parse_validate(json.dumps(plan))
+        self.assertEqual([s['id'] for s in checked['steps']], ['S1'])
+        self.assertEqual(len(report['ignored_steps']), 1)
 
     def test_required_large_function_is_visible_or_fails_before_codegen(self):
         self.write('model/state.py', 'def initialize_hidden(node):\n' + '    node.profile = 1\n' * 700)

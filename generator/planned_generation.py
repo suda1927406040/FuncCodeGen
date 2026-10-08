@@ -80,7 +80,7 @@ def _visible_symbols(prompt):
                     collect(node.body, prefix + node.name + ".")
                 elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     found.add(file + ':' + prefix + node.name)
-                elif prefix and isinstance(node, (ast.Assign, ast.AnnAssign)):
+                elif isinstance(node, (ast.Assign, ast.AnnAssign)):
                     targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                     for target in targets:
                         if isinstance(target, ast.Name):
@@ -99,6 +99,25 @@ class PlanContext:
         self.targets = {comp.target_file for comp in ctx.components}
         self.history = {pattern.commit: pattern for pattern in ctx.history_patterns}
         self._class_fields_cache = {}
+        self._module_bindings_cache = {}
+
+    def _module_bindings(self, file):
+        if file not in self._module_bindings_cache:
+            bindings = {}
+            try:
+                source = (self.repo_dir / file).read_text(errors='replace')
+                lines = source.splitlines(keepends=True)
+                for node in ast.parse(source).body:
+                    if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                        for target in targets:
+                            for name in ast.walk(target):
+                                if isinstance(name, ast.Name):
+                                    bindings[name.id] = ''.join(lines[node.lineno - 1:node.end_lineno])
+            except (OSError, SyntaxError):
+                pass
+            self._module_bindings_cache[file] = bindings
+        return self._module_bindings_cache[file]
 
     def _class_fields(self, file):
         if file in self._class_fields_cache:
@@ -173,6 +192,8 @@ class PlanContext:
             if path == file and symbol.startswith(module + '.'):
                 symbol = symbol[len(module) + 1:]
                 break
+        if symbol in self._module_bindings(file):
+            return file, [symbol]
         field_sources = self._class_fields(file).get(symbol)
         if field_sources:
             return file, list(dict.fromkeys(field_sources))[:3]
@@ -244,8 +265,33 @@ class PlanContext:
         if not isinstance(contracts, list) or not contracts or not all(isinstance(value, str) and value.strip() for value in contracts):
             raise PlanError("Plan needs nonempty behavior contracts")
         normalized = []
-        report = {"valid": True, "steps": [], "context_requests": [], "warnings": []}
+        report = {"valid": True, "steps": [], "context_requests": [], "warnings": [], "ignored_steps": []}
+        excluded = set()
+        production = []
         for step in plan['steps']:
+            file = step.get('file', '') if isinstance(step, dict) else ''
+            parts = PurePosixPath(file).parts if isinstance(file, str) else ()
+            if set(parts) & {'tests', 'test', 'docs', 'doc'} or (parts and parts[-1].startswith('test_')):
+                excluded.add(step.get('id'))
+                report['ignored_steps'].append(step)
+                report['warnings'].append('Ignored nonproduction step: ' + str(file))
+            else:
+                production.append(step)
+        if not production:
+            raise PlanError('Plan contains no production changes')
+        raw_steps = {step.get('id'): step for step in production if isinstance(step, dict)}
+        def ancestors(sid, seen=None):
+            seen = set() if seen is None else seen
+            if sid in seen:
+                return seen
+            seen.add(sid)
+            for dep in raw_steps.get(sid, {}).get('depends_on', []):
+                if isinstance(dep, str) and dep not in excluded:
+                    ancestors(dep, seen)
+            return seen
+        creates = {step['file']: step.get('id') for step in production
+                   if isinstance(step, dict) and step.get('action') == 'create' and isinstance(step.get('file'), str)}
+        for step in production:
             if not isinstance(step, dict):
                 raise PlanError("Every plan step must be an object")
             sid = step.get('id', '')
@@ -260,6 +306,8 @@ class PlanContext:
                 raise PlanError("Plan step needs a brief purpose")
             constraints = step.get('constraints', [])
             dependencies = step.get('depends_on', [])
+            if isinstance(dependencies, list):
+                dependencies = [dep for dep in dependencies if dep not in excluded]
             if not isinstance(constraints, list) or not all(isinstance(value, str) for value in constraints):
                 raise PlanError("Invalid constraints")
             if not isinstance(dependencies, list) or not all(isinstance(value, str) for value in dependencies):
@@ -271,7 +319,16 @@ class PlanContext:
             elif action == 'create_symbol':
                 if not symbol:
                     raise PlanError("create_symbol must name the new symbol")
-                current_file, current_symbols = self.resolve(file, '')
+                if file not in self.known_files and (file, symbol) in self.declared:
+                    creator = creates.get(file)
+                    if creator and creator not in ancestors(sid):
+                        raise PlanError('New-file symbol must depend on its create step: ' + file)
+                    current_file, current_symbols = file, []
+                    if not creator:
+                        action = 'create'
+                        report['warnings'].append(sid + ': declared absent file normalized to create')
+                else:
+                    current_file, current_symbols = self.resolve(file, '')
                 if file + ':' + symbol in self.index.symbols:
                     raise PlanError("create_symbol names an existing method: " + symbol)
                 owner = symbol.rpartition('.')[0]
@@ -296,6 +353,8 @@ class PlanContext:
                 if not isinstance(ref.get('symbol', ''), str):
                     raise PlanError('Evidence symbol must be a string')
                 if source == 'current':
+                    if (ref_file, ref.get('symbol', '')) in self.declared and ref_file not in self.known_files:
+                        raise PlanError('Use requirement evidence for a new file: ' + ref_file)
                     resolved_file, resolved_symbols = self.resolve(ref_file, ref.get('symbol', ''))
                     checked.append({'source': source, 'file': resolved_file, 'symbols': resolved_symbols})
                 elif source == 'requirement':
@@ -403,7 +462,8 @@ class PlanContext:
             if file in required:
                 caps[file] = 45000
                 minimum[file] = sum(len(self.index.symbols[file + ':' + name].source)
-                                    for name in set(required[file]) if file + ':' + name in self.index.symbols) + 700
+                                    for name in set(required[file]) if file + ':' + name in self.index.symbols) + sum(len(self._module_bindings(file).get(name, ''))
+                                    for name in set(required[file])) + 700
         factual_plan = json.dumps(plan, ensure_ascii=False, indent=2)
         relation_text = json.dumps(dependencies[:30], ensure_ascii=False)
         prefix = ("Implement the feature once, using the checked plan and current code below.\n"

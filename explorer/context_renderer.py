@@ -88,7 +88,11 @@ def render_source(source: str, symbols: List[str], request: str, budget: int) ->
                     member = next((target.id for target in targets if isinstance(target, ast.Name)), '')
                 add(child, node.name + "." + member, node.name)
         else:
-            add(node, getattr(node, "name", ""))
+            name = getattr(node, "name", "")
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                name = next((target.id for target in targets if isinstance(target, ast.Name)), '')
+            add(node, name)
     selected = []
     used_headers = set()
     size = 100  # Explicit omission markers.

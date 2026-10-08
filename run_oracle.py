@@ -28,6 +28,7 @@ from repo_manager import prepare_repo, get_file_content
 from explorer.context_builder import ContextBuilder
 from generator.llm_interface import call_llm_with_usage, LLMCallError
 from generator.planned_generation import PlanContext, PlanError
+from generator.edit_recovery import normalize_markers, unique_edits, align_indent, expand_omissions, repair_prompt
 
 # ============================================================================
 # Output format template (extracted from Oracle natural-detailed)
@@ -53,6 +54,9 @@ Notes:
 - If a file was originally empty, leave <code_before_edit> blank but ensure <code_after_edit> includes the new content.
 - Ensure the edits are sequential and address all necessary changes to achieve the requested feature.
 - CRITICAL: The <code_before_edit> MUST be copied EXACTLY from the code shown in the <code> section above. Do NOT paraphrase, reformat, or rewrite the code. Copy it character-for-character including all whitespace and indentation. Any mismatch will cause the edit to fail.
+- Never copy source omission placeholders into an edit. Choose one contiguous source excerpt.
+- Preserve absolute indentation. New sibling methods must stay at the class level.
+- Do not repeat an identical edit or emit unchanged before/after pairs.
 - Keep <code_before_edit> snippets concise: include ONLY the lines being changed plus 5-10 lines of context before and after. Target 10-30 lines total. Do NOT include large blocks of unchanged code.
 - Your edits must be COMPLETE. Include ALL necessary changes: new imports, class-level variables (__slots__ if applicable), __init__ modifications, new methods, bug fixes to existing methods, __init__.py exports, and .pyi type stub updates.
 - Double-check that all method/function names used across your edits are consistent. If you define a method in one edit, use the exact same name when calling it in other edits.
@@ -1110,6 +1114,20 @@ def visible_code_files(prompt: str) -> List[str]:
 
 def parse_edits(response: str) -> List[Dict]:
     """Recover fully delimited snippets even when the outer edit closer is absent."""
+    response = normalize_markers(response)
+    raw = response.strip()
+    fenced = re.fullmatch(r"```(?:json)?\s*\n(.*?)\n```", raw, re.DOTALL)
+    if fenced:
+        raw = fenced.group(1)
+    if raw.startswith('{'):
+        try:
+            parsed = json.loads(raw)
+            entries = parsed.get('edits', [])
+            if isinstance(entries, list) and entries and all(isinstance(e, dict) and
+                    all(isinstance(e.get(k), str) for k in ['file_path', 'before', 'after']) for e in entries):
+                return unique_edits([{k: e[k] for k in ['file_path', 'before', 'after']} for e in entries])
+        except (ValueError, AttributeError):
+            pass
     edits = []
     blocks = re.findall(r"<edit>(.*?)(?:</edit>|(?=<edit>)|$)", response, re.DOTALL)
 
@@ -1216,8 +1234,10 @@ def edits_to_patch(edits: List[Dict], repo_dir: Path) -> str:
     from collections import OrderedDict
 
     file_edits = OrderedDict()
-    for edit in edits:
+    for edit in unique_edits(edits):
         fp = edit["file_path"]
+        if Path(fp).is_absolute() or '..' in Path(fp).parts or '.git' in Path(fp).parts:
+            raise ValueError('Invalid edit path: ' + fp)
         file_edits.setdefault(fp, []).append(edit)
 
     patch_parts = []
@@ -1254,8 +1274,8 @@ def edits_to_patch(edits: List[Dict], repo_dir: Path) -> str:
         any_applied = False
 
         for edit in fp_edits:
-            before_hint = edit["before"].strip()
-            after_text = edit["after"]
+            before_text, after_text = expand_omissions(edit['before'], edit['after'], '\n'.join(mod_lines))
+            before_hint = before_text.strip()
 
             # Skip no-op edits (before == after after normalizing whitespace)
             if before_hint and before_hint == after_text.strip():
@@ -1308,19 +1328,7 @@ def _min_indent(lines: list) -> int:
 
 
 def _align_indent(orig_lines: list, after_lines: list) -> list:
-    """Re-indent after_lines so base indent matches the original region."""
-    orig_base = _min_indent(orig_lines)
-    after_base = _min_indent(after_lines)
-    delta = orig_base - after_base
-    if delta == 0:
-        return after_lines
-    result = []
-    for l in after_lines:
-        if l.lstrip():  # non-empty
-            result.append(" " * delta + l if delta >= 0 else l[min(-delta, len(l) - len(l.lstrip())):])
-        else:
-            result.append(l)
-    return result
+    return align_indent(orig_lines, after_lines)
 
 
 def _locate_region(lines: list, hint_stripped: str) -> Optional[Tuple[int, int]]:
@@ -1405,21 +1413,26 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
                recall_only: bool = False, recall_mode: str = "expanded",
                max_recalled_files: int = 12, history_mode: str = "patterns",
                generation_mode: str = "plan-edit", plan_max_tokens: int = LLM_PLAN_MAX_TOKENS,
-               planner_model: Optional[str] = None, planner_json_mode: str = "api") -> dict:
+               planner_model: Optional[str] = None, planner_json_mode: str = "api",
+               max_repair_attempts: int = 2, repair_max_tokens: int = 16384) -> dict:
     """Run oracle-style generation for one instance."""
     iid = instance["instance_id"]
     out_dir = output_base / iid
     out_dir.mkdir(parents=True, exist_ok=True)
     if generation_mode not in {'single', 'plan-edit'} or planner_json_mode not in {'api', 'prompt'}:
         raise ValueError('Invalid generation or planner JSON mode')
-    if plan_max_tokens <= 0:
-        raise ValueError('plan_max_tokens must be positive')
+    if plan_max_tokens <= 0 or repair_max_tokens <= 0 or max_repair_attempts < 0:
+        raise ValueError('Token budgets must be positive and repair limit nonnegative')
     # Re-running an instance must never submit a successful previous patch
     # after the new plan or generation failed.
-    for stale in ['generated.patch', 'edits.json', 'response.md', 'plan.json', 'plan_response.md',
+    for stale in ['generation_fallback.json', 'repair_history.json', 'generated.patch', 'edits.json', 'response.md', 'plan.json', 'plan_response.md',
                   'plan_validation.json', 'planning_prompt.md', 'generation_prompt.md', 'generation_recall.json',
                   'llm_usage.json', 'parse_failure.txt', 'apply_results.json']:
         (out_dir / stale).unlink(missing_ok=True)
+
+    for pattern in ['response_attempt_*.md', 'repair_prompt_*.md']:
+        for stale in out_dir.glob(pattern):
+            stale.unlink()
 
     result = {
         "instance_id": iid,
@@ -1433,6 +1446,9 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         "max_final_candidates": 1,
         "submitted_patch_count": 0,
         "stage": "analysis",
+        "max_repair_attempts": max_repair_attempts,
+        "repair_attempts": 0,
+        "planning_fallback": False,
     }
     (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
 
@@ -1504,8 +1520,13 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
     plan_context = None
     if generation_mode == 'plan-edit':
         plan_context = PlanContext(repo_dir, ctx, builder.repository_index)
-        planning_prompt = plan_context.planning_prompt(instance)
-        (out_dir / 'planning_prompt.md').write_text(planning_prompt)
+        try:
+            planning_prompt = plan_context.planning_prompt(instance)
+            (out_dir / 'planning_prompt.md').write_text(planning_prompt)
+        except Exception as error:
+            result['planning_fallback'] = True
+            (out_dir / 'generation_fallback.json').write_text(json.dumps({'stage': 'planning_context', 'reason': str(error)}))
+            plan_context = None
     (out_dir / "recall.json").write_text(json.dumps(recall, indent=2))
     if recall_only:
         result.update(success=True, mode="recall_only", recall=recall, stage='recall_complete', llm_calls=0)
@@ -1540,77 +1561,91 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         save_usage()
         return reply
     t0 = time.time()
+    direct_prompt = prompt
     try:
         if plan_context:
-            planned = invoke('planning', planning_prompt,
-                             system='You plan repository changes from supplied evidence. Return only the requested JSON object, no code.',
-                             model=planner_model or LLM_MODEL_GENERATE, max_tokens=plan_max_tokens,
-                             temperature=LLM_TEMPERATURE, json_mode=planner_json_mode == 'api')
-            (out_dir / 'plan_response.md').write_text(planned.text)
-            result['timing']['planning'] = planned.seconds
-            result['stage'] = 'plan_validation'
-            if planned.finish_reason in {'length', 'max_tokens'}:
-                raise PlanError('Planner output was truncated')
-            plan, validation = plan_context.parse_validate(planned.text)
-            (out_dir / 'plan.json').write_text(json.dumps(plan, indent=2))
-            (out_dir / 'plan_validation.json').write_text(json.dumps(validation, indent=2))
-            result['stage'] = 'generation_context'
-            prompt, generation_recall = plan_context.generation_prompt(instance, plan, OUTPUT_FORMAT_INSTRUCTION)
-            (out_dir / 'generation_recall.json').write_text(json.dumps(generation_recall, indent=2))
-            (out_dir / 'generation_prompt.md').write_text(prompt)
-            (out_dir / 'prompt.md').write_text(prompt)
+            try:
+                planned = invoke('planning', planning_prompt,
+                                 system='You plan repository changes from supplied evidence. Return only the requested JSON object, no code.',
+                                 model=planner_model or LLM_MODEL_GENERATE, max_tokens=plan_max_tokens,
+                                 temperature=LLM_TEMPERATURE, json_mode=planner_json_mode == 'api')
+                (out_dir / 'plan_response.md').write_text(planned.text)
+                result['timing']['planning'] = planned.seconds
+                result['stage'] = 'plan_validation'
+                if planned.finish_reason in {'length', 'max_tokens'}:
+                    raise PlanError('Planner output was truncated')
+                plan, validation = plan_context.parse_validate(planned.text)
+                (out_dir / 'plan.json').write_text(json.dumps(plan, indent=2))
+                (out_dir / 'plan_validation.json').write_text(json.dumps(validation, indent=2))
+                result['stage'] = 'generation_context'
+                prompt, generation_recall = plan_context.generation_prompt(instance, plan, OUTPUT_FORMAT_INSTRUCTION)
+                (out_dir / 'generation_recall.json').write_text(json.dumps(generation_recall, indent=2))
+            except Exception as error:
+                reason = {'stage': result['stage'], 'reason': str(error), 'error_type': type(error).__name__}
+                result['planning_fallback'] = True
+                if isinstance(error, PlanError):
+                    (out_dir / 'plan_validation.json').write_text(json.dumps(error.report, indent=2))
+                (out_dir / 'generation_fallback.json').write_text(json.dumps(reason, indent=2))
+                prompt = direct_prompt
+        (out_dir / 'generation_prompt.md').write_text(prompt)
+        (out_dir / 'prompt.md').write_text(prompt)
         reply = invoke('generation', prompt,
                        system="You are an expert Python developer. Output exact code edits in the specified format.",
                        model=LLM_MODEL_GENERATE, max_tokens=LLM_MAX_TOKENS, temperature=LLM_TEMPERATURE)
-        response = reply.text
+        history = []
+        for attempt in range(max_repair_attempts + 1):
+            response = reply.text
+            (out_dir / 'response.md').write_text(response)
+            (out_dir / ('response_attempt_%d.md' % attempt)).write_text(response)
+            result['stage'] = 'patch'
+            edits = unique_edits(_fix_edit_name_consistency(parse_edits(response)))
+            result['n_edits'] = len(edits)
+            result['files'] = sorted({e['file_path'] for e in edits})
+            try:
+                if reply.finish_reason in {'length', 'max_tokens'}:
+                    raise ValueError('Code response was truncated; regenerate complete concise edits')
+                if not edits:
+                    raise ValueError('No complete edits parsed from the code response')
+                if '<edit>' in response and len(re.findall(r'<edit>', response)) > len(parse_edits(response)):
+                    raise ValueError('Code response contains incomplete or invalid edit blocks')
+                patch = edits_to_patch(edits, repo_dir)
+                if not patch.strip():
+                    raise ValueError('Parsed edits produced an empty patch')
+                # Check the exact unified diff without changing the base tree.
+                check = subprocess.run(['git', 'apply', '--check', '--whitespace=nowarn', '-'],
+                                       cwd=repo_dir, input=patch, text=True, capture_output=True)
+                if check.returncode:
+                    raise ValueError('Patch does not apply: ' + check.stderr[:2000])
+                break
+            except (ValueError, SyntaxError) as error:
+                history.append({'attempt': attempt, 'error_type': type(error).__name__, 'error': str(error)})
+                (out_dir / 'repair_history.json').write_text(json.dumps(history, indent=2))
+                if attempt >= max_repair_attempts:
+                    raise
+                feedback = repair_prompt(instance, repo_dir, edits, error, response, MAX_CONTEXT_CHARS)
+                (out_dir / ('repair_prompt_%d.md' % (attempt + 1))).write_text(feedback)
+                result['repair_attempts'] = attempt + 1
+                reply = invoke('generation_repair_%d' % (attempt + 1), feedback,
+                               system='You repair a repository implementation using validation errors and actual base code. Return only the requested JSON object.',
+                               model=LLM_MODEL_GENERATE, max_tokens=repair_max_tokens,
+                               temperature=LLM_TEMPERATURE, json_mode=True)
+        (out_dir / 'edits.json').write_text(json.dumps(edits, indent=2))
+        (out_dir / 'generated.patch').write_text(patch)
+        result['submitted_patch_count'] = 1
+        result['timing']['llm_call'] = time.time() - t0
     except Exception as error:
         result.update(success=False, error=str(error), error_type=type(error).__name__)
         result['timing']['total'] = time.time() - t_start
-        if isinstance(error, PlanError):
-            (out_dir / 'plan_validation.json').write_text(json.dumps(error.report, indent=2))
         save_usage()
         (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
         return result
-    result["timing"]["llm_call"] = time.time() - t0
-    print(f"  Response: {len(response)} chars")
-
-    # Save raw response
-    (out_dir / "response.md").write_text(response)
-
-    # Step 4: Parse edits → generate patch
-    print(f"[4/4] Parsing edits...")
-    result['stage'] = 'patch'
-    t0 = time.time()
-    edits = parse_edits(response)
-    edits = _fix_edit_name_consistency(edits)
-    result["n_edits"] = len(edits)
-    result["files"] = list({e["file_path"] for e in edits})
 
     if edits:
-        # Save parsed edits as JSON
-        (out_dir / "edits.json").write_text(json.dumps(edits, indent=2))
-
-        # Generate patch
-        try:
-            patch = edits_to_patch(edits, repo_dir)
-            if not patch.strip():
-                raise ValueError("Parsed edits produced an empty patch")
-        except Exception as error:
-            result.update(error=str(error), error_type=type(error).__name__)
-            result['timing']['total'] = time.time() - t_start
-            (out_dir / 'result.json').write_text(json.dumps(result, indent=2))
-            return result
-        (out_dir / "generated.patch").write_text(patch)
-        result['submitted_patch_count'] = 1
-
-        # Save each edit as before/after files for easy inspection
         for i, edit in enumerate(edits):
-            fp_safe = edit["file_path"].replace("/", "_")
-            (out_dir / f"edit_{i}_{fp_safe}").write_text(
-                f"# FILE: {edit['file_path']}\n"
-                f"# ===== BEFORE =====\n{edit['before']}\n\n"
-                f"# ===== AFTER =====\n{edit['after']}\n"
-            )
+            fp_safe = edit['file_path'].replace('/', '_')
+            (out_dir / ('edit_%d_%s' % (i, fp_safe))).write_text(
+                '# FILE: %s\n# ===== BEFORE =====\n%s\n\n# ===== AFTER =====\n%s\n' %
+                (edit['file_path'], edit['before'], edit['after']))
 
         # Apply edits to repo if requested
         if apply:
@@ -1669,6 +1704,8 @@ def main():
     parser.add_argument("--plan-max-tokens", type=int, default=LLM_PLAN_MAX_TOKENS)
     parser.add_argument("--planner-model", help='Defaults to the generation model')
     parser.add_argument("--planner-json-mode", choices=['api', 'prompt'], default='api')
+    parser.add_argument('--max-repair-attempts', type=int, default=2)
+    parser.add_argument('--repair-max-tokens', type=int, default=16384)
     args = parser.parse_args()
     if args.repo_dir and (not args.instance or len(args.instance) != 1):
         parser.error("--repo-dir requires exactly one --instance")
@@ -1710,7 +1747,8 @@ def main():
                            recall_mode=args.recall_mode, max_recalled_files=args.recall_max_files,
                            history_mode=args.history_mode, generation_mode=args.generation_mode,
                            plan_max_tokens=args.plan_max_tokens, planner_model=args.planner_model,
-                           planner_json_mode=args.planner_json_mode)
+                           planner_json_mode=args.planner_json_mode, max_repair_attempts=args.max_repair_attempts,
+                           repair_max_tokens=args.repair_max_tokens)
             results.append(r)
         except Exception as e:
             import traceback
