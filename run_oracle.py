@@ -28,7 +28,7 @@ from repo_manager import prepare_repo, get_file_content
 from explorer.context_builder import ContextBuilder
 from generator.llm_interface import call_llm_with_usage, LLMCallError
 from generator.planned_generation import PlanContext, PlanError
-from generator.edit_recovery import normalize_markers, unique_edits, align_indent, expand_omissions, repair_prompt
+from generator.edit_recovery import normalize_markers, unique_edits, align_indent, expand_omissions, new_module_definitions, repair_prompt
 
 # ============================================================================
 # Output format template (extracted from Oracle natural-detailed)
@@ -1274,6 +1274,13 @@ def edits_to_patch(edits: List[Dict], repo_dir: Path) -> str:
         any_applied = False
 
         for edit in fp_edits:
+            current_text = "\n".join(mod_lines)
+            if fp.endswith('.py') and edit['before'].strip() and edit['before'].strip() not in current_text:
+                additions = new_module_definitions(edit['before'], edit['after'], current_text)
+                if additions:
+                    mod_lines += ['', ''] + additions.splitlines()
+                    any_applied = True
+                    continue
             before_text, after_text = expand_omissions(edit['before'], edit['after'], '\n'.join(mod_lines))
             before_hint = before_text.strip()
 
@@ -1282,6 +1289,10 @@ def edits_to_patch(edits: List[Dict], repo_dir: Path) -> str:
                 continue
 
             if not before_hint:
+                if not original and len(fp_edits) == 1:
+                    mod_lines = after_text.splitlines()
+                    any_applied = True
+                    continue
                 raise ValueError("Existing-file edit needs a before snippet: %s" % fp)
 
             # Find the region in the current (modified) text
@@ -1292,6 +1303,26 @@ def edits_to_patch(edits: List[Dict], repo_dir: Path) -> str:
             start, end = region
             # Align indentation of after to match original region
             after_aligned = _align_indent(mod_lines[start:end], after_text.splitlines())
+            last_hint = before_hint.splitlines()[-1].strip()
+            last_source = mod_lines[end - 1].strip()
+            signature_completed = False
+            if (re.match(r'(?:async\s+def|def|class)\s+', last_hint) and last_source.startswith(last_hint)
+                    and len(last_source) > len(last_hint) and after_aligned
+                    and after_aligned[-1].rstrip().endswith(last_hint)):
+                after_aligned[-1] += last_source[len(last_hint):]
+                signature_completed = True
+            # A short unchanged context anchor may stop inside the final line.
+            # Preserve its physical suffix instead of deleting a signature's arguments.
+            current_text = "\n".join(mod_lines)
+            if current_text.count(before_hint) == 1:
+                match_end = current_text.index(before_hint) + len(before_hint)
+                line_end = current_text.find("\n", match_end)
+                suffix = current_text[match_end:line_end if line_end >= 0 else len(current_text)]
+                if suffix and not signature_completed:
+                    if after_aligned and after_aligned[-1].rstrip().endswith(last_hint):
+                        after_aligned[-1] += suffix
+                    else:
+                        raise ValueError("Before snippet ends inside a source line; include the entire final line")
             mod_lines = mod_lines[:start] + after_aligned + mod_lines[end:]
             any_applied = True
 
@@ -1351,6 +1382,21 @@ def _locate_region(lines: list, hint_stripped: str) -> Optional[Tuple[int, int]]
 
     # Fuzzy: sliding window
     hint_lines = hint_stripped.splitlines()
+    significant_hint = [line.strip() for line in hint_lines if line.strip()]
+    significant_source = [(i, line.strip()) for i, line in enumerate(lines) if line.strip()]
+    canonical = []
+    for i in range(len(significant_source) - len(significant_hint) + 1):
+        window = significant_source[i:i + len(significant_hint)]
+        if not significant_hint or any(actual != wanted for (_, actual), wanted in zip(window[:-1], significant_hint[:-1])):
+            continue
+        last, wanted = window[-1][1], significant_hint[-1]
+        partial_signature = bool(re.match(r'(?:async\s+def|def|class)\s+', wanted)) and last.startswith(wanted)
+        if last == wanted or partial_signature:
+            canonical.append((window[0][0], window[-1][0] + 1))
+    if len(canonical) == 1:
+        return canonical[0]
+    if len(canonical) > 1:
+        return None
     n = len(hint_lines)
     if n == 0:
         return None

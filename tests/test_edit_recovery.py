@@ -52,6 +52,44 @@ class EditRecoveryTests(unittest.TestCase):
             patch = edits_to_patch([edit, dict(edit)], root)
         self.assertEqual(patch.count('+VALUE = 2'), 1)
 
+    def test_partial_signature_context_does_not_delete_the_real_line_suffix(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'file.py').write_text('def one():\n    return 1\n\ndef following(a, b=None):\n    return b\n')
+            before = '    return 1\n\ndef following(a,'
+            after = '    return 1\n\ndef feature():\n    return 2\n\ndef following(a,'
+            patch = edits_to_patch([{'file_path': 'file.py', 'before': before, 'after': after}], root)
+        self.assertIn(' def following(a, b=None):', patch)
+        self.assertIn('+def feature():', patch)
+
+    def test_existing_empty_file_accepts_an_empty_before(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / '__init__.py').write_text('')
+            patch = edits_to_patch([{'file_path': '__init__.py', 'before': '', 'after': 'from .feature import feature'}], root)
+        self.assertIn('+from .feature import feature', patch)
+
+    def test_blank_line_difference_and_partial_signature_keep_following_function(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'file.py').write_text('def one():\n    result = 1\n\n    return result\n\n\n\ndef following(a, b=None):\n    return b\n')
+            before = '    result = 1\n\n    return result\n\n\ndef following(a,'
+            after = '    result = 1\n\n    return result\n\n\ndef feature():\n    return 2\n\n\ndef following(a,'
+            patch = edits_to_patch([{'file_path': 'file.py', 'before': before, 'after': after}], root)
+        self.assertIn('def following(a, b=None):', patch)
+        self.assertIn('+def feature():', patch)
+
+    def test_new_global_function_can_be_added_without_assuming_excerpts_are_adjacent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'file.py').write_text('def first():\n    return 1\n\ndef hidden():\n    return 42\n\ndef following(a, b=None):\n    return b\n')
+            before = '    return 1\n\ndef following(a,'
+            after = '    return 1\n\ndef feature():\n    return 2\n\ndef following(a,'
+            patch = edits_to_patch([{'file_path': 'file.py', 'before': before, 'after': after}], root)
+        self.assertIn('+def feature():', patch)
+        self.assertNotIn('-def hidden', patch)
+        self.assertNotIn('-def following', patch)
+
 
 if __name__ == '__main__':
     unittest.main()

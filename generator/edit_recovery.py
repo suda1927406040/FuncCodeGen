@@ -92,6 +92,41 @@ def expand_omissions(before, after, source):
     return source[start:end], replacement
 
 
+def new_module_definitions(before, after, source):
+    """Recover pure additions when copied surrounding excerpts are not adjacent."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    current = {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+    declarations = list(re.finditer(r'^(?:async\s+def|def|class)\s+(\w+)\b', after, re.MULTILINE))
+    old_names = set(re.findall(r'^(?:async\s+def|def|class)\s+(\w+)\b', before, re.MULTILINE))
+    additions, spans = [], []
+    for i, match in enumerate(declarations):
+        if match[1] in old_names or match[1] in current:
+            continue
+        end = declarations[i + 1].start() if i + 1 < len(declarations) else len(after)
+        chunk = after[match.start():end].rstrip() + '\n'
+        try:
+            body = ast.parse(chunk).body
+        except SyntaxError:
+            return None
+        if len(body) != 1 or not isinstance(body[0], (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return None
+        additions.append(chunk)
+        spans.append((match.start(), end))
+    if not additions:
+        return None
+    retained = after
+    for start, end in reversed(spans):
+        retained = retained[:start] + retained[end:]
+    # Only unchanged surrounding code can be ignored, never another requested edit.
+    significant = lambda text: [line.rstrip() for line in text.splitlines() if line.strip()]
+    if significant(retained) != significant(before):
+        return None
+    return '\n'.join(additions)
+
+
 def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=80000):
     """Show contiguous actual source rather than asking the model to reuse elisions."""
     statement = instance.get('problem_statement', '')
