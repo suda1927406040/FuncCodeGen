@@ -34,6 +34,14 @@ Allowed actions: modify, create (new file), create_symbol (new method/function/f
 Use the exact current qualified symbol for modify; use an empty symbol for imports/exports/configuration.
 For create_symbol, explicitly name the new symbol; don't describe it as an existing method.
 Evidence sources: current (base file/symbol), history (commit + file), requirement (declared file/symbol).
+Use these evidence object formats:
+- current: {"source": "current", "file": "actual/base/path.py", "symbol": "CurrentClass.method"}
+- history: {"source": "history", "commit": "<exact visible COMMIT id>", "file": "path/changed/in/that/commit.py"}
+- requirement: {"source": "requirement", "file": "<declared file>", "symbol": "<exact declared symbol>"}
+History evidence MUST include the commit key and an ID from the supplied COMMIT blocks. A file must be
+listed as changed in that particular commit. Do not use history to cite the new symbol being implemented.
+For new definitions, use requirement evidence and copy an exact pair from Declared requirement symbols below.
+For imports, exports, and module constants, use an empty symbol with current file evidence.
 History is a reference: map applicable responsibilities to current base code. Package exports are necessary only
 for public entry points required by the task; internal helpers need not become package APIs.
 Every edit step needs at least one evidence reference. Dependencies must reference step IDs without cycles.
@@ -211,6 +219,8 @@ class PlanContext:
         history = render_commit_patterns(self.ctx.history_patterns, 8000, include_plan_instruction=False)
         prefix = ("Plan the current repository feature using current code and ancestral coordinated changes.\n"
                   + _task(instance, self.ctx) + "\nKnown candidate paths:\n" + inventory
+                  + "\nDeclared requirement symbols (exact file/symbol pairs):\n"
+                  + json.dumps([{'file': file, 'symbol': symbol} for file, symbol in sorted(self.declared)], ensure_ascii=False)
                   + "\nStatic evidence (observations, not mandatory edits):\n" + evidence + history + '\n' + PLAN_FORMAT)
         if len(prefix) > MAX_CONTEXT_CHARS - 2000:
             raise PlanError("Planning instructions exceed context budget")
