@@ -98,6 +98,9 @@ def _usage_dict(usage):
 def _call_openai(prompt: str, system: str, model: str,
                  max_tokens: int, temperature: float, json_mode: bool) -> LLMResponse:
     """Call OpenAI-compatible API."""
+    thinking_mode = os.environ.get("LLM_THINKING_MODE", "").strip()
+    if thinking_mode not in {"", "enabled", "disabled"}:
+        raise ValueError("LLM_THINKING_MODE must be enabled, disabled, or unset")
     from openai import OpenAI
 
     client = OpenAI(
@@ -119,6 +122,8 @@ def _call_openai(prompt: str, system: str, model: str,
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    if thinking_mode:
+        kwargs["extra_body"] = {"thinking": {"type": thinking_mode}}
 
     response = client.chat.completions.create(**kwargs)
     choice = response.choices[0]

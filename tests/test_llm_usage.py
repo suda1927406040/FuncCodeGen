@@ -16,13 +16,34 @@ class LLMUsageTests(unittest.TestCase):
             recorded['client'] = kwargs
             def create(**params): recorded['params'] = params; return response
             return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
-        with patch.dict(sys.modules, {'openai': SimpleNamespace(OpenAI=factory)}):
+        with patch.dict(sys.modules, {'openai': SimpleNamespace(OpenAI=factory)}), patch.dict('os.environ', {'LLM_THINKING_MODE': ''}):
             reply = api._call_openai('prompt', 'json', 'model', 200, 0, True)
         self.assertEqual(reply.total_tokens, 110)
         self.assertEqual(reply.usage['prompt_cache_hit_tokens'], 80)
         self.assertEqual(recorded['client']['max_retries'], 0)
         self.assertEqual(recorded['params']['response_format'], {'type': 'json_object'})
+        self.assertNotIn('extra_body', recorded['params'])
         self.assertNotIn('text', reply.metrics())
+
+    def test_explicit_thinking_switch_survives_json_mode_and_token_budget(self):
+        response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{}'), finish_reason='stop')])
+        for mode in ('disabled', 'enabled'):
+            with self.subTest(mode=mode):
+                recorded = {}
+                def create(**params):
+                    recorded.update(params)
+                    return response
+                client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+                with patch.dict(sys.modules, {'openai': SimpleNamespace(OpenAI=lambda **kwargs: client)}), patch.dict('os.environ', {'LLM_THINKING_MODE': mode}):
+                    api._call_openai('json plan', '', 'deepseek-flash', 2048, 0, True)
+                self.assertEqual(recorded['extra_body'], {'thinking': {'type': mode}})
+                self.assertEqual(recorded['response_format'], {'type': 'json_object'})
+                self.assertEqual(recorded['max_tokens'], 2048)
+
+    def test_invalid_thinking_switch_does_not_call_provider(self):
+        with patch.dict('os.environ', {'LLM_THINKING_MODE': 'sometimes'}), patch.dict(sys.modules, {'openai': SimpleNamespace(OpenAI=lambda **kwargs: self.fail('provider must not be called'))}):
+            with self.assertRaises(ValueError):
+                api._call_openai('p', '', 'model', 100, 0, False)
 
     def test_anthropic_cache_accounting_and_text_blocks(self):
         response = SimpleNamespace(content=[SimpleNamespace(type='text', text='one'), SimpleNamespace(type='thinking', text='private'),

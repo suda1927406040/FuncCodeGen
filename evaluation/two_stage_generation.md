@@ -46,6 +46,12 @@ python v5.py --instance conan-io__conan-16871 \
 - `--planner-model ...` 指定规划模型，默认使用生成模型。
 - `--planner-json-mode api` 使用 OpenAI-compatible JSON response format；不支持它的
   服务可指定 `prompt`，只靠提示约束 JSON。Anthropic 路径使用 JSON 提示与本地解析。
+- `LLM_THINKING_MODE=disabled|enabled` 为支持 `thinking` 参数的 OpenAI-compatible
+  接口显式选择模式；未设置时不传这个供应商参数。DeepSeek 当前模型默认开启思考，
+  本次两轮实验使用 `disabled`，保持原 `deepseek-chat` 的非思考调用方式，避免规划的
+  2,048 tokens 被推理输出占满而没有完整 JSON。当前可用模型为 `deepseek-flash`
+  和 `deepseek-v4-pro`；运行时必须记录实际模型，不能将新模型结果直接归因于检索改进。
+  参见 [DeepSeek thinking 参数](https://api-docs.deepseek.com/api/create-chat-completion/)。
 - `--recall-only` 不调用模型，保存静态上下文及 `planning_prompt.md`。此时没有真实
   计划或第二轮生成上下文；`prompt.md` 仍是静态对照。完成两轮后它保存最终生成 prompt。
 
