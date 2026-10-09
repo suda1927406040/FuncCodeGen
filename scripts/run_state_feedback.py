@@ -1,7 +1,7 @@
-"""Local full generation -> offline server grading -> bounded state repairs.
+"""Full generation -> offline grading -> bounded state repairs.
 
-All model calls run locally. Each evaluation/diagnosis starts a fresh frozen
-container. The original inputs, snapshots and reports are never overwritten.
+Model calls run on the controller host. Each evaluation/diagnosis starts a fresh
+frozen container. Both remote-server and native same-host execution are supported.
 """
 import argparse
 import concurrent.futures
@@ -60,11 +60,18 @@ def parse_args():
     parser.add_argument('--repair-rounds', type=int, default=4)
     parser.add_argument('--worker', help=argparse.SUPPRESS)
     parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--same-host', action='store_true', help='Run the full framework on the evaluation server without SSH/SCP')
+    parser.add_argument('--proxy', help='Explicit HTTP proxy for model calls; excluded from offline evaluation processes')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    if args.proxy:
+        for name in ['HTTP_PROXY','HTTPS_PROXY','http_proxy','https_proxy']:
+            os.environ[name] = args.proxy
+        for name in ['ALL_PROXY','all_proxy']:
+            os.environ.pop(name,None)
     if args.worker:
         worker(args)
         return
@@ -87,7 +94,8 @@ def main():
             'model': 'deepseek-flash', 'thinking': 'disabled', 'temperature': 0,
             'generation_max_tokens': 16384, 'structural_repair_limit': 2,
             'semantic_repair_rounds': args.repair_rounds, 'feedback_mode': 'runtime-state-and-test-errors',
-            'generation_location': 'local', 'evaluation_location': args.host,
+            'generation_location': 'server' if args.same_host else 'local',
+            'evaluation_location': 'same-host-offline' if args.same_host else args.host,
             'fresh_initial_container_each_evaluation_and_diagnosis': True,
             'reference_patch_or_trace_in_model_inputs': False,
             'test_feedback_experiment': True, 'development_case': 'conan-io__conan-16871',
@@ -117,6 +125,8 @@ def main():
         command = [sys.executable, str(Path(__file__).resolve()), '--worker', iid,
                    '--run-root', str(args.run_root), '--prepared-repos', str(args.prepared_repos),
                    '--credentials-file', str(args.credentials_file)]
+        if args.proxy:
+            command.extend(['--proxy',args.proxy])
         with (out/'execution.log').open('w') as log:
             done = subprocess.run(command, stdout=log, stderr=log, timeout=7200)
         value = json.loads(result.read_text()) if result.is_file() else {'instance_id':iid,'success':False}
@@ -147,14 +157,19 @@ def main():
                 if attempt == 2:
                     raise
                 time.sleep(5)
-    ssh('mkdir -p ' + shlex.quote(remote))
+    if not args.same_host:
+        ssh('mkdir -p ' + shlex.quote(remote))
     package = args.run_root/'remote_sources.tar.gz'
     with tarfile.open(package,'w:gz') as tar:
         for name in ['scripts/state_feedback_remote.py','generator/runtime_probe.py','generator/state_profiles/conan_probe.py']:
             tar.add(SOURCE/name,arcname='source/'+name)
-    subprocess.run(['scp',str(package),args.host+':'+remote+'/remote_sources.tar.gz'],check=True)
-    ssh('tar -xzf '+shlex.quote(remote+'/remote_sources.tar.gz')+' -C '+shlex.quote(remote))
+    if not args.same_host:
+        subprocess.run(['scp',str(package),args.host+':'+remote+'/remote_sources.tar.gz'],check=True)
+        ssh('tar -xzf '+shlex.quote(remote+'/remote_sources.tar.gz')+' -C '+shlex.quote(remote))
     def remote_stage(mode, number, ids):
+        if args.same_host:
+            from state_feedback_transport import same_host_stage
+            return same_host_stage(args,SOURCE,mode,number,ids,predictions,write_json)
         name = args.run_root.name + '_' + mode + '_' + str(number)
         stage = args.run_root/'rounds'/str(number)/mode
         archive = stage/(name+'.tar.gz')
