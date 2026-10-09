@@ -28,6 +28,7 @@ from repo_manager import prepare_repo, get_file_content
 from explorer.context_builder import ContextBuilder
 from generator.llm_interface import call_llm_with_usage, LLMCallError
 from generator.planned_generation import PlanContext, PlanError
+from generator.state_feedback import STATE_CONTRACT
 from generator.edit_recovery import normalize_markers, unique_edits, align_indent, expand_omissions, new_module_definitions, repair_prompt
 
 # ============================================================================
@@ -1097,6 +1098,7 @@ There are several new functions or classes that need to be implemented, using th
 __FUNCGEN_CODE_SECTION__
 </code>
 
+{STATE_CONTRACT}
 {OUTPUT_FORMAT_INSTRUCTION}"""
 
     marker = "__FUNCGEN_CODE_SECTION__"

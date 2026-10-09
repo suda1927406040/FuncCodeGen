@@ -1,3 +1,4 @@
+from generator.state_feedback import STATE_CONTRACT
 """Plan, validate, expand base context, then generate one final patch response."""
 import ast
 from collections import Counter, defaultdict
@@ -239,7 +240,7 @@ class PlanContext:
         inventory = '\n'.join(sorted(self.targets | {candidate.file for candidate in self.ctx.recalled_files}))
         history = render_commit_patterns(self.ctx.history_patterns, 8000, include_plan_instruction=False)
         prefix = ("Plan the current repository feature using current code and ancestral coordinated changes.\n"
-                  + _task(instance, self.ctx) + "\nKnown candidate paths:\n" + inventory
+                  + STATE_CONTRACT + _task(instance, self.ctx) + "\nKnown candidate paths:\n" + inventory
                   + "\nDeclared requirement symbols (exact file/symbol pairs):\n"
                   + json.dumps([{'file': file, 'symbol': symbol} for file, symbol in sorted(self.declared)], ensure_ascii=False)
                   + "\nStatic evidence (observations, not mandatory edits):\n" + evidence + history + '\n' + PLAN_FORMAT)
@@ -467,7 +468,7 @@ class PlanContext:
         factual_plan = json.dumps(plan, ensure_ascii=False, indent=2)
         relation_text = json.dumps(dependencies[:30], ensure_ascii=False)
         prefix = ("Implement the feature once, using the checked plan and current code below.\n"
-                  + _task(instance, self.ctx) + '\n<checked_plan>\n' + factual_plan + '\n</checked_plan>\n'
+                  + STATE_CONTRACT + _task(instance, self.ctx) + '\n<checked_plan>\n' + factual_plan + '\n</checked_plan>\n'
                   + "The script checked path/symbol existence and dependency order, not semantic correctness. "
                     "Treat contracts as proposals to verify against the request and current code. "
                     "Preserve existing API behavior and distinct state/guard meanings. Internal helpers do not require "

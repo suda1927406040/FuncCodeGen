@@ -85,3 +85,6 @@ python scripts/evaluate_recall.py \
 默认历史检索现按同一 commit 成组展示定义、调用、状态、导出及配置变更，并映射到
 当前 base 方法。`--history-mode patterns|legacy|off` 用于比较。实现、真实历史示例
 和验证结果见 [evaluation/history_patterns.md](evaluation/history_patterns.md)。
+
+
+状态反馈生成和离线测试修复闭环见 [evaluation/state_feedback.md](evaluation/state_feedback.md)。入口为 `scripts/run_state_feedback.py`，每轮从冻结初始镜像新建容器，模型调用仅在本地。
