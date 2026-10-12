@@ -10,7 +10,8 @@ from generator.feedback_evidence import evidence_bundle, failure_excerpt, read_f
 from generator.feature_memory import (attach_observations, execution_obligations, merge_update,
                                       seed_featurespace, memory_view)
 from generator.llm_interface import LLMResponse
-from generator.state_feedback import diagnosis_prompt, repair_once, watch_config
+from generator.state_feedback import (_edited_responsibilities, diagnosis_prompt,
+                                      repair_once, watch_config)
 
 
 def response(value):
@@ -99,6 +100,22 @@ class EvidenceTests(unittest.TestCase):
                           for target in obligation['required_repair_targets']},
                          {('mode.py', 'Mode.allowed_feature'),
                           ('refresh.py', 'refresh_state')})
+
+    def test_qualified_constructor_check_does_not_bind_other_constructors(self):
+        instance = {'instance_id': 'constructors', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': [
+                        {'file': 'mode.py', 'components': [{'name': 'BuildMode.__init__'}]},
+                        {'file': 'node.py', 'components': [{'name': 'Node.__init__'}]}]}
+        memory = seed_featurespace(instance)
+        memory['current_patch_sha256'] = 'candidate'
+        memory['checks'] = [{
+            'hypothesis': 'BuildMode.__init__ fails to represent the requested policy.',
+            'expected_change': 'BuildMode.__init__ stores the policy state.',
+            'evidence': ['requirement'], 'patch_sha256': 'candidate'}]
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'diagnosis_check')
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'mode.py', 'symbol': 'BuildMode.__init__'}])
 
     def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
         packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,
@@ -230,6 +247,29 @@ class EvolutionTests(unittest.TestCase):
         self.assertEqual(usage['logical_calls'], 2)
         self.assertEqual(usage['reported_total_tokens'], 60)
         self.assertIn('Missing', (self.repo/'state.py').read_text())
+
+    def test_omitted_diagnosed_responsibility_gets_one_in_round_retry(self):
+        eid = next(iter(self.memory['elements']))
+        calls = []
+        def model(prompt, **kwargs):
+            calls.append(prompt)
+            if 'Do not return code edits' in prompt:
+                evidence = section(prompt, 'current_execution_evidence')['observations'][0]['id']
+                return response({'summary': 'select still consumes the wrong state.',
+                                 'focus': [eid], 'checks': [{
+                                     'hypothesis': 'select returns the invalid state.',
+                                     'expected_change': 'select returns the buildable state.',
+                                     'evidence': [evidence], 'basis': 'Current function output.'}]})
+            replacement = ('def select(node):\n    return "Build"'
+                           if 'Previous repair was rejected' in prompt
+                           else 'def select(node):\n    return "Invalid"')
+            return response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
+                                        'replacement': replacement}]})
+        result = repair_once(self.instance, self.repo, self.initial, self.packet, 'failed',
+                             self.watch, self.root/'retry', call=model, memory=self.memory)
+        self.assertEqual(len(calls), 3)
+        self.assertIn('+    return "Build"', result)
+        self.assertTrue((self.root/'retry/repair_retry_response.json').is_file())
 
     def test_invalid_reflection_does_not_block_code_generation(self):
         replies = [response({'broken': 'no valid delta'}), response({'edits': [
@@ -365,6 +405,21 @@ class EvolutionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'same AST'):
             repair_once(self.instance, self.repo, self.initial, self.packet, 'failed', self.watch, self.root/'noop',
                         call=lambda *a, **k: reply, mode='basic')
+
+    def test_unchanged_function_echo_does_not_cover_a_repair_obligation(self):
+        current = self.root/'responsibility'; current.mkdir()
+        (current/'state.py').write_text(
+            'def select():\n    return "Invalid"\n\ndef refresh():\n    return False\n')
+        edits = [
+            {'file_path': 'state.py', 'symbol': 'select',
+             'before': 'def select():\n    return "Invalid"',
+             'after': 'def select():\n    return "Invalid"'},
+            {'file_path': 'state.py', 'symbol': 'refresh',
+             'before': 'def refresh():\n    return False',
+             'after': 'def refresh():\n    return True'}]
+        covered = _edited_responsibilities(edits, current)
+        self.assertNotIn(('state.py', 'select'), covered)
+        self.assertIn(('state.py', 'refresh'), covered)
 
     def test_same_named_methods_in_independent_classes_are_allowed(self):
         def factory(name):

@@ -294,13 +294,17 @@ def execution_obligations(memory):
             continue
         text = check.get('hypothesis', '') + '\n' + check.get('expected_change', '')
         matched = []
-        for entry in memory.get('elements', {}).values():
-            if entry.get('status') != 'active' or not entry.get('symbol'):
-                continue
+        active = [entry for entry in memory.get('elements', {}).values()
+                  if entry.get('status') == 'active' and entry.get('symbol')]
+        leaf_owners = {}
+        for entry in active:
+            leaf = entry['symbol'].split('.')[-1]
+            leaf_owners.setdefault(leaf, set()).add((entry['file'], entry['symbol']))
+        for entry in active:
             symbol = entry['symbol']
             leaf = symbol.split('.')[-1]
             qualified = '.' in symbol and symbol in text
-            leaf_named = len(leaf) >= 4 and re.search(
+            leaf_named = len(leaf) >= 4 and len(leaf_owners[leaf]) == 1 and re.search(
                 r'(?<![A-Za-z0-9_])' + re.escape(leaf) + r'(?![A-Za-z0-9_])', text)
             if qualified or leaf_named:
                 matched.append(entry)

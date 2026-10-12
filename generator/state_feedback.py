@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import textwrap
 
 STATE_CONTRACT = """\
 Trace feature state from its producer through cloning/configuration changes to each consumer guard.
@@ -306,7 +307,8 @@ def source_context(instance, current, patch, packet, watch, budget, memory=None)
     expanded = [item['file'] for item in watch.get('source_expansion', [])]
     for item in watch.get('source_expansion', []):
         priority_symbols[item['file']].extend(item['symbols'])
-    files = list(dict.fromkeys(expanded + focused + primary + patch_paths(patch) + memory_files(memory or {}) + list(watch.get('watch', {}))))
+    files = list(dict.fromkeys(focused + primary + patch_paths(patch) + expanded
+                              + memory_files(memory or {}) + list(watch.get('watch', {}))))
     files = [f for f in files if f and production_path(f) and (Path(current) / safe_path(f)).is_file()][:24]
     remaining = budget
     sections, included = [], []
@@ -489,10 +491,20 @@ def _duplicate_methods(source):
 
 def _edited_responsibilities(edits, current):
     """Map exact snippet edits back to their containing current function."""
+    def executable_change(edit):
+        before, after = edit.get('before', ''), edit.get('after', '')
+        if before == after:
+            return False
+        try:
+            old = ast.dump(ast.parse(textwrap.dedent(before)), include_attributes=False)
+            new = ast.dump(ast.parse(textwrap.dedent(after)), include_attributes=False)
+            return old != new
+        except (SyntaxError, ValueError):
+            return True
     result = {(edit.get('file_path'), edit.get('symbol'))
-              for edit in edits if edit.get('symbol')}
+              for edit in edits if edit.get('symbol') and executable_change(edit)}
     for edit in edits:
-        if edit.get('symbol') or not edit.get('before'):
+        if edit.get('symbol') or not edit.get('before') or not executable_change(edit):
             continue
         file = edit.get('file_path')
         path = Path(current) / safe_path(file)
@@ -649,23 +661,32 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                                    memory=memory, history=history, mode=mode)
             (directory / 'prompt.md').write_text(prompt)
             raw = model_stage('repair', prompt, 16384)
-            (directory / 'response.json').write_text(raw)
             from generator.feedback_edits import parse_current_edits
-            edits = parse_current_edits(raw, current)
-            if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
-                raise ValueError('Repair needs complete production edits')
             obligations = execution_obligations(memory) if mode == 'featurespace' else []
-            edited_symbols = _edited_responsibilities(edits, current)
-            omitted = []
-            for obligation in obligations:
-                targets = obligation.get('required_repair_targets', [])
-                missing = [target for target in targets
-                           if (target['file'], target['symbol']) not in edited_symbols]
-                if missing:
-                    omitted.append({'stage': obligation.get('stage'), 'targets': missing})
-            if omitted:
-                raise ValueError('Repair omits runtime-discovered coordinated responsibilities: '
-                                 + json.dumps(omitted, ensure_ascii=False))
+            for repair_attempt in range(2):
+                edits = parse_current_edits(raw, current)
+                if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
+                    raise ValueError('Repair needs complete production edits')
+                edited_symbols = _edited_responsibilities(edits, current)
+                omitted = []
+                for obligation in obligations:
+                    targets = obligation.get('required_repair_targets', [])
+                    missing = [target for target in targets
+                               if (target['file'], target['symbol']) not in edited_symbols]
+                    if missing:
+                        omitted.append({'stage': obligation.get('stage'), 'targets': missing})
+                if not omitted:
+                    break
+                message = ('Repair omits or only echoes runtime-discovered coordinated responsibilities: '
+                           + json.dumps(omitted, ensure_ascii=False))
+                if repair_attempt:
+                    raise ValueError(message)
+                retry_prompt = repair_prompt(
+                    instance, current, patch, packet, output, watch,
+                    '\n'.join(value for value in [previous_error, message] if value),
+                    memory=memory, history=history, mode=mode)
+                raw = model_stage('repair_retry', retry_prompt, 16384)
+            (directory / 'response.json').write_text(raw)
             for edit in edits:
                 if ('[start of %s]' % edit['file_path']) not in prompt:
                     raise ValueError('Repair requested a file outside current-source evidence')
