@@ -21,7 +21,7 @@ def seed_featurespace(instance, plan=None, recall=None):
     memory = {'schema_version': 1, 'instance_id': instance['instance_id'],
               'base_commit': instance.get('base_commit'), 'revision': 0,
               'elements': {}, 'groups': {}, 'links': {}, 'conditions': {},
-              'evidence': {}, 'attempts': [], 'focus': [], 'checks': [],
+              'evidence': {}, 'attempts': [], 'focus': [], 'checks': [], 'check_reviews': [],
               'reference_patch_or_execution_used': False}
     def element(file, symbol, origin):
         file = safe_path(file)
@@ -151,8 +151,14 @@ def memory_view(memory, budget=24000):
     if view.get('current_grade'):
         for key in ['failed', 'passed']:
             view['current_grade'][key] = [t[:200] for t in memory['current_grade'].get(key, [])[:8]]
-    view['checks'] = [{'description': c['description'][:500], 'evidence': c['evidence'][:4]}
-                      for c in memory.get('checks', [])[:6]]
+    view['checks'] = [{'hypothesis': c['hypothesis'][:500], 'expected_change': c['expected_change'][:500],
+                       'evidence': c['evidence'][:4], 'basis': c.get('basis', '')[:500],
+                       'made_for_patch_sha256': c.get('patch_sha256')}
+                      for c in memory.get('checks', [])[:6]
+                      if isinstance(c, dict) and c.get('hypothesis') and c.get('expected_change')]
+    view['check_reviews'] = [{'check': r['check'][:400], 'observed': r['observed'],
+                              'conclusion': r.get('conclusion', '')[:400], 'evidence': r['evidence'][:4]}
+                             for r in memory.get('check_reviews', [])[-6:] if isinstance(r, dict)]
     view.update({key: [] for key in COLLECTIONS})
     view['omitted_entries'] = {key: 0 for key in COLLECTIONS}
     focus = set(memory.get('focus', []))
@@ -200,6 +206,7 @@ def associated_evidence(memory, budget=14000):
 
 UPDATE_SCHEMA = '''{
   "summary": "Earliest supported failure and why the current functional understanding needs revision",
+  "check_reviews": [{"check": "expected_change reviewed from the previous round", "observed": "expected_change_observed|expected_change_not_observed|not_observable", "evidence": ["ev:..."], "conclusion": "whether the repair or the judgement was wrong, and what follows"}],
   "upsert": {
     "elements": [{"id":"E:new", "file":"src/module.py", "symbol":"Class.method", "text":"responsibility", "evidence":["code:src/module.py"]}],
     "groups": [{"id":"G:new", "text":"shared functional role", "members":["E:new"], "evidence":["ev:..."]}],
@@ -208,7 +215,7 @@ UPDATE_SCHEMA = '''{
   },
   "retire": [{"id":"C:old", "reason":"evidence contradicts this initial hypothesis", "evidence":["ev:..."]}],
   "focus": ["E:new"],
-  "checks": [{"description":"observable behavior to check after repair", "evidence":["ev:..."]}]
+  "checks": [{"hypothesis":"which functional relation is wrong or missing", "expected_change":"which call, branch or test outcome must change after this repair", "evidence":["ev:...","code:src/module.py"], "basis":"source condition and execution record supporting the judgement"}]
 }'''
 
 
@@ -221,7 +228,13 @@ def merge_update(memory, delta, code_files):
         raise ValueError('FeatureSpace update needs a bounded diagnosis')
     result = copy.deepcopy(memory)
     revision = memory['revision'] + 1
-    valid_evidence = set(memory.get('current_evidence', [])) | {'code:' + f for f in code_files} | {'requirement'}
+    current_ids = set(memory.get('current_evidence', []))
+    # Historical observations stay citable: each is stamped with the patch and
+    # round it belongs to. They describe earlier candidates, never the current one.
+    stored_ids = set(memory.get('evidence', {}))
+    valid_evidence = current_ids | stored_ids | {'code:' + f for f in code_files} | {'requirement'}
+    def historical(ids):
+        return sorted({e for e in ids if e in stored_ids and e not in current_ids})
     def evidence(value):
         if not isinstance(value, list) or not value or len(value) > 12 or any(
                 not isinstance(e, str) or e not in valid_evidence for e in value):
@@ -229,6 +242,12 @@ def merge_update(memory, delta, code_files):
         return value
     def text(value):
         if not isinstance(value, str) or not value.strip() or len(value) > 1800:
+            raise ValueError('FeatureSpace entry needs bounded explanatory text')
+        return value
+    def optional(value):
+        if value is None:
+            return ''
+        if not isinstance(value, str) or len(value) > 1800:
             raise ValueError('FeatureSpace entry needs bounded explanatory text')
         return value
     upsert = delta.get('upsert', {})
@@ -258,6 +277,9 @@ def merge_update(memory, delta, code_files):
             clean = {'id': key, 'text': text(entry.get('text')), 'evidence': evidence(entry.get('evidence')),
                      'status': 'active', 'certainty': 'hypothesis', 'origin': 'execution_reflection',
                      'updated_revision': revision, 'patch_sha256': memory['current_patch_sha256']}
+            stale = historical(clean['evidence'])
+            if stale:
+                clean['cites_historical_evidence'] = stale
             if kind == 'elements':
                 file = safe_path(entry.get('file', ''))
                 if file not in code_files or not production_path(file):
@@ -286,11 +308,45 @@ def merge_update(memory, delta, code_files):
         entry = result[all_ids[key]][key]
         entry.update(status='retired', updated_revision=revision,
                      retirement={'reason': text(item.get('reason')), 'evidence': evidence(item.get('evidence'))})
+        stale = historical(entry['retirement']['evidence'])
+        if stale:
+            entry['retirement']['cites_historical_evidence'] = stale
     result['focus'] = references(delta.get('focus', []), {'elements', 'groups', 'links', 'conditions'})
+    reviews = delta.get('check_reviews', [])
+    if not isinstance(reviews, list) or len(reviews) > 12:
+        raise ValueError('Invalid check reviews')
+    cleaned_reviews = []
+    for review in reviews:
+        if not isinstance(review, dict) or review.get('observed') not in {
+                'expected_change_observed', 'expected_change_not_observed', 'not_observable'}:
+            raise ValueError('Check review needs a supported observed outcome')
+        clean = {'check': text(review.get('check')), 'observed': review['observed'],
+                 'evidence': evidence(review.get('evidence')), 'conclusion': optional(review.get('conclusion'))}
+        stale = historical(clean['evidence'])
+        if stale:
+            clean['cites_historical_evidence'] = stale
+        cleaned_reviews.append(clean)
+    result['check_reviews'] = cleaned_reviews
     checks = delta.get('checks', [])
     if not isinstance(checks, list) or len(checks) > 12:
         raise ValueError('Invalid verification checks')
-    result['checks'] = [{'description': text(c.get('description')), 'evidence': evidence(c.get('evidence'))} for c in checks]
+    changed = any(upsert.get(kind) for kind in COLLECTIONS) or bool(retirements)
+    # Every accepted revision carries its own verifiable expectation; a change
+    # without an expected execution difference cannot be reviewed next round.
+    if changed and not checks:
+        raise ValueError('FeatureSpace changes need a check with expected_change')
+    cleaned_checks = []
+    for check in checks:
+        if not isinstance(check, dict):
+            raise ValueError('Invalid verification check')
+        clean = {'hypothesis': text(check.get('hypothesis')), 'expected_change': text(check.get('expected_change')),
+                 'evidence': evidence(check.get('evidence')), 'basis': optional(check.get('basis')),
+                 'patch_sha256': memory['current_patch_sha256']}
+        stale = historical(clean['evidence'])
+        if stale:
+            clean['cites_historical_evidence'] = stale
+        cleaned_checks.append(clean)
+    result['checks'] = cleaned_checks
     result.update(revision=revision, diagnosis=delta['summary'], diagnosis_status='updated')
     if sum(len(result[k]) for k in COLLECTIONS) > 800:
         raise ValueError('FeatureSpace memory limit reached')

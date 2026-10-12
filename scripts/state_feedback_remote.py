@@ -114,20 +114,31 @@ def main():
                 stream, _ = c.get_archive('/tmp/fea-state-output')
                 # Bounds are in the observer. Also bound extraction to 30 MB.
                 count = size = 0
+                summaries = []
                 with tarfile.open(fileobj=io.BytesIO(b''.join(stream))) as tar, (out / 'state_trace.jsonl').open('wb') as trace:
                     for item in tar.getmembers():
-                        if not item.isfile() or not item.name.endswith('.jsonl'):
+                        if not item.isfile():
                             continue
-                        data = tar.extractfile(item).read(min(item.size, max(0, 30_000_000-size)))
-                        # Only emit complete JSONL records when the byte cap is reached.
-                        if data and not data.endswith(b'\n'):
-                            data = data.rsplit(b'\n', 1)[0] + b'\n' if b'\n' in data else b''
-                        trace.write(data)
-                        count += data.count(b'\n')
-                        size += len(data)
+                        if item.name.endswith('.jsonl'):
+                            data = tar.extractfile(item).read(min(item.size, max(0, 30_000_000-size)))
+                            # Only emit complete JSONL records when the byte cap is reached.
+                            if data and not data.endswith(b'\n'):
+                                data = data.rsplit(b'\n', 1)[0] + b'\n' if b'\n' in data else b''
+                            trace.write(data)
+                            count += data.count(b'\n')
+                            size += len(data)
+                        # Per-process observer summaries carry the truncation flags
+                        # that decide whether an unobserved call is "not called" or unknown.
+                        elif Path(item.name).name.startswith('summary-') and item.name.endswith('.json'):
+                            if len(summaries) < 64:
+                                try:
+                                    summaries.append(json.loads(tar.extractfile(item).read(1_000_000)))
+                                except (ValueError, OSError, AttributeError):
+                                    pass
                 metadata.update(trace_events=count, extraction_bytes=size,
                                 trace_status='observed' if count else 'no_events',
-                                extraction_truncated=size >= 30_000_000)
+                                extraction_truncated=size >= 30_000_000,
+                                observer_summaries=summaries)
             except Exception as error:
                 metadata.update(trace_status='diagnostic_error', error_type=type(error).__name__, error=str(error)[:1000])
             finally:

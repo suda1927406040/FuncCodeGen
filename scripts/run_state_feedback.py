@@ -339,13 +339,13 @@ def main():
                     for line in stream:
                         try: events.append(json.loads(line))
                         except ValueError: pass
-            packet = extract_packet(events,grade.get(iid,{}),meta)
+            watch=json.loads((args.run_root/'rounds'/str(number)/'watch'/(iid+'.json')).read_text())
+            packet = extract_packet(events,grade.get(iid,{}),meta,watch)
             directory.parent.mkdir(parents=True,exist_ok=True)
             packet_path=directory.parent/('state_packet_'+str(number+1)+'.json')
             text, output_source = read_failure_output(evaluated/iid, base)
             packet['output_source'] = output_source
             write_json(packet_path,packet)
-            watch=json.loads((args.run_root/'rounds'/str(number)/'watch'/(iid+'.json')).read_text())
             previous=histories[iid][-1].get('error') if histories[iid] else None
             try:
                 patch=repair_once(row_map[iid],args.prepared_repos/iid,current[iid],packet,text,watch,directory,previous,

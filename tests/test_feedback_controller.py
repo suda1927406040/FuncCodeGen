@@ -75,7 +75,10 @@ class FeedbackControllerTests(unittest.TestCase):
                     payload = {'summary': 'Separate producer state from consumer permission.',
                                'upsert': {'conditions': [{'id': 'C:validated', 'text': 'Validate before selection.',
                                           'applies_to': [eid], 'evidence': ['code:state.py']}]},
-                               'focus': [eid]}
+                               'focus': [eid],
+                               'checks': [{'hypothesis': 'Selection consumes an unvalidated state.',
+                                           'expected_change': 'The invalid state branch stops being selected.',
+                                           'evidence': ['code:state.py'], 'basis': 'Current selection path.'}]}
                 else:
                     partial = '    return "Partial"' in prompt
                     payload = {'edits': [{'file_path': 'state.py', 'before': '    return "Partial"' if partial else '    return "Invalid"',

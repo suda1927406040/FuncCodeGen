@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from generator.feedback_evidence import evidence_bundle
 from generator.llm_interface import LLMResponse
 from generator.state_feedback import extract_packet, patch_paths, repair_once, watch_config
 
@@ -70,6 +71,56 @@ class StateFeedbackTests(unittest.TestCase):
         events=[{'seq':1,'test':'failed','process':p,'frame':'f','function':'select','event':'return',
                  'values':{'node':state}} for p,state in [(1,'Missing'),(2,'Invalid')]]
         self.assertEqual(extract_packet(events)['state_transitions'],[])
+
+    def test_branch_outcomes_and_watch_coverage_distinguish_known_from_unknown(self):
+        events=[
+            {'seq':1,'test':'failed','process':1,'frame':'f1','function':'select','event':'call',
+             'file':'state.py','line':1,'statement':'def select(node):','values':{}},
+            {'seq':2,'test':'failed','process':1,'frame':'f1','function':'select','event':'line',
+             'file':'state.py','line':3,'statement':'if node.state == "Invalid":','values':{},
+             'branch':{'condition':'node.state == "Invalid"','guard_line':3,'test_end':3,'body_start':4,
+                       'body_end':5,'body_calls':['fallback'],'outcome':False,'next_line':7,
+                       'basis':'next_executed_line_in_same_frame',
+                       'values_before':{'node':{'state':'Missing'}},'state_before':None}},
+        ]
+        watch={'watch':{'state.py':['select','unreached_helper']}}
+        report={'tests_status':{'FAIL_TO_PASS':{'failure':['failed']}}}
+        complete={'trace_status':'observed','observer_summaries':[
+            {'process':1,'truncated':False,'truncated_tests':[],'observer_errors':0}]}
+        packet=extract_packet(events,report,complete,watch)
+        self.assertEqual(packet['trace_coverage']['status'],'complete')
+        outcome=packet['branch_outcomes'][0]
+        self.assertFalse(outcome['entered_body'])
+        self.assertEqual(outcome['condition'],'node.state == "Invalid"')
+        self.assertEqual(outcome['values_before']['node']['state'],'Missing')
+        self.assertEqual(outcome['body_calls'],['fallback'])
+        coverage={record['function']:record for record in packet['watched_call_coverage']}
+        self.assertEqual(coverage['select']['called_in_failed_tests'],['failed'])
+        self.assertEqual(coverage['unreached_helper']['not_called'][0]['status'],'not_called_confirmed')
+        partial=dict(complete,observer_summaries=[
+            {'process':1,'truncated':True,'truncated_tests':['failed'],'observer_errors':0}])
+        packet=extract_packet(events,report,partial,watch)
+        self.assertEqual(packet['trace_coverage']['status'],'partial')
+        coverage={record['function']:record for record in packet['watched_call_coverage']}
+        self.assertEqual(coverage['unreached_helper']['not_called'][0]['status'],'not_observed_unknown')
+
+    def test_branch_and_coverage_categories_reach_the_evidence_bundle(self):
+        events=[{'seq':2,'test':'failed','process':1,'frame':'f1','function':'select','event':'line',
+                 'file':'state.py','line':3,'statement':'if node.state == "Invalid":','values':{},
+                 'branch':{'condition':'node.state == "Invalid"','guard_line':3,'test_end':3,'body_start':4,
+                           'body_end':5,'body_calls':['fallback'],'outcome':False,'next_line':7,
+                           'basis':'next_executed_line_in_same_frame','values_before':{},'state_before':None}}]
+        watch={'watch':{'state.py':['unreached_helper']}}
+        packet=extract_packet(events,{'tests_status':{'FAIL_TO_PASS':{'failure':['failed']}}},
+                              {'trace_status':'observed'},watch)
+        bundle=evidence_bundle(packet,'E   AssertionError: expected state')
+        counts=bundle['categories']
+        self.assertGreaterEqual(counts['branch_outcomes']['selected'],1)
+        self.assertGreaterEqual(counts['trace_coverage']['selected'],1)
+        self.assertGreaterEqual(counts['watched_call_coverage']['selected'],1)
+        selected={observation['category'] for observation in bundle['observations']}
+        self.assertIn('branch_outcomes',selected)
+        self.assertTrue(any('not_called_confirmed' in json.dumps(o) for o in bundle['observations']))
 
     def test_probe_records_real_python_transition_without_altering_result(self):
         config=self.root/'watch.json'

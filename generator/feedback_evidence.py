@@ -122,7 +122,13 @@ def evidence_bundle(packet, output, budget=26000):
             for name, records in value.items():
                 if isinstance(records, list) and name not in {'limits', 'identity_scope'}:
                     categories[key + '.' + name] = records
-    for key in ['exceptions', 'state_transitions', 'consumer_guards']:
+    # Distilled execution facts (branch outcomes, watch coverage) come before
+    # raw snapshots so they survive tight budgets.
+    if packet.get('trace_coverage'):
+        categories['trace_coverage'] = [packet['trace_coverage']]
+    if packet.get('watched_call_coverage'):
+        categories['watched_call_coverage'] = list(packet['watched_call_coverage'])
+    for key in ['branch_outcomes', 'exceptions', 'state_transitions', 'consumer_guards']:
         categories[key] = list(reversed(packet.get(key, [])))
     for test, records in packet.get('failure_trace_tails', {}).items():
         categories['trace_tail:' + test] = records[-3:]

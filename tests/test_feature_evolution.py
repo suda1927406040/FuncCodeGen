@@ -97,14 +97,20 @@ class EvolutionTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def delta(self, memory, evidence_ids):
+    def delta(self, memory, evidence_ids, reviews=None):
         eid = next(iter(memory['elements']))
         cid = next(iter(memory['conditions']))
-        return {'summary': 'Permission and candidate validity require separate conditions.',
-                'upsert': {'conditions': [{'id': 'C:separate', 'text': 'Validate each candidate in its own configuration.',
-                                          'applies_to': [eid], 'evidence': evidence_ids}]},
-                'retire': [{'id': cid, 'reason': 'Current execution contradicts shared permission.', 'evidence': evidence_ids}],
-                'focus': [eid], 'checks': [{'description': 'Check selected candidate and retained modes.', 'evidence': evidence_ids}]}
+        value = {'summary': 'Permission and candidate validity require separate conditions.',
+                 'upsert': {'conditions': [{'id': 'C:separate', 'text': 'Validate each candidate in its own configuration.',
+                                           'applies_to': [eid], 'evidence': evidence_ids}]},
+                 'retire': [{'id': cid, 'reason': 'Current execution contradicts shared permission.', 'evidence': evidence_ids}],
+                 'focus': [eid],
+                 'checks': [{'hypothesis': 'Selection reuses one permission state for every candidate.',
+                             'expected_change': 'Each candidate is validated in its own configuration.',
+                             'evidence': evidence_ids, 'basis': 'Shared permission guard in current source.'}]}
+        if reviews is not None:
+            value['check_reviews'] = reviews
+        return value
 
     def model(self, prompt, **kwargs):
         self.assertNotIn('GOLD_POISON', prompt)
@@ -172,6 +178,56 @@ class EvolutionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             merge_update(self.memory, delta, ['state.py'])
 
+    def test_historical_evidence_is_citable_but_flagged_as_stale(self):
+        first = evidence_bundle({'grade': {'tests_status': {'FAIL_TO_PASS': {'failure': ['build']}}}},
+                                'E   AssertionError: first candidate failure')
+        memory = attach_observations(seed_featurespace(self.instance, self.plan), first, 'patch_one', 1)
+        old_id = first['observations'][0]['id']
+        second = evidence_bundle({'grade': {'tests_status': {'FAIL_TO_PASS': {'failure': ['build']}}}},
+                                 'E   AssertionError: second candidate failure')
+        memory = attach_observations(memory, second, 'patch_two', 2)
+        current_id = memory['current_evidence'][0]
+        self.assertIn(old_id, memory['evidence'])
+        self.assertNotIn(old_id, memory['current_evidence'])
+        eid = next(iter(memory['elements']))
+        delta = {'summary': 'The same break appeared in the earlier candidate.',
+                 'upsert': {'conditions': [{'id': 'C:history', 'text': 'The break predates this round.',
+                                           'applies_to': [eid], 'evidence': [old_id, current_id]}]},
+                 'focus': [eid],
+                 'checks': [{'hypothesis': 'Entry dispatch depends on a stale state.',
+                             'expected_change': 'The entry guard consumes the updated state.',
+                             'evidence': [current_id]}]}
+        merged = merge_update(memory, delta, ['state.py'])
+        entry = merged['conditions']['C:history']
+        self.assertEqual(entry['cites_historical_evidence'], [old_id])
+        # Stored observations stay patch- and round-scoped for the reader.
+        self.assertEqual(merged['evidence'][old_id]['patch_sha256'], 'patch_one')
+        self.assertEqual(merged['evidence'][old_id]['round'], 1)
+
+    def test_change_without_verifiable_check_is_rejected(self):
+        evidence_id = self.memory['current_evidence'][0]
+        eid = next(iter(self.memory['elements']))
+        delta = {'summary': 'no verifiable expectation',
+                 'upsert': {'conditions': [{'id': 'C:blind', 'text': 'Change without expectation.',
+                                           'applies_to': [eid], 'evidence': [evidence_id]}]},
+                 'checks': []}
+        before = copy.deepcopy(self.memory)
+        with self.assertRaisesRegex(ValueError, 'need a check'):
+            merge_update(self.memory, delta, ['state.py'])
+        self.assertEqual(self.memory, before)
+
+    def test_check_reviews_are_validated_and_stored(self):
+        evidence_id = self.memory['current_evidence'][0]
+        reviews = [{'check': 'Each candidate is validated in its own configuration.',
+                    'observed': 'expected_change_not_observed', 'evidence': [evidence_id],
+                    'conclusion': 'The repair kept the shared guard; revise the entry condition.'}]
+        merged = merge_update(self.memory, self.delta(self.memory, [evidence_id], reviews=reviews), ['state.py'])
+        self.assertEqual(merged['check_reviews'][0]['observed'], 'expected_change_not_observed')
+        self.assertEqual(merged['checks'][0]['patch_sha256'], merged['current_patch_sha256'])
+        bad = [dict(reviews[0], observed='kind_of')]
+        with self.assertRaisesRegex(ValueError, 'supported observed outcome'):
+            merge_update(self.memory, self.delta(self.memory, [evidence_id], reviews=bad), ['state.py'])
+
     def test_duplicate_method_repair_is_rejected_before_evaluation(self):
         source = 'class Mode:\n    def allowed(self):\n        return False\n'
         (self.repo/'mode.py').write_text(source)
@@ -185,6 +241,23 @@ class EvolutionTests(unittest.TestCase):
             repair_once(self.instance, self.repo, self.initial, self.packet, 'failed', watch, self.root/'duplicate',
                         call=lambda *a, **k: reply, mode='basic')
         self.assertFalse((self.root/'duplicate/combined.patch').exists())
+        self.assertEqual((self.repo/'mode.py').read_text(), source)
+
+    def test_same_name_method_override_with_new_body_is_rejected(self):
+        # Round 1 of the Conan run slipped through the old identical-body check:
+        # a redefinition with a different body still shadows the original method.
+        source = 'class Mode:\n    def allowed(self):\n        return False\n'
+        (self.repo/'mode.py').write_text(source)
+        subprocess.run(['git', 'add', '.'], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(['git', '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'mode'],
+                       cwd=self.repo, check=True, capture_output=True)
+        watch = {'watch': {'state.py': ['select'], 'mode.py': ['allowed']}}
+        override = response({'edits': [{'file_path': 'mode.py', 'before': source,
+                                        'after': source + '\n    def allowed(self):\n        return True\n'}]})
+        with self.assertRaisesRegex(ValueError, 'duplicate method'):
+            repair_once(self.instance, self.repo, self.initial, self.packet, 'failed', watch, self.root/'override',
+                        call=lambda *a, **k: override, mode='basic')
+        self.assertFalse((self.root/'override/combined.patch').exists())
         self.assertEqual((self.repo/'mode.py').read_text(), source)
 
     def test_comment_only_repair_is_rejected(self):

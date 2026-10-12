@@ -102,7 +102,7 @@ def watch_config(repo, instance, patch, recall=None, output=''):
             'line_timing': 'before_execution', 'reference_patch_used': False}
 
 
-def extract_packet(events, report=None, trace_meta=None):
+def extract_packet(events, report=None, trace_meta=None, watch=None):
     """Keep actual transitions, binding identities and last guards near failure."""
     by_test = defaultdict(list)
     errors, transitions, guards = [], [], []
@@ -125,6 +125,61 @@ def extract_packet(events, report=None, trace_meta=None):
     status = (report or {}).get('tests_status', {})
     failures = list(dict.fromkeys(t for group in status.values() for t in group.get('failure', [])))
     relevant = lambda e: not failures or e.get('test') in failures or e.get('test') in {'unscoped', 'collection'}
+    # Branch outcomes record which suite a guard actually took; the observer
+    # derives them from the next executed line in the same frame, never by
+    # re-evaluating the condition.
+    branches = [e for e in events if e.get('branch') and relevant(e)]
+    branch_outcomes = [{
+        'test': e['test'], 'file': e.get('file'), 'function': e.get('function'), 'line': e.get('line'),
+        'command': e.get('command'), 'invocation': e.get('invocation'),
+        'condition': e['branch'].get('condition'), 'entered_body': e['branch'].get('outcome'),
+        'next_line': e['branch'].get('next_line'), 'body_calls': e['branch'].get('body_calls', []),
+        'values_before': e['branch'].get('values_before'), 'state_before': e['branch'].get('state_before'),
+        'basis': e['branch'].get('basis'), 'evidence': {'seq': e.get('seq'), 'process': e.get('process')}}
+        for e in branches[-24:]]
+    # Only a complete bounded trace can confirm a watched function was never
+    # called in a failed test; otherwise absence stays explicitly unknown.
+    meta = trace_meta or {}
+    reasons = []
+    if meta.get('trace_status') != 'observed':
+        reasons.append('trace_status=' + str(meta.get('trace_status')))
+    if meta.get('extraction_truncated'):
+        reasons.append('extraction_truncated')
+    if meta.get('timed_out'):
+        reasons.append('diagnosis_timed_out')
+    summaries = meta.get('observer_summaries') or []
+    for summary in summaries:
+        if summary.get('truncated') or summary.get('truncated_tests'):
+            reasons.append('process_event_limit=' + str(summary.get('process')))
+        if summary.get('observer_errors'):
+            reasons.append('observer_errors=' + str(summary.get('observer_errors')))
+    truncated_tests = sorted({t for s in summaries for t in s.get('truncated_tests', [])})
+    coverage = {'status': 'partial' if reasons else 'complete', 'reasons': reasons[:8],
+                'truncated_tests': truncated_tests[:12]}
+    coverage_records = []
+    if watch:
+        complete = coverage['status'] == 'complete'
+        for file, names in (watch.get('watch') or {}).items():
+            called = defaultdict(set)
+            for event in events:
+                if event.get('event') == 'call' and event.get('file') == file:
+                    leaf = event.get('function', '').split('.')[-1]
+                    if leaf in names:
+                        called[leaf].add(event.get('test', 'unscoped'))
+            for name in names:
+                called_failed = sorted(t for t in called.get(name, ()) if not failures or t in failures)
+                not_called = [t for t in failures if t not in called.get(name, ())]
+                if not called_failed and not not_called:
+                    continue
+                per_test = [{'test': t,
+                             'status': 'not_called_confirmed' if complete and t not in truncated_tests
+                                       else 'not_observed_unknown'} for t in not_called[:6]]
+                coverage_records.append({'file': file, 'function': name,
+                                         'called_in_failed_tests': called_failed[:6],
+                                         'not_called': per_test})
+        # Functions absent from failed tests are the most diagnostic; list them first.
+        coverage_records.sort(key=lambda record: not record['not_called'])
+        coverage_records = coverage_records[:60]
     tails = {t: es[-12:] for t, es in by_test.items() if t in failures}
     if not tails and events:
         tails = {'unscoped': events[-24:]}
@@ -134,10 +189,15 @@ def extract_packet(events, report=None, trace_meta=None):
               'exceptions': [e for e in errors if relevant(e)][-10:],
               'state_transitions': [e for e in transitions if relevant(e)][-20:],
               'consumer_guards': [e for e in guards if relevant(e)][-12:],
+              'branch_outcomes': branch_outcomes,
+              'trace_coverage': coverage,
+              'watched_call_coverage': coverage_records if watch is not None else [],
               'failure_trace_tails': dict(list(tails.items())[:8]),
               'limits': ['Observed values are not invented expected values.',
                          'A guard event records values before evaluating the condition.',
-                         'Tracing is bounded and may not cover every producer.']}
+                         'Tracing is bounded and may not cover every producer.',
+                         'Branch outcomes state which suite a guard took, derived from the next executed line in the same frame.',
+                         'watched_call_coverage: not_called_confirmed holds only for failed tests under complete coverage; not_observed_unknown cannot decide.']}
     # Conan adapter uses receiver/configuration facts; no instance-specific fix.
     def scoped_receivers(value, process):
         if isinstance(value, dict):
@@ -208,7 +268,9 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
     if mode == 'featurespace' and memory:
         header += ('\nUse the following updated FeatureSpace to identify the functional groups, dependencies '
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
-                   'retired entries must not constrain the repair. Check the cited evidence against current source.\n'
+                   'retired entries must not constrain the repair. Check the cited evidence against current source. '
+                   'Each check states a hypothesis and the expected_change this repair must realize; '
+                   'do not repeat a change whose expected change a check review already refuted.\n'
                    '<featurespace>\n' + json.dumps(memory_view(memory), ensure_ascii=False) + '\n</featurespace>\n'
                    '<featurespace_evidence>\n' + json.dumps(associated_evidence(memory), ensure_ascii=False) + '\n</featurespace_evidence>\n')
     else:
@@ -235,15 +297,25 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
     header = ('Update a repository-specific FeatureSpace before generating a repair. Do not return code edits.\n'
               '<requirement evidence_id="requirement">\n' + instance['problem_statement'] + '\n</requirement>\n'
               + STATE_CONTRACT + '\n'
+              'First review the previous round checks: compare each expected_change with the current '
+              'branch_outcomes, watched_call_coverage and the attempt test deltas, and record the outcome '
+              'in check_reviews. If an expected change did not occur, re-examine that repair and the '
+              'judgement itself (retire or correct it); if it occurred while tests still fail, locate the '
+              'next break in execution order. '
               'Explain the first supported break between state production, configuration changes and consuming branches. '
               'Distinguish observed facts from inferred explanations. A default value is not proof of validation. '
-              'Missing events in bounded traces are uncertainty, not proof of non-execution. '
+              'Missing events in bounded traces are uncertainty, not proof of non-execution; only '
+              'watched_call_coverage entries marked not_called_confirmed establish that a watched function '
+              'was not called. Branch outcomes show which suite a guard actually took. '
               'Explain why related files must change together; revise functional groups, dependencies and conditions. '
               'Initial plan constraints can be wrong: explicitly retire or correct contradicted hypotheses. '
               'Use prior attempt/test deltas to avoid repeating ineffective diagnoses. Preserve passing behavior. '
               'Do not infer unseen expected values, use reference solutions, or introduce test-specific constants. '
-              'Cite only supplied ev: IDs, code:<file> IDs, or requirement. Code citations cover only displayed snippets. '
+              'Cite only ev: IDs from the current execution evidence, ev: IDs already stored in the FeatureSpace '
+              '(they are stamped with the earlier patch and round they belong to, and never describe the current '
+              'candidate), code:<file> IDs, or requirement. Code citations cover only displayed snippets. '
               'Use existing entry IDs to revise claims. New IDs start E:/G:/L:/C:. '
+              'Every change must come with a check whose expected_change is observable next round. '
               'Keep the delta small; all inferred claims remain hypotheses until evaluated.\n'
               '<featurespace>\n' + json.dumps(memory_view(memory, 18000), ensure_ascii=False) + '\n</featurespace>\n'
               '<current_execution_evidence>\n' + json.dumps(bundle, ensure_ascii=False) + '\n</current_execution_evidence>\n')
@@ -256,6 +328,11 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
 
 
 def _duplicate_methods(source):
+    """Count same-name method definitions per class body.
+
+    In Python a redefined method silently shadows the earlier one whatever its
+    body, so counting by name catches overrides, not just identical copies.
+    """
     counts = defaultdict(int)
     try:
         tree = ast.parse(source)
@@ -266,11 +343,11 @@ def _duplicate_methods(source):
         local = defaultdict(int)
         for node in cls.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.decorator_list:
-                local[(cls.name, node.name, ast.dump(node, include_attributes=False))] += 1
+                local[node.name] += 1
         # Two independent factory-local classes may legitimately have the same
         # name/methods. Count repetition inside a class, not across those scopes.
-        for key, count in local.items():
-            counts[key] = max(counts[key], count)
+        for name, count in local.items():
+            counts[(cls.name, name)] = max(counts[(cls.name, name)], count)
     return counts
 
 
@@ -417,8 +494,12 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     source = (current / file).read_bytes()
                     compile(source, file, 'exec')
                     duplicates = _duplicate_methods(source)
-                    if any(count > max(1, previous_duplicates.get(file, {}).get(key, 0)) for key, count in duplicates.items()):
-                        raise ValueError('Repair introduces an identical duplicate method')
+                    # Only same-name repetition INSIDE one class body shadows an
+                    # earlier definition; equal names across different classes are legal.
+                    if any(count > 1 and count > previous_duplicates.get(file, {}).get(key, 0)
+                           for key, count in duplicates.items()):
+                        raise ValueError('Repair adds a duplicate method name inside a class '
+                                         '(redefinition shadows the existing method)')
             after_signature = behavior_signature(current, repo, names + patch_paths(incremental))
             if after_signature == before_signature:
                 raise ValueError('Repair changes no executable structure (same AST/content)')
