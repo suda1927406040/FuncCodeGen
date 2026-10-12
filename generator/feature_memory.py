@@ -112,6 +112,7 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
         if not isinstance(flow, dict) or flow.get('status') != 'broken':
             continue
         actors = []
+        member_roles = {}
         for actor in flow.get('actors', []):
             if not isinstance(actor, dict) or not actor.get('file') or not actor.get('symbol'):
                 continue
@@ -135,6 +136,10 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
                 entry.get('execution_roles', []) + ([actor['role']] if actor.get('role') else [])))
             entry.update(last_observed_patch_sha256=patch_hash, last_observed_round=round_number)
             actors.append(key)
+            if actor.get('role'):
+                member_roles.setdefault(key, [])
+                member_roles[key] = list(dict.fromkeys(
+                    member_roles[key] + [actor['role']]))
         if not actors:
             continue
         stage = str(flow.get('stage') or 'state_flow')
@@ -142,6 +147,7 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
         group_id = _id('G', 'execution-flow:' + identity)
         memory['groups'][group_id] = {
             'id': group_id, 'text': str(flow.get('relation') or stage), 'members': actors,
+            'member_roles': member_roles,
             'status': 'active', 'certainty': 'execution_observed', 'origin': 'execution_flow',
             'flow_status': 'broken', 'flow_stage': stage, 'evidence': [item['id']],
             'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
@@ -254,6 +260,8 @@ def execution_obligations(memory):
             continue
         members = [memory.get('elements', {}).get(key) for key in group.get('members', [])]
         members = [entry for entry in members if entry]
+        roles = lambda entry: group.get('member_roles', {}).get(
+            entry['id'], entry.get('execution_roles', []))
         stage = group.get('flow_stage')
         if group.get('origin') == 'regression_flow':
             targets = []
@@ -268,7 +276,7 @@ def execution_obligations(memory):
             targets = []
         elif stage == 'responsibility_placement':
             targets = [entry for entry in members if any(
-                marker in role for role in entry.get('execution_roles', [])
+                marker in role for role in roles(entry)
                 for marker in ('owner', 'refresh'))]
         elif stage == 'policy_to_dispatch':
             # A true decision for the wrong request locates the fault in the
@@ -277,14 +285,14 @@ def execution_obligations(memory):
             # controller evaluates it too late.
             targets = [entry for entry in members if any(
                 role == 'feature_policy_consumer_wrong_decision'
-                for role in entry.get('execution_roles', []))]
+                for role in roles(entry))]
             if not targets:
                 targets = [entry for entry in members if any(
                     role == 'mode_dispatch_controller'
-                    for role in entry.get('execution_roles', []))]
+                    for role in roles(entry))]
         else:
             targets = [entry for entry in members if any(
-                'producer' in role or 'refresh' in role for role in entry.get('execution_roles', []))]
+                'producer' in role or 'refresh' in role for role in roles(entry))]
             targets = targets or members
         conditions = [entry['text'] for entry in memory.get('conditions', {}).values()
                       if entry.get('origin') == group.get('origin')
@@ -295,7 +303,7 @@ def execution_obligations(memory):
                        'required_invariants': list(dict.fromkeys(conditions)),
                        'responsibilities': [
                            {'file': entry['file'], 'symbol': entry['symbol'],
-                            'roles': entry.get('execution_roles', [])} for entry in members],
+                            'roles': roles(entry)} for entry in members],
                        'required_repair_targets': [
                            {'file': entry['file'], 'symbol': entry['symbol']} for entry in targets],
                        'evidence': group.get('evidence', []),

@@ -168,6 +168,42 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(obligation['required_repair_targets'], [
             {'file': 'graph.py', 'symbol': 'Graph.evaluate'}])
 
+    def test_current_flow_roles_override_historical_roles_on_same_elements(self):
+        instance = {'instance_id': 'role-history', 'repo': 'test/repo',
+                    'base_commit': 'base', 'new_components': []}
+        def packet(policy_role, relation):
+            return {'repo_state_relations': {'causal_flow': [{
+                'stage': 'policy_to_dispatch', 'status': 'broken', 'test': 'missing',
+                'actors': [
+                    {'file': 'graph.py', 'symbol': 'Graph.evaluate',
+                     'role': 'mode_dispatch_controller'},
+                    {'file': 'mode.py', 'symbol': 'Mode.allowed_feature',
+                     'role': policy_role},
+                    {'file': 'graph.py', 'symbol': 'Graph.feature_handler',
+                     'role': 'feature_specific_responsibility'}],
+                'relation': relation,
+                'required_invariant': 'Dispatch at the correct policy boundary.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance),
+            evidence_bundle(packet('feature_policy_consumer_wrong_decision', 'wrong decision'), 'failed'),
+            'patch-one', 1)
+        memory = attach_observations(
+            memory,
+            evidence_bundle(packet('feature_policy_consumer_after_dispatch', 'late gate'), 'failed'),
+            'patch-two', 2)
+        policy = next(entry for entry in memory['elements'].values()
+                      if entry['symbol'] == 'Mode.allowed_feature')
+        self.assertIn('feature_policy_consumer_wrong_decision', policy['execution_roles'])
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'policy_to_dispatch')
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'graph.py', 'symbol': 'Graph.evaluate'}])
+        policy_responsibility = next(
+            item for item in obligation['responsibilities']
+            if item['symbol'] == 'Mode.allowed_feature')
+        self.assertEqual(policy_responsibility['roles'],
+                         ['feature_policy_consumer_after_dispatch'])
+
     def test_diagnosis_checks_bind_named_functions_as_verification_responsibilities(self):
         instance = {'instance_id': 'checks', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': [{'file': 'mode.py', 'components': [
