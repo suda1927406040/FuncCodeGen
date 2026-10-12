@@ -338,26 +338,38 @@ def source_context(instance, current, patch, packet, watch, budget, memory=None)
 
 
 def repair_prompt(instance, current, patch, packet, output, watch, prior=None, budget=80000,
-                  memory=None, history=None, mode='featurespace'):
+                  memory=None, history=None, mode='featurespace', required_edit_targets=None):
     required_targets = []
+    completion_scope = required_edit_targets is not None
     header = ('Implement a coordinated repair of the CURRENT source.\n'
               '<requirement>\n' + instance['problem_statement'] + '\n</requirement>\n' + STATE_CONTRACT +
               '\nPreserve passing behavior. Do not modify tests or hard-code test inputs. '
               'Historical observations are patch-specific, not proof about the current candidate.\n')
     if mode == 'featurespace' and memory:
         obligations = execution_obligations(memory)
-        required_targets = list(dict.fromkeys(
+        all_required_targets = list(dict.fromkeys(
             (target['file'], target['symbol'])
             for obligation in obligations
             for target in obligation.get('required_repair_targets', [])
             if target.get('file') and target.get('symbol')))
+        required_targets = (list(dict.fromkeys(
+            (target['file'], target['symbol'])
+            for target in required_edit_targets
+            if target.get('file') and target.get('symbol')))
+            if completion_scope else all_required_targets)
+        target_instruction = (
+            'A previous proposal already supplies edits for the other required targets. '
+            'Return only the executable edits needed to complete every target in the '
+            'required_edit_checklist near the output contract. '
+            if completion_scope else
+            'Every required_repair_target must be changed as part of that coordinated repair; ')
         header += ('\nUse the following updated FeatureSpace to identify the functional groups, dependencies '
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
                    'retired entries must not constrain the repair. Check the cited evidence against current source. '
                    'Entries with origin=execution_flow are responsibilities discovered by the self-evolution cycle. '
                    'Repair every focused broken flow as a producer-to-consumer chain: represent the input state, '
                    'refresh derived state after object or configuration changes, and only then repair its consumer. '
-                   'Every required_repair_target must be changed as part of that coordinated repair; other listed '
+                   + target_instruction + 'Other listed '
                    'responsibilities must be reviewed against the invariant and changed only when current source violates it. '
                    'A downstream function not being called is a symptom and does not by itself justify widening its guard. '
                    'Each check states a hypothesis and the expected_change this repair must realize; '
@@ -391,7 +403,9 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
             'The checklist is an executable completion contract derived from the current '
             'FeatureSpace. Your JSON must contain a real executable change for EVERY exact '
             'file_path and symbol in it. Review the producer-to-consumer invariant before '
-            'editing each function. Copying its current body is not a change and will be rejected.\n')
+            'editing each function. Copying its current body is not a change and will be rejected.\n'
+            + ('Only complete these missing responsibilities; the controller retains the '
+               'other edits from the previous proposal.\n' if completion_scope else ''))
     tail = (checklist + '\nReturn only JSON: {"edits": [{"file_path": "relative/path.py", '
             '"symbol": "Class.method", "replacement": "def method(...):\\n    complete implementation"}]}. '
             'Replace existing functions by their exact qualified symbol and provide ONE complete function '
@@ -556,6 +570,23 @@ def _edited_responsibilities(edits, current):
     return result
 
 
+def _merge_repair_edits(existing, completion):
+    """Overlay a focused completion on a previously parsed repair proposal."""
+    merged = []
+    positions = {}
+    for edit in list(existing) + list(completion):
+        if edit.get('symbol'):
+            key = ('symbol', edit.get('file_path'), edit.get('symbol'))
+        else:
+            key = ('snippet', edit.get('file_path'), edit.get('before'))
+        if key in positions:
+            merged[positions[key]] = edit
+        else:
+            positions[key] = len(merged)
+            merged.append(edit)
+    return merged
+
+
 def behavior_signature(current, repo, names):
     """Fingerprint changed ASTs/other bytes, independent of diff hunks or comments."""
     changes = {}
@@ -682,8 +713,10 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             raw = model_stage('repair', prompt, 16384)
             from generator.feedback_edits import parse_current_edits
             obligations = execution_obligations(memory) if mode == 'featurespace' else []
-            for repair_attempt in range(2):
-                edits = parse_current_edits(raw, current)
+            retained_edits = []
+            for repair_attempt in range(3):
+                proposed_edits = parse_current_edits(raw, current)
+                edits = _merge_repair_edits(retained_edits, proposed_edits)
                 if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
                     raise ValueError('Repair needs complete production edits')
                 edited_symbols = _edited_responsibilities(edits, current)
@@ -698,14 +731,32 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     break
                 message = ('Repair omits or only echoes runtime-discovered coordinated responsibilities: '
                            + json.dumps(omitted, ensure_ascii=False))
-                if repair_attempt:
+                if repair_attempt == 2:
                     raise ValueError(message)
-                retry_prompt = repair_prompt(
+                if repair_attempt == 0:
+                    retry_prompt = repair_prompt(
+                        instance, current, patch, packet, output, watch,
+                        '\n'.join(value for value in [previous_error, message] if value),
+                        memory=memory, history=history, mode=mode)
+                    raw = model_stage('repair_retry', retry_prompt, 16384)
+                    continue
+                retained_edits = edits
+                missing_targets = list({
+                    (target['file'], target['symbol']): target
+                    for item in omitted for target in item['targets']
+                }.values())
+                completion_prompt = repair_prompt(
                     instance, current, patch, packet, output, watch,
-                    '\n'.join(value for value in [previous_error, message] if value),
-                    memory=memory, history=history, mode=mode)
-                raw = model_stage('repair_retry', retry_prompt, 16384)
-            (directory / 'response.json').write_text(raw)
+                    '\n'.join(value for value in [
+                        previous_error, message,
+                        'The non-missing edits from the latest proposal are retained. '
+                        'Complete only the exact missing responsibilities.'
+                    ] if value),
+                    memory=memory, history=history, mode=mode,
+                    required_edit_targets=missing_targets)
+                raw = model_stage('repair_completion', completion_prompt, 8192)
+            (directory / 'response.json').write_text(json.dumps(
+                {'edits': edits}, ensure_ascii=False))
             for edit in edits:
                 if ('[start of %s]' % edit['file_path']) not in prompt:
                     raise ValueError('Repair requested a file outside current-source evidence')

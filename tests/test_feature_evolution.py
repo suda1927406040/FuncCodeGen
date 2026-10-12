@@ -288,6 +288,32 @@ class EvolutionTests(unittest.TestCase):
         self.assertIn('Return only JSON', tail)
         self.assertLess(tail.index('Return only JSON') - tail.index('select'), 1000)
 
+    def test_second_omission_keeps_prior_edits_and_gets_focused_completion(self):
+        eid = next(iter(self.memory['elements']))
+        calls = []
+        def model(prompt, **kwargs):
+            calls.append(prompt)
+            if 'Do not return code edits' in prompt:
+                evidence = section(prompt, 'current_execution_evidence')['observations'][0]['id']
+                return response({'summary': 'select still consumes the wrong state.',
+                                 'focus': [eid], 'checks': [{
+                                     'hypothesis': 'select returns the invalid state.',
+                                     'expected_change': 'select returns the buildable state.',
+                                     'evidence': [evidence], 'basis': 'Current function output.'}]})
+            replacement = ('def select(node):\n    return "Build"'
+                           if 'Only complete these missing responsibilities' in prompt
+                           else 'def select(node):\n    return "Invalid"')
+            return response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
+                                        'replacement': replacement}]})
+        result = repair_once(
+            self.instance, self.repo, self.initial, self.packet, 'failed',
+            self.watch, self.root/'completion', call=model, memory=self.memory)
+        self.assertEqual(len(calls), 4)
+        self.assertIn('+    return "Build"', result)
+        self.assertTrue((self.root/'completion/repair_completion_response.json').is_file())
+        completion = calls[-1][calls[-1].index('<required_edit_checklist>'):]
+        self.assertIn('Only complete these missing responsibilities', completion)
+
     def test_invalid_reflection_does_not_block_code_generation(self):
         replies = [response({'broken': 'no valid delta'}), response({'edits': [
             {'file_path': 'state.py', 'before': '    return "Invalid"', 'after': '    return "Build"'}]})]
