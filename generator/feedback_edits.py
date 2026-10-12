@@ -48,6 +48,7 @@ def parse_current_edits(raw, current):
         # Preserve method binding decorators unless a full decorator list is supplied.
         if node.decorator_list and not parsed.body[0].decorator_list:
             replacement = textwrap.dedent(''.join(lines[start:node.lineno-1])) + replacement
-        result.append({'file_path': file, 'before': ''.join(lines[start:node.end_lineno]).rstrip('\n'),
+        result.append({'file_path': file, 'symbol': symbol,
+                       'before': ''.join(lines[start:node.end_lineno]).rstrip('\n'),
                        'after': textwrap.indent(replacement, indent).rstrip('\n')})
     return result

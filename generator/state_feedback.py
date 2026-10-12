@@ -11,7 +11,8 @@ from pathlib import Path, PurePosixPath
 from generator.feedback_evidence import failure_excerpt, evidence_bundle, grade_summary
 from generator.feature_memory import (seed_featurespace, attach_observations, memory_files,
                                       memory_view, associated_evidence, merge_update,
-                                      save_memory, focused_elements, history_view, UPDATE_SCHEMA)
+                                      save_memory, focused_elements, history_view,
+                                      execution_obligations, UPDATE_SCHEMA)
 import re
 import shutil
 import subprocess
@@ -337,6 +338,7 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
               '\nPreserve passing behavior. Do not modify tests or hard-code test inputs. '
               'Historical observations are patch-specific, not proof about the current candidate.\n')
     if mode == 'featurespace' and memory:
+        obligations = execution_obligations(memory)
         header += ('\nUse the following updated FeatureSpace to identify the functional groups, dependencies '
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
                    'retired entries must not constrain the repair. Check the cited evidence against current source. '
@@ -350,6 +352,7 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'When a callback is optional, distinguish absence, validation rejection, and an execution bug. '
                    'Repair the lifecycle or dispatch condition instead of discarding a responsibility that other '
                    'passing executions require. Reuse existing producer/validation routines when appropriate.\n'
+                   '<execution_obligations>\n' + json.dumps(obligations, ensure_ascii=False) + '\n</execution_obligations>\n'
                    '<featurespace>\n' + json.dumps(memory_view(memory), ensure_ascii=False) + '\n</featurespace>\n'
                    '<featurespace_evidence>\n' + json.dumps(associated_evidence(memory), ensure_ascii=False) + '\n</featurespace_evidence>\n')
     else:
@@ -418,6 +421,8 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
               '(they are stamped with the earlier patch and round they belong to, and never describe the current '
               'candidate), code:<file> IDs, or requirement. Code citations cover only displayed snippets. '
               'Use existing entry IDs to revise claims. New IDs start E:/G:/L:/C:. '
+              'Entries with origin=execution_flow are current observations: do not overwrite or retire them. '
+              'Add or revise hypotheses around those observed relationships. '
               'Every change must come with a check whose expected_change is observable next round. '
               'Keep the delta small; all inferred claims remain hypotheses until evaluated.\n'
               '<featurespace>\n' + json.dumps(memory_view(memory, 18000), ensure_ascii=False) + '\n</featurespace>\n'
@@ -584,6 +589,16 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             edits = parse_current_edits(raw, current)
             if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
                 raise ValueError('Repair needs complete production edits')
+            obligations = execution_obligations(memory) if mode == 'featurespace' else []
+            edited_symbols = {(e.get('file_path'), e.get('symbol')) for e in edits if e.get('symbol')}
+            omitted = []
+            for obligation in obligations:
+                targets = obligation.get('required_repair_targets', [])
+                if targets and not any((target['file'], target['symbol']) in edited_symbols for target in targets):
+                    omitted.append({'stage': obligation.get('stage'), 'targets': targets})
+            if omitted:
+                raise ValueError('Repair omits runtime-discovered state producer/refresh responsibilities: '
+                                 + json.dumps(omitted, ensure_ascii=False))
             for edit in edits:
                 if ('[start of %s]' % edit['file_path']) not in prompt:
                     raise ValueError('Repair requested a file outside current-source evidence')

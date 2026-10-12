@@ -160,12 +160,41 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
             'text': str(flow.get('required_invariant') or flow.get('relation') or stage),
             'applies_to': relation_targets or [group_id], 'status': 'active',
             'certainty': 'execution_observed', 'origin': 'execution_flow',
-            'flow_status': 'broken', 'evidence': [item['id']],
+            'flow_status': 'broken', 'flow_stage': stage, 'evidence': [item['id']],
             'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
         flow_focus.extend([condition_id, group_id] + relation_targets + actors)
     if flow_focus:
         memory['focus'] = list(dict.fromkeys(flow_focus + memory.get('focus', [])))[:96]
     return memory
+
+
+def execution_obligations(memory):
+    """Expose current runtime-discovered responsibilities without naming a fix."""
+    current = memory.get('current_patch_sha256')
+    result = []
+    for group in memory.get('groups', {}).values():
+        if (group.get('origin') != 'execution_flow' or group.get('flow_status') != 'broken'
+                or group.get('patch_sha256') != current):
+            continue
+        members = [memory.get('elements', {}).get(key) for key in group.get('members', [])]
+        members = [entry for entry in members if entry]
+        producers = [entry for entry in members if any(
+            'producer' in role or 'refresh' in role for role in entry.get('execution_roles', []))]
+        targets = producers or members
+        conditions = [entry['text'] for entry in memory.get('conditions', {}).values()
+                      if entry.get('origin') == 'execution_flow'
+                      and entry.get('flow_stage') == group.get('flow_stage')
+                      and entry.get('patch_sha256') == current]
+        result.append({'flow_id': group['id'], 'stage': group.get('flow_stage'),
+                       'observed_break': group.get('text'),
+                       'required_invariants': list(dict.fromkeys(conditions)),
+                       'responsibilities': [
+                           {'file': entry['file'], 'symbol': entry['symbol'],
+                            'roles': entry.get('execution_roles', [])} for entry in members],
+                       'required_repair_targets': [
+                           {'file': entry['file'], 'symbol': entry['symbol']} for entry in targets],
+                       'evidence': group.get('evidence', [])})
+    return result
 
 
 def attach_observations(memory, bundle, patch_hash, round_number):
@@ -368,6 +397,9 @@ def merge_update(memory, delta, code_files):
             else:
                 clean['applies_to'] = references(entry.get('applies_to', []), {'elements', 'groups', 'links'})
             old = result[kind].get(key)
+            if (old and old.get('origin') == 'execution_flow'
+                    and old.get('patch_sha256') == memory.get('current_patch_sha256')):
+                raise ValueError('Current execution-flow observations cannot be overwritten')
             if old:
                 clean['previous'] = {k: old[k] for k in ['text', 'status', 'evidence']}
             result[kind][key] = clean
@@ -379,6 +411,9 @@ def merge_update(memory, delta, code_files):
         if key not in all_ids or key in new_ids:
             raise ValueError('Cannot retire unknown or simultaneously updated entry')
         entry = result[all_ids[key]][key]
+        if (entry.get('origin') == 'execution_flow'
+                and entry.get('patch_sha256') == memory.get('current_patch_sha256')):
+            raise ValueError('Current execution-flow observations cannot be retired')
         entry.update(status='retired', updated_revision=revision,
                      retirement={'reason': text(item.get('reason')), 'evidence': evidence(item.get('evidence'))})
         stale = historical(entry['retirement']['evidence'])

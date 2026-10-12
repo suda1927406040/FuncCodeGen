@@ -7,7 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from generator.feedback_evidence import evidence_bundle, failure_excerpt, read_failure_output, test_delta
-from generator.feature_memory import attach_observations, merge_update, seed_featurespace, memory_view
+from generator.feature_memory import (attach_observations, execution_obligations, merge_update,
+                                      seed_featurespace, memory_view)
 from generator.llm_interface import LLMResponse
 from generator.state_feedback import repair_once, watch_config
 
@@ -45,6 +46,20 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(memory['focus'])
         view = memory_view(memory)
         self.assertTrue(any(entry.get('flow_status') == 'broken' for entry in view['conditions']))
+        obligations = execution_obligations(memory)
+        self.assertEqual({item['stage'] for item in obligations},
+                         {'input_to_state', 'configuration_to_state'})
+        targets = {(target['file'], target['symbol']) for item in obligations
+                   for target in item['required_repair_targets']}
+        self.assertEqual(targets, {('policy.py', 'parse'), ('policy.py', 'refresh')})
+
+        observed_group = next(entry for entry in memory['groups'].values()
+                              if entry.get('origin') == 'execution_flow')
+        delta = {'summary': 'try to erase observation', 'retire': [{
+            'id': observed_group['id'], 'reason': 'ignore runtime',
+            'evidence': observed_group['evidence']}], 'focus': [], 'checks': []}
+        with self.assertRaisesRegex(ValueError, 'cannot be retired'):
+            merge_update(memory, delta, ['policy.py', 'select.py'])
 
     def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
         packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,

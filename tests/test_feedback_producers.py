@@ -20,6 +20,7 @@ class ProducerFeedbackTests(unittest.TestCase):
             edit={'file_path':'mode.py','symbol':'Mode.allowed','replacement':'def allowed(value):\n    return value'}
             entries=parse_current_edits(json.dumps({'edits':[edit]}),root)
             self.assertTrue(entries[0]['after'].startswith('    @staticmethod\n    def allowed'))
+            self.assertEqual(entries[0]['symbol'], 'Mode.allowed')
             edit['replacement']+='\n\ndef allowed(value):\n    return True\n'
             with self.assertRaisesRegex(ValueError,'exactly the named function'):
                 parse_current_edits(json.dumps({'edits':[edit]}),root)
