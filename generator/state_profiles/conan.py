@@ -112,6 +112,11 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                         if name == concept and decision.get('test') == event.get('test')
                         and decision.get('invocation') == event.get('invocation')
                         and receiver == mode.get('receiver')]
+            # If the policy consumer was never reached, the observed break is
+            # downstream dispatch, not evidence that the input state producer
+            # represented the request incorrectly.
+            if not matching:
+                continue
             if matching and any(outcome is True for _, outcome in matching):
                 continue
             key = (event.get('test'), event.get('invocation'), mode.get('receiver'), concept)

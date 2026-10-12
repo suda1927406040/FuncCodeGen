@@ -82,6 +82,7 @@ class StatePacketTests(unittest.TestCase):
                     'conans/client/graph/graph_binaries.py': [
                         'GraphBinariesAnalyzer._find_build_compatible_binary']}
         flows = extract([init, evaluated], declared=declared)['causal_flow']
+        self.assertFalse(any(flow['stage'] == 'input_to_state' for flow in flows))
         dispatch = next(flow for flow in flows if flow['stage'] == 'state_to_feature_dispatch')
         self.assertEqual(dispatch['observation']['terminal_binary'], 'Invalid')
         self.assertEqual(len(dispatch['actors']), 3)

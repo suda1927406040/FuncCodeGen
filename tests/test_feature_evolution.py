@@ -83,7 +83,24 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(obligation['previously_passing_test'], 'test_old_behavior')
         self.assertEqual(obligation['required_repair_targets'], [])
 
-    def test_diagnosis_checks_bind_named_functions_to_required_repairs(self):
+    def test_terminal_dispatch_flow_keeps_context_without_forcing_one_edit_location(self):
+        instance = {'instance_id': 'dispatch', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [{
+            'stage': 'state_to_feature_dispatch', 'status': 'broken', 'test': 'feature',
+            'actors': [
+                {'file': 'graph.py', 'symbol': 'Graph.evaluate', 'role': 'feature_dispatch_controller'},
+                {'file': 'mode.py', 'symbol': 'Mode.allowed', 'role': 'declared_feature_responsibility_not_reached'}],
+            'relation': 'A terminal state prevented feature dispatch.',
+            'required_invariant': 'Restore dispatch after state production.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'state_to_feature_dispatch')
+        self.assertEqual(len(obligation['responsibilities']), 2)
+        self.assertEqual(obligation['required_repair_targets'], [])
+
+    def test_diagnosis_checks_bind_named_functions_as_verification_responsibilities(self):
         instance = {'instance_id': 'checks', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': [{'file': 'mode.py', 'components': [
                         {'name': 'Mode.allowed_feature'}]}]}
@@ -97,9 +114,10 @@ class EvidenceTests(unittest.TestCase):
         obligation = next(item for item in execution_obligations(memory)
                           if item['stage'] == 'diagnosis_check')
         self.assertEqual({(target['file'], target['symbol'])
-                          for target in obligation['required_repair_targets']},
+                          for target in obligation['responsibilities']},
                          {('mode.py', 'Mode.allowed_feature'),
                           ('refresh.py', 'refresh_state')})
+        self.assertEqual(obligation['required_repair_targets'], [])
 
     def test_qualified_constructor_check_does_not_bind_other_constructors(self):
         instance = {'instance_id': 'constructors', 'repo': 'test/repo', 'base_commit': 'base',
@@ -114,8 +132,9 @@ class EvidenceTests(unittest.TestCase):
             'evidence': ['requirement'], 'patch_sha256': 'candidate'}]
         obligation = next(item for item in execution_obligations(memory)
                           if item['stage'] == 'diagnosis_check')
-        self.assertEqual(obligation['required_repair_targets'], [
+        self.assertEqual(obligation['responsibilities'], [
             {'file': 'mode.py', 'symbol': 'BuildMode.__init__'}])
+        self.assertEqual(obligation['required_repair_targets'], [])
 
     def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
         packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,
@@ -217,6 +236,17 @@ class EvolutionTests(unittest.TestCase):
             value['check_reviews'] = reviews
         return value
 
+    def packet_with_select_flow(self):
+        packet = copy.deepcopy(self.packet)
+        packet['repo_state_relations'] = {'causal_flow': [{
+            'stage': 'input_to_state', 'status': 'broken', 'test': 'build',
+            'actors': [{'file': 'state.py', 'symbol': 'select',
+                        'role': 'policy_state_producer'}],
+            'relation': 'The requested state is not represented.',
+            'required_invariant': 'The request must produce state consumed by select.'
+        }]}
+        return packet
+
     def model(self, prompt, **kwargs):
         self.assertNotIn('GOLD_POISON', prompt)
         self.assertNotIn('TEST_PATCH_POISON', prompt)
@@ -265,21 +295,20 @@ class EvolutionTests(unittest.TestCase):
                            else 'def select(node):\n    return "Invalid"')
             return response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
                                         'replacement': replacement}]})
-        result = repair_once(self.instance, self.repo, self.initial, self.packet, 'failed',
+        result = repair_once(self.instance, self.repo, self.initial,
+                             self.packet_with_select_flow(), 'failed',
                              self.watch, self.root/'retry', call=model, memory=self.memory)
         self.assertEqual(len(calls), 3)
         self.assertIn('+    return "Build"', result)
         self.assertTrue((self.root/'retry/repair_retry_response.json').is_file())
 
     def test_required_edit_checklist_is_adjacent_to_output_contract(self):
-        memory = copy.deepcopy(self.memory)
-        memory['checks'] = [{
-            'hypothesis': 'select consumes the wrong state.',
-            'expected_change': 'select returns the buildable state.',
-            'evidence': memory['current_evidence'],
-            'patch_sha256': memory['current_patch_sha256']}]
+        packet = self.packet_with_select_flow()
+        memory = attach_observations(
+            self.memory, evidence_bundle(packet, 'failed'),
+            self.memory['current_patch_sha256'], 2)
         prompt = repair_prompt(
-            self.instance, self.repo, self.initial, self.packet, 'failed',
+            self.instance, self.repo, self.initial, packet, 'failed',
             self.watch, memory=memory)
         checklist = section(prompt, 'required_edit_checklist')
         self.assertEqual(checklist, [{'file_path': 'state.py', 'symbol': 'select'}])
@@ -306,7 +335,8 @@ class EvolutionTests(unittest.TestCase):
             return response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
                                         'replacement': replacement}]})
         result = repair_once(
-            self.instance, self.repo, self.initial, self.packet, 'failed',
+            self.instance, self.repo, self.initial,
+            self.packet_with_select_flow(), 'failed',
             self.watch, self.root/'completion', call=model, memory=self.memory)
         self.assertEqual(len(calls), 4)
         self.assertIn('+    return "Build"', result)

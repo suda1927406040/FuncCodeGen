@@ -260,8 +260,12 @@ def execution_obligations(memory):
         elif stage in {'input_to_state', 'configuration_to_state'}:
             targets = members
         elif stage == 'state_to_feature_dispatch':
-            targets = [entry for entry in members if any(
-                'controller' in role for role in entry.get('execution_roles', []))]
+            # A terminal state can be repaired at its producer, at the
+            # controller, or by restoring the policy gate. The trace proves
+            # the broken flow but does not uniquely identify which function
+            # must change, so keep the responsibilities visible without
+            # turning one downstream frame into a mandatory edit.
+            targets = []
         elif stage == 'responsibility_placement':
             targets = [entry for entry in members if any(
                 marker in role for role in entry.get('execution_roles', [])
@@ -321,7 +325,13 @@ def execution_obligations(memory):
                 'flow_id': 'check:%d' % index, 'stage': 'diagnosis_check',
                 'observed_break': check.get('hypothesis'),
                 'required_invariants': [check.get('expected_change')],
-                'responsibilities': targets, 'required_repair_targets': targets,
+                'responsibilities': targets,
+                # Checks define observable outcomes for the next execution.
+                # Mentioning a function in an explanation does not prove that
+                # every named function must be edited; the causal flows above
+                # provide exact edit targets only when runtime evidence can
+                # locate a unique producer or refresh boundary.
+                'required_repair_targets': [],
                 'evidence': check.get('evidence', [])})
     return result
 
