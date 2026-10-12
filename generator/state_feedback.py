@@ -339,12 +339,18 @@ def source_context(instance, current, patch, packet, watch, budget, memory=None)
 
 def repair_prompt(instance, current, patch, packet, output, watch, prior=None, budget=80000,
                   memory=None, history=None, mode='featurespace'):
+    required_targets = []
     header = ('Implement a coordinated repair of the CURRENT source.\n'
               '<requirement>\n' + instance['problem_statement'] + '\n</requirement>\n' + STATE_CONTRACT +
               '\nPreserve passing behavior. Do not modify tests or hard-code test inputs. '
               'Historical observations are patch-specific, not proof about the current candidate.\n')
     if mode == 'featurespace' and memory:
         obligations = execution_obligations(memory)
+        required_targets = list(dict.fromkeys(
+            (target['file'], target['symbol'])
+            for obligation in obligations
+            for target in obligation.get('required_repair_targets', [])
+            if target.get('file') and target.get('symbol')))
         header += ('\nUse the following updated FeatureSpace to identify the functional groups, dependencies '
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
                    'retired entries must not constrain the repair. Check the cited evidence against current source. '
@@ -373,7 +379,20 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
         header += '\n<previous_attempts>\n' + json.dumps(history_view(history or []), ensure_ascii=False) + '\n</previous_attempts>\n'
     if prior:
         header += '\nPrevious repair was rejected and NOT applied:\n' + prior[:2000] + '\n'
-    tail = ('\nReturn only JSON: {"edits": [{"file_path": "relative/path.py", '
+    checklist = ''
+    if required_targets:
+        checklist = (
+            '\n<required_edit_checklist>\n'
+            + json.dumps([
+                {'file_path': file, 'symbol': symbol}
+                for file, symbol in required_targets
+            ], ensure_ascii=False)
+            + '\n</required_edit_checklist>\n'
+            'The checklist is an executable completion contract derived from the current '
+            'FeatureSpace. Your JSON must contain a real executable change for EVERY exact '
+            'file_path and symbol in it. Review the producer-to-consumer invariant before '
+            'editing each function. Copying its current body is not a change and will be rejected.\n')
+    tail = (checklist + '\nReturn only JSON: {"edits": [{"file_path": "relative/path.py", '
             '"symbol": "Class.method", "replacement": "def method(...):\\n    complete implementation"}]}. '
             'Replace existing functions by their exact qualified symbol and provide ONE complete function '
             'including its decorators. These interfaces already exist in the current candidate; do not append '

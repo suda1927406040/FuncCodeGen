@@ -11,7 +11,7 @@ from generator.feature_memory import (attach_observations, execution_obligations
                                       seed_featurespace, memory_view)
 from generator.llm_interface import LLMResponse
 from generator.state_feedback import (_edited_responsibilities, diagnosis_prompt,
-                                      repair_once, watch_config)
+                                      repair_once, repair_prompt, watch_config)
 
 
 def response(value):
@@ -270,6 +270,23 @@ class EvolutionTests(unittest.TestCase):
         self.assertEqual(len(calls), 3)
         self.assertIn('+    return "Build"', result)
         self.assertTrue((self.root/'retry/repair_retry_response.json').is_file())
+
+    def test_required_edit_checklist_is_adjacent_to_output_contract(self):
+        memory = copy.deepcopy(self.memory)
+        memory['checks'] = [{
+            'hypothesis': 'select consumes the wrong state.',
+            'expected_change': 'select returns the buildable state.',
+            'evidence': memory['current_evidence'],
+            'patch_sha256': memory['current_patch_sha256']}]
+        prompt = repair_prompt(
+            self.instance, self.repo, self.initial, self.packet, 'failed',
+            self.watch, memory=memory)
+        checklist = section(prompt, 'required_edit_checklist')
+        self.assertEqual(checklist, [{'file_path': 'state.py', 'symbol': 'select'}])
+        tail = prompt[prompt.index('<required_edit_checklist>'):]
+        self.assertIn('real executable change for EVERY exact', tail)
+        self.assertIn('Return only JSON', tail)
+        self.assertLess(tail.index('Return only JSON') - tail.index('select'), 1000)
 
     def test_invalid_reflection_does_not_block_code_generation(self):
         replies = [response({'broken': 'no valid delta'}), response({'edits': [
