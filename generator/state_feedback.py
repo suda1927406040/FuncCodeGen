@@ -353,7 +353,8 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'responsibilities must be reviewed against the invariant and changed only when current source violates it. '
                    'A downstream function not being called is a symptom and does not by itself justify widening its guard. '
                    'Each check states a hypothesis and the expected_change this repair must realize; '
-                   'do not repeat a change whose expected change a check review already refuted. '
+                   'diagnosis_check obligations bind those expectations to the named FeatureSpace responsibilities. '
+                   'Do not repeat a change whose expected change a check review already refuted. '
                    'Preserve the supported behaviors in verified_candidates and successful_execution evidence. '
                    'When a callback is optional, distinguish absence, validation rejection, and an execution bug. '
                    'Repair the lifecycle or dispatch condition instead of discarding a responsibility that other '
@@ -486,6 +487,44 @@ def _duplicate_methods(source):
     return counts
 
 
+def _edited_responsibilities(edits, current):
+    """Map exact snippet edits back to their containing current function."""
+    result = {(edit.get('file_path'), edit.get('symbol'))
+              for edit in edits if edit.get('symbol')}
+    for edit in edits:
+        if edit.get('symbol') or not edit.get('before'):
+            continue
+        file = edit.get('file_path')
+        path = Path(current) / safe_path(file)
+        if not path.is_file():
+            continue
+        source = path.read_text(errors='replace')
+        before = edit['before']
+        if source.count(before) != 1:
+            continue
+        offset = source.index(before)
+        first = source.count('\n', 0, offset) + 1
+        last = first + before.count('\n')
+        candidates = []
+        try:
+            tree = ast.parse(source)
+        except (SyntaxError, ValueError):
+            continue
+        def visit(body, prefix=''):
+            for node in body:
+                if isinstance(node, ast.ClassDef):
+                    visit(node.body, prefix + node.name + '.')
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    start = min([node.lineno] + [decorator.lineno for decorator in node.decorator_list])
+                    if start <= first and node.end_lineno >= last:
+                        candidates.append((node.end_lineno - start, prefix + node.name))
+                    visit(node.body, prefix + node.name + '.')
+        visit(tree.body)
+        if candidates:
+            result.add((file, min(candidates)[1]))
+    return result
+
+
 def behavior_signature(current, repo, names):
     """Fingerprint changed ASTs/other bytes, independent of diff hunks or comments."""
     changes = {}
@@ -616,7 +655,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
                 raise ValueError('Repair needs complete production edits')
             obligations = execution_obligations(memory) if mode == 'featurespace' else []
-            edited_symbols = {(e.get('file_path'), e.get('symbol')) for e in edits if e.get('symbol')}
+            edited_symbols = _edited_responsibilities(edits, current)
             omitted = []
             for obligation in obligations:
                 targets = obligation.get('required_repair_targets', [])

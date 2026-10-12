@@ -29,9 +29,11 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
         scope = (test, event.get('invocation'), node.get('receiver'))
         if (event['event'] == 'call' and event['function'].endswith('._find_build_compatible_binary')
                 and '--build=missing' in command and '--build=compatible' not in command):
+            caller = (event.get('watched_callers') or [None])[0]
             dispatch_errors.append({'test': test, 'invocation': event.get('invocation'), 'command': command,
                                     'observed_consumer': event['function'], 'node_binary': node.get('binary'),
                                     'expected_role': 'ordinary missing-binary cache/remote search',
+                                    'controller': caller,
                                     'evidence': {'seq': seq, 'file': event['file'], 'line': event['line']}})
         if event['function'].endswith('._evaluate_node'):
             statement = event.get('statement', '')
@@ -188,6 +190,44 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                 'configuration': record['configuration']},
                 'evidence': record['evidence']})
 
+    for record in dispatch_errors:
+        decisions = [(event, outcome) for event, name, outcome, _ in policy_decisions
+                     if name == 'compatible' and event.get('test') == record['test']
+                     and event.get('invocation') == record.get('invocation')]
+        actors = []
+        controller = record.get('controller')
+        if controller:
+            actors.append({'file': controller.get('file'), 'symbol': controller.get('function'),
+                           'role': 'mode_dispatch_controller', 'line': controller.get('line')})
+        if decisions:
+            actors.append(actor(decisions[-1][0], 'feature_policy_consumer'))
+        actors.append({'file': record['evidence'].get('file'),
+                       'symbol': record.get('observed_consumer'),
+                       'role': 'feature_specific_responsibility',
+                       'line': record['evidence'].get('line')})
+        causal_flow.append({
+            'stage': 'policy_to_dispatch', 'status': 'broken', 'test': record['test'],
+            'invocation': record.get('invocation'), 'command': record.get('command'),
+            'actors': actors,
+            'relation': 'An ordinary missing-build request entered a feature-specific compatible-build responsibility without that feature policy in the request.',
+            'required_invariant': 'Each build policy must dispatch to its own responsibility; ordinary missing-binary search and feature-specific compatible building remain separate paths.',
+            'observation': {'request_policy': 'missing',
+                            'feature_permission_decision': decisions[-1][1] if decisions else 'not_observed',
+                            'entered_responsibility': record.get('observed_consumer'),
+                            'node_binary': record.get('node_binary')},
+            'evidence': record['evidence']})
+
+    decision_observations = []
+    for event, concept, outcome, receiver in policy_decisions:
+        decision_observations.append({
+            'test': event.get('test'), 'invocation': event.get('invocation'),
+            'command': event.get('command'), 'policy': concept, 'decision': outcome,
+            'receiver': receiver,
+            'policy_state': {k: v for k, v in (event.get('state', {}).get('build_mode') or {}).items()
+                             if k != 'receiver'},
+            'evidence': {'seq': event.get('seq'), 'file': event.get('file'),
+                         'function': event.get('function'), 'line': event.get('line')}})
+
     declared = declared or {}
     declared_targets = [(file, symbol) for file, symbols in declared.items() for symbol in symbols]
     if declared_targets:
@@ -245,6 +285,7 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
             'causal_flow': causal_flow,
             'unvalidated_candidates': unvalidated, 'identity_mismatches': mismatches,
             'compatible_mode_observations': mode_errors,
+            'policy_decision_observations': decision_observations,
             'producer_execution_errors': producer_errors,
             'dispatch_contract_observations': dispatch_errors,
             'stale_guard_observations': stale_guards,

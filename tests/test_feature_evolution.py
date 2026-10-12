@@ -82,6 +82,24 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(obligation['previously_passing_test'], 'test_old_behavior')
         self.assertEqual(obligation['required_repair_targets'], [])
 
+    def test_diagnosis_checks_bind_named_functions_to_required_repairs(self):
+        instance = {'instance_id': 'checks', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': [{'file': 'mode.py', 'components': [
+                        {'name': 'Mode.allowed_feature'}]}]}
+        memory = seed_featurespace(instance, recall={'candidates': [
+            {'file': 'refresh.py', 'symbols': ['refresh_state']} ]})
+        memory['current_patch_sha256'] = 'candidate'
+        memory['checks'] = [{
+            'hypothesis': 'Mode.allowed_feature still rejects the represented policy state.',
+            'expected_change': 'allowed_feature returns true after refresh_state recomputes it.',
+            'evidence': ['requirement'], 'patch_sha256': 'candidate'}]
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'diagnosis_check')
+        self.assertEqual({(target['file'], target['symbol'])
+                          for target in obligation['required_repair_targets']},
+                         {('mode.py', 'Mode.allowed_feature'),
+                          ('refresh.py', 'refresh_state')})
+
     def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
         packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,
                   'observer_summaries': [{'process': 1, 'finished': True, 'observer_errors': 0,

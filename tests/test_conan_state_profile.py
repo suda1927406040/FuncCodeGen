@@ -87,6 +87,31 @@ class StatePacketTests(unittest.TestCase):
         self.assertEqual(len(dispatch['actors']), 3)
         self.assertEqual(dispatch['actors'][1]['symbol'], 'BuildMode.allowed_compatible')
 
+    def test_missing_policy_entering_feature_handler_is_a_causal_boundary_break(self):
+        init = event(1, 'BuildMode.__init__', {
+            'build_mode_input': {'params': ['missing']},
+            'build_mode': {'receiver': 'mode', 'missing': True}})
+        entered = event(2, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'node': {'receiver': 'node', 'binary': 'Missing'}}, 'call')
+        entered['watched_callers'] = [{
+            'file': 'conans/client/graph/graph_binaries.py',
+            'function': 'GraphBinariesAnalyzer._evaluate_node', 'line': 210}]
+        decision = event(3, 'BuildMode.allowed_compatible', {
+            'build_mode': {'receiver': 'mode', 'missing': True}, 'return_value': True})
+        for item, file in [(init, 'conans/client/graph/build_mode.py'),
+                           (entered, 'conans/client/graph/graph_binaries.py'),
+                           (decision, 'conans/client/graph/build_mode.py')]:
+            item.update(invocation=2, command='install . --build=missing', file=file)
+        packet = extract([init, entered, decision])
+        flow = next(item for item in packet['causal_flow']
+                    if item['stage'] == 'policy_to_dispatch')
+        self.assertEqual(flow['observation']['request_policy'], 'missing')
+        self.assertTrue(flow['observation']['feature_permission_decision'])
+        self.assertEqual([actor['role'] for actor in flow['actors']],
+                         ['mode_dispatch_controller', 'feature_policy_consumer',
+                          'feature_specific_responsibility'])
+        self.assertTrue(packet['policy_decision_observations'][0]['decision'])
+
     def test_validation_of_main_info_does_not_validate_a_different_candidate(self):
         trace = [event(1, 'Pkg.validate_build', {'current_info': {'receiver': 'main', 'cppstd': '11'}}, 'call'),
                  event(2, 'Compatibility.compatibles', {'returned_candidates': [

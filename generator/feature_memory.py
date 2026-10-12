@@ -7,6 +7,7 @@ an invalid update leaves the previous memory intact. No reference patch is read.
 import copy
 import hashlib
 import json
+import re
 
 
 COLLECTIONS = ('elements', 'groups', 'links', 'conditions')
@@ -284,6 +285,40 @@ def execution_obligations(memory):
                        'evidence': group.get('evidence', []),
                        **({'previously_passing_test': group.get('test')}
                           if group.get('origin') == 'regression_flow' else {})})
+    # A diagnosis check is the bridge from an inferred explanation to the next
+    # executable candidate. Bind function names stated in its hypothesis or
+    # expected change back to active FeatureSpace elements, so code generation
+    # cannot silently implement only half of its own diagnosis.
+    for index, check in enumerate(memory.get('checks', [])):
+        if check.get('patch_sha256') != current:
+            continue
+        text = check.get('hypothesis', '') + '\n' + check.get('expected_change', '')
+        matched = []
+        for entry in memory.get('elements', {}).values():
+            if entry.get('status') != 'active' or not entry.get('symbol'):
+                continue
+            symbol = entry['symbol']
+            leaf = symbol.split('.')[-1]
+            qualified = '.' in symbol and symbol in text
+            leaf_named = len(leaf) >= 4 and re.search(
+                r'(?<![A-Za-z0-9_])' + re.escape(leaf) + r'(?![A-Za-z0-9_])', text)
+            if qualified or leaf_named:
+                matched.append(entry)
+        canonical = {}
+        for entry in matched:
+            key = (entry['file'], entry['symbol'].split('.')[-1])
+            previous = canonical.get(key)
+            if previous is None or ('.' in entry['symbol'] and '.' not in previous['symbol']):
+                canonical[key] = entry
+        targets = [{'file': entry['file'], 'symbol': entry['symbol']}
+                   for entry in canonical.values()]
+        if targets:
+            result.append({
+                'flow_id': 'check:%d' % index, 'stage': 'diagnosis_check',
+                'observed_break': check.get('hypothesis'),
+                'required_invariants': [check.get('expected_change')],
+                'responsibilities': targets, 'required_repair_targets': targets,
+                'evidence': check.get('evidence', [])})
     return result
 
 
