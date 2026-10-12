@@ -10,7 +10,7 @@ from generator.feedback_evidence import evidence_bundle, failure_excerpt, read_f
 from generator.feature_memory import (attach_observations, execution_obligations, merge_update,
                                       seed_featurespace, memory_view)
 from generator.llm_interface import LLMResponse
-from generator.state_feedback import repair_once, watch_config
+from generator.state_feedback import diagnosis_prompt, repair_once, watch_config
 
 
 def response(value):
@@ -51,7 +51,8 @@ class EvidenceTests(unittest.TestCase):
                          {'input_to_state', 'configuration_to_state'})
         targets = {(target['file'], target['symbol']) for item in obligations
                    for target in item['required_repair_targets']}
-        self.assertEqual(targets, {('policy.py', 'parse'), ('policy.py', 'refresh')})
+        self.assertEqual(targets, {('policy.py', 'parse'), ('select.py', 'allow'),
+                                   ('policy.py', 'refresh'), ('select.py', 'select')})
 
         observed_group = next(entry for entry in memory['groups'].values()
                               if entry.get('origin') == 'execution_flow')
@@ -60,6 +61,26 @@ class EvidenceTests(unittest.TestCase):
             'evidence': observed_group['evidence']}], 'focus': [], 'checks': []}
         with self.assertRaisesRegex(ValueError, 'cannot be retired'):
             merge_update(memory, delta, ['policy.py', 'select.py'])
+
+    def test_new_regression_becomes_a_featurespace_preservation_flow(self):
+        instance = {'instance_id': 'regression', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        memory = seed_featurespace(instance, recall={'candidates': [
+            {'file': 'policy.py', 'symbols': ['parse']} ]})
+        packet = {'failure_routes': [{'test': 'test_old_behavior', 'target_calls': [
+            {'file': 'policy.py', 'function': 'parse', 'calls': 1, 'status': 'called'}]}]}
+        bundle = evidence_bundle(packet, 'E   AssertionError: regression')
+        history = [{'patch_after': 'candidate', 'changed_files': ['policy.py'],
+                    'test_delta': {'new_failures': ['test_old_behavior']}}]
+        memory = attach_observations(memory, bundle, 'candidate', 2, history)
+        groups = [entry for entry in memory['groups'].values()
+                  if entry.get('origin') == 'regression_flow']
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]['test'], 'test_old_behavior')
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'behavior_preservation')
+        self.assertEqual(obligation['previously_passing_test'], 'test_old_behavior')
+        self.assertEqual(obligation['required_repair_targets'], [])
 
     def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
         packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,
@@ -252,6 +273,17 @@ class EvolutionTests(unittest.TestCase):
         # Stored observations stay patch- and round-scoped for the reader.
         self.assertEqual(merged['evidence'][old_id]['patch_sha256'], 'patch_one')
         self.assertEqual(merged['evidence'][old_id]['round'], 1)
+
+    def test_diagnosis_accepts_evidence_ids_visible_on_featurespace_entries(self):
+        first = evidence_bundle({'failure_routes': [{'test': 'old', 'target_calls': []}]}, 'old failure')
+        memory = attach_observations(seed_featurespace(self.instance, self.plan), first, 'old_patch', 1)
+        old_id = first['observations'][0]['id']
+        condition = next(iter(memory['conditions'].values()))
+        condition['evidence'] = [old_id]
+        second = evidence_bundle(self.packet, 'new failure')
+        memory = attach_observations(memory, second, 'new_patch', 2)
+        diagnosis_prompt(self.instance, self.repo, '', self.packet, self.watch, memory, second)
+        self.assertIn(old_id, memory['diagnosis_evidence_ids'])
 
     def test_change_without_verifiable_check_is_rejected(self):
         evidence_id = self.memory['current_evidence'][0]

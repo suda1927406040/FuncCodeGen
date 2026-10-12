@@ -57,6 +57,13 @@ class StateFeedbackTests(unittest.TestCase):
         patch=self.patch+'\n+def new_producer(node):\n+    return node.state\n'
         self.assertIn('new_producer',watch_config(self.repo,self.instance,patch)['watch']['state.py'])
 
+    def test_declared_interface_keeps_qualified_symbol_but_probe_uses_leaf(self):
+        instance=dict(self.instance, new_components=[{
+            'file':'state.py','components':[{'name':'Controller.select'}]}])
+        watch=watch_config(self.repo,instance,self.patch)
+        self.assertIn('select',watch['watch']['state.py'])
+        self.assertEqual(watch['declared_interfaces']['state.py'],['Controller.select'])
+
     def test_guard_snapshot_and_later_write_keep_order_and_identity(self):
         events=[{'seq':1,'test':'failed','process':1,'frame':'f','function':'select','event':'line',
                  'file':'state.py','line':1,'statement':'if node.state == "Invalid":','values':{'node':{'receiver':'o1','state':'Missing'}}},

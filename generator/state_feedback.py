@@ -55,7 +55,7 @@ def watch_config(repo, instance, patch, recall=None, output=''):
     for group in instance.get('new_components') or []:
         paths.append(group['file'])
         symbols[group['file']].extend(c['name'].split('.')[-1] for c in group['components'])
-        declared_symbols[group['file']].extend(c['name'].split('.')[-1] for c in group['components'])
+        declared_symbols[group['file']].extend(c['name'] for c in group['components'])
     for item in (recall or {}).get('candidates', []):
         paths.append(item['file'])
         symbols[item['file']].extend(n.split('.')[-1] for n in item.get('symbols', []))
@@ -94,9 +94,11 @@ def watch_config(repo, instance, patch, recall=None, output=''):
         for name in watch:
             base = Path(name).name
             if base in WATCH:
-                focused[name] = list(dict.fromkeys(sorted(WATCH[base]) + changed_by_file[name] + declared_symbols[name]))
+                declared_leaves = [symbol.split('.')[-1] for symbol in declared_symbols[name]]
+                focused[name] = list(dict.fromkeys(sorted(WATCH[base]) + changed_by_file[name] + declared_leaves))
             elif changed_by_file[name] or declared_symbols[name]:
-                focused[name] = list(dict.fromkeys(changed_by_file[name] + declared_symbols[name]))
+                focused[name] = list(dict.fromkeys(changed_by_file[name]
+                                                   + [symbol.split('.')[-1] for symbol in declared_symbols[name]]))
         watch = focused
     from generator.feedback_context import expand_producers
     expansion = expand_producers(repo, watch, patch)
@@ -239,7 +241,7 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
                          'watched_call_coverage: not_called_confirmed holds only for failed tests under complete coverage; not_observed_unknown cannot decide.']}
     routes = []
     declared = (watch or {}).get('declared_interfaces', {})
-    target_names = {name for names in declared.values() for name in names}
+    target_names = {name.split('.')[-1] for names in declared.values() for name in names}
     for test in failures:
         samples = by_test.get(test, [])
         if not samples:
@@ -251,7 +253,9 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
         targets = []
         for file, names in declared.items():
             for name in names:
-                calls = [e for e in samples if e.get('event') == 'call' and e.get('file') == file and e.get('function','').split('.')[-1] == name]
+                leaf = name.split('.')[-1]
+                calls = [e for e in samples if e.get('event') == 'call' and e.get('file') == file
+                         and e.get('function','').split('.')[-1] == leaf]
                 targets.append({'file': file, 'function': name, 'calls': len(calls),
                                 'status': 'called' if calls else 'not_called_confirmed' if coverage['status'] == 'complete' else 'unknown'})
         blocked = []
@@ -278,7 +282,7 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
     conan = [dict(e, state=scoped_receivers(e['state'], e.get('process'))) for e in events if 'state' in e]
     if conan:
         from generator.state_profiles.conan import extract
-        packet['conan_state_relations'] = extract(conan)
+        packet['conan_state_relations'] = extract(conan, declared=(watch or {}).get('declared_interfaces', {}))
     return packet
 
 
@@ -345,6 +349,8 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'Entries with origin=execution_flow are responsibilities discovered by the self-evolution cycle. '
                    'Repair every focused broken flow as a producer-to-consumer chain: represent the input state, '
                    'refresh derived state after object or configuration changes, and only then repair its consumer. '
+                   'Every required_repair_target must be changed as part of that coordinated repair; other listed '
+                   'responsibilities must be reviewed against the invariant and changed only when current source violates it. '
                    'A downstream function not being called is a symptom and does not by itself justify widening its guard. '
                    'Each check states a hypothesis and the expected_change this repair must realize; '
                    'do not repeat a change whose expected change a check review already refuted. '
@@ -382,7 +388,21 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
 def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, budget=80000):
     historical = associated_evidence(memory, budget=9000)
     historical['observations'] = [e for e in historical['observations'] if e['id'] not in memory.get('current_evidence', [])]
-    memory['diagnosis_evidence_ids'] = list(memory.get('current_evidence', [])) + [e['id'] for e in historical['observations']]
+    view = memory_view(memory, 18000)
+    # An evidence ID displayed on a FeatureSpace entry is supplied to the
+    # diagnosis even when the bounded evidence payload was omitted. Keep the
+    # prompt contract and transaction validator aligned.
+    visible_ids = []
+    for kind in ('elements', 'groups', 'links', 'conditions'):
+        for entry in view.get(kind, []):
+            visible_ids.extend(entry.get('evidence', []))
+            visible_ids.extend(entry.get('retirement', {}).get('evidence', []))
+    for check in view.get('checks', []):
+        visible_ids.extend(check.get('evidence', []))
+    memory['diagnosis_evidence_ids'] = list(dict.fromkeys(
+        list(memory.get('current_evidence', []))
+        + [e['id'] for e in historical['observations']]
+        + [e for e in visible_ids if isinstance(e, str) and e.startswith('ev:')]))
     header = ('Update a repository-specific FeatureSpace before generating a repair. Do not return code edits.\n'
               '<requirement evidence_id="requirement">\n' + instance['problem_statement'] + '\n</requirement>\n'
               + STATE_CONTRACT + '\n'
@@ -406,6 +426,12 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
               'in check_reviews. If an expected change did not occur, re-examine that repair and the '
               'judgement itself (retire or correct it); if it occurred while tests still fail, locate the '
               'next break in execution order. '
+              'Treat tests listed as new_failures in the latest attempt as behavior that the current candidate '
+              'broke. Identify the changed responsibility on their execution path and retain a preservation '
+              'condition in FeatureSpace; do not trade those behaviors for the requested feature. '
+              'When execution shows a state-dependent callback under a one-time owner but not under a shared '
+              'configuration refresh, revise the responsibility placement: reuse the existing callback at the '
+              'shared boundary and avoid duplicating object state or lifecycle work. '
               'Explain the earliest supported break between input representation, state production, configuration '
               'changes, state recomputation and consuming branches. Add the observed responsibilities and their '
               'relations to FeatureSpace; do not reduce the diagnosis to a failing line or function list. '
@@ -425,7 +451,7 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
               'Add or revise hypotheses around those observed relationships. '
               'Every change must come with a check whose expected_change is observable next round. '
               'Keep the delta small; all inferred claims remain hypotheses until evaluated.\n'
-              '<featurespace>\n' + json.dumps(memory_view(memory, 18000), ensure_ascii=False) + '\n</featurespace>\n'
+              '<featurespace>\n' + json.dumps(view, ensure_ascii=False) + '\n</featurespace>\n'
               '<current_execution_evidence>\n' + json.dumps(bundle, ensure_ascii=False) + '\n</current_execution_evidence>\n'
               '<historical_execution_evidence>\n' + json.dumps(historical, ensure_ascii=False) + '\n</historical_execution_evidence>\n')
     tail = '\nReturn only a JSON object using this schema; omit unused entries, never invent evidence IDs:\n' + UPDATE_SCHEMA
@@ -508,7 +534,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
     memory = memory or seed_featurespace(instance, plan, recall)
     if memory['instance_id'] != instance['instance_id'] or memory.get('base_commit') != instance.get('base_commit'):
         raise ValueError('FeatureSpace belongs to a different instance/base')
-    memory = attach_observations(memory, bundle, patch_hash, round_number)
+    memory = attach_observations(memory, bundle, patch_hash, round_number, history)
     memory['attempts'] = history
     memory['source_expansion'] = watch.get('source_expansion', [])
     save_memory(directory / 'featurespace_before.json', memory)
@@ -594,10 +620,12 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             omitted = []
             for obligation in obligations:
                 targets = obligation.get('required_repair_targets', [])
-                if targets and not any((target['file'], target['symbol']) in edited_symbols for target in targets):
-                    omitted.append({'stage': obligation.get('stage'), 'targets': targets})
+                missing = [target for target in targets
+                           if (target['file'], target['symbol']) not in edited_symbols]
+                if missing:
+                    omitted.append({'stage': obligation.get('stage'), 'targets': missing})
             if omitted:
-                raise ValueError('Repair omits runtime-discovered state producer/refresh responsibilities: '
+                raise ValueError('Repair omits runtime-discovered coordinated responsibilities: '
                                  + json.dumps(omitted, ensure_ascii=False))
             for edit in edits:
                 if ('[start of %s]' % edit['file_path']) not in prompt:

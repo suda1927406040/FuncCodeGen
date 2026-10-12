@@ -45,6 +45,48 @@ class StatePacketTests(unittest.TestCase):
                          ['configuration_state_refresh', 'derived_state_consumer'])
         self.assertTrue(flow['observation']['consumer_observed'])
 
+    def test_one_time_callback_owner_is_linked_to_shared_refresh_boundary(self):
+        validation = event(1, 'Pkg.validate_build', {
+            'current_info': {'receiver': 'main', 'cppstd': '11', 'cant_build': False}}, 'call')
+        validation['watched_callers'] = [{'file': 'conans/client/graph/compute_pid.py',
+                                          'function': 'compute_package_id', 'line': 60}]
+        refresh = event(2, 'run_validate_package_id', {
+            'current_info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}, 'call')
+        produced = event(3, 'BinaryCompatibility.compatibles', {'has_build_validator': True,
+            'returned_candidates': [{'package_id': 'p14', 'info': {
+                'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}]})
+        consumed = event(4, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'current_info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}, 'line')
+        consumed['statement'] = 'if not compatible.cant_build:'
+        for item, file in [(validation, 'recipe/conanfile.py'),
+                           (refresh, 'conans/client/graph/compute_pid.py'),
+                           (produced, 'conans/client/graph/compatibility.py'),
+                           (consumed, 'conans/client/graph/graph_binaries.py')]:
+            item.update(invocation=4, command='create . --build=compatible', file=file)
+        flows = extract([validation, refresh, produced, consumed])['causal_flow']
+        placement = next(flow for flow in flows if flow['stage'] == 'responsibility_placement')
+        self.assertEqual([actor['role'] for actor in placement['actors'][:2]],
+                         ['current_one_time_state_owner', 'shared_configuration_refresh'])
+        self.assertEqual(placement['actors'][0]['symbol'], 'compute_package_id')
+
+    def test_terminal_state_without_declared_feature_functions_is_dispatch_flow(self):
+        init = event(1, 'BuildMode.__init__', {
+            'build_mode_input': {'params': ['compatible']},
+            'build_mode': {'receiver': 'mode'}})
+        evaluated = event(2, 'GraphBinariesAnalyzer._evaluate_node', {
+            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p'}}, 'return')
+        for item, file in [(init, 'conans/client/graph/build_mode.py'),
+                           (evaluated, 'conans/client/graph/graph_binaries.py')]:
+            item.update(invocation=9, command='create . --build=compatible', file=file)
+        declared = {'conans/client/graph/build_mode.py': ['BuildMode.allowed_compatible'],
+                    'conans/client/graph/graph_binaries.py': [
+                        'GraphBinariesAnalyzer._find_build_compatible_binary']}
+        flows = extract([init, evaluated], declared=declared)['causal_flow']
+        dispatch = next(flow for flow in flows if flow['stage'] == 'state_to_feature_dispatch')
+        self.assertEqual(dispatch['observation']['terminal_binary'], 'Invalid')
+        self.assertEqual(len(dispatch['actors']), 3)
+        self.assertEqual(dispatch['actors'][1]['symbol'], 'BuildMode.allowed_compatible')
+
     def test_validation_of_main_info_does_not_validate_a_different_candidate(self):
         trace = [event(1, 'Pkg.validate_build', {'current_info': {'receiver': 'main', 'cppstd': '11'}}, 'call'),
                  event(2, 'Compatibility.compatibles', {'returned_candidates': [

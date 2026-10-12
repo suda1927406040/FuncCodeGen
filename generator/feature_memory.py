@@ -168,24 +168,112 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
     return memory
 
 
+def _observation_mentions_test(value, test):
+    if isinstance(value, dict):
+        if value.get('test') == test:
+            return True
+        return any(_observation_mentions_test(item, test) for item in value.values())
+    if isinstance(value, list):
+        return any(_observation_mentions_test(item, test) for item in value)
+    return False
+
+
+def _attach_regression_flows(memory, bundle, history, patch_hash, round_number):
+    """Retain behavior newly broken by this exact candidate as execution memory."""
+    attempt = next((item for item in reversed(history or [])
+                    if item.get('patch_after') == patch_hash
+                    and item.get('test_delta', {}).get('new_failures')), None)
+    if attempt is None:
+        return memory
+    changed_files = set(attempt.get('changed_files', []))
+    focus = []
+    for test in attempt['test_delta']['new_failures'][:24]:
+        observations = [item for item in bundle.get('observations', [])
+                        if _observation_mentions_test(item.get('observation'), test)]
+        evidence = [item['id'] for item in observations[:8]]
+        if not evidence:
+            evidence = list(memory.get('current_evidence', []))[:1]
+        members = []
+        # Start from responsibilities changed by the regressing candidate.
+        for key, entry in memory.get('elements', {}).items():
+            if entry.get('status') == 'active' and entry.get('file') in changed_files:
+                members.append(key)
+        # Add declared responsibilities reached (or skipped) on this failed path.
+        for item in observations:
+            value = item.get('observation')
+            if not isinstance(value, dict) or item.get('category') != 'failure_routes':
+                continue
+            for target in value.get('target_calls', []):
+                file, symbol = target.get('file'), target.get('function')
+                if not file or not symbol:
+                    continue
+                key = _id('E', file + ':' + symbol)
+                entry = memory['elements'].get(key)
+                if entry is None:
+                    entry = {'id': key, 'file': file, 'symbol': symbol, 'text': symbol,
+                             'status': 'active', 'certainty': 'execution_observed',
+                             'origin': 'regression_flow', 'evidence': []}
+                    memory['elements'][key] = entry
+                entry['evidence'] = list(dict.fromkeys(entry.get('evidence', []) + evidence))[-8:]
+                entry['regression_call_status'] = target.get('status')
+                members.append(key)
+        members = list(dict.fromkeys(members))
+        if not members:
+            continue
+        group_id = _id('G', 'regression-flow:' + patch_hash + ':' + test)
+        memory['groups'][group_id] = {
+            'id': group_id, 'text': 'A behavior that passed before this candidate now fails.',
+            'members': members, 'status': 'active', 'certainty': 'execution_observed',
+            'origin': 'regression_flow', 'flow_status': 'broken',
+            'flow_stage': 'behavior_preservation', 'test': test, 'evidence': evidence,
+            'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
+        condition_id = _id('C', 'regression-flow:' + patch_hash + ':' + test)
+        memory['conditions'][condition_id] = {
+            'id': condition_id,
+            'text': 'Preserve this previously passing behavior while repairing the requested feature; revise the changed responsibility that introduced the regression.',
+            'applies_to': [group_id], 'status': 'active',
+            'certainty': 'execution_observed', 'origin': 'regression_flow',
+            'flow_status': 'broken', 'flow_stage': 'behavior_preservation',
+            'test': test, 'evidence': evidence, 'updated_revision': memory['revision'],
+            'patch_sha256': patch_hash}
+        focus.extend([condition_id, group_id] + members)
+    if focus:
+        memory['focus'] = list(dict.fromkeys(focus + memory.get('focus', [])))[:128]
+    return memory
+
+
 def execution_obligations(memory):
     """Expose current runtime-discovered responsibilities without naming a fix."""
     current = memory.get('current_patch_sha256')
     result = []
     for group in memory.get('groups', {}).values():
-        if (group.get('origin') != 'execution_flow' or group.get('flow_status') != 'broken'
+        if (group.get('origin') not in {'execution_flow', 'regression_flow'}
+                or group.get('flow_status') != 'broken'
                 or group.get('patch_sha256') != current):
             continue
         members = [memory.get('elements', {}).get(key) for key in group.get('members', [])]
         members = [entry for entry in members if entry]
-        producers = [entry for entry in members if any(
-            'producer' in role or 'refresh' in role for role in entry.get('execution_roles', []))]
-        targets = producers or members
+        stage = group.get('flow_stage')
+        if group.get('origin') == 'regression_flow':
+            targets = []
+        elif stage in {'input_to_state', 'configuration_to_state'}:
+            targets = members
+        elif stage == 'state_to_feature_dispatch':
+            targets = [entry for entry in members if any(
+                'controller' in role for role in entry.get('execution_roles', []))]
+        elif stage == 'responsibility_placement':
+            targets = [entry for entry in members if any(
+                marker in role for role in entry.get('execution_roles', [])
+                for marker in ('owner', 'refresh'))]
+        else:
+            targets = [entry for entry in members if any(
+                'producer' in role or 'refresh' in role for role in entry.get('execution_roles', []))]
+            targets = targets or members
         conditions = [entry['text'] for entry in memory.get('conditions', {}).values()
-                      if entry.get('origin') == 'execution_flow'
+                      if entry.get('origin') == group.get('origin')
                       and entry.get('flow_stage') == group.get('flow_stage')
                       and entry.get('patch_sha256') == current]
-        result.append({'flow_id': group['id'], 'stage': group.get('flow_stage'),
+        result.append({'flow_id': group['id'], 'stage': stage,
                        'observed_break': group.get('text'),
                        'required_invariants': list(dict.fromkeys(conditions)),
                        'responsibilities': [
@@ -193,11 +281,13 @@ def execution_obligations(memory):
                             'roles': entry.get('execution_roles', [])} for entry in members],
                        'required_repair_targets': [
                            {'file': entry['file'], 'symbol': entry['symbol']} for entry in targets],
-                       'evidence': group.get('evidence', [])})
+                       'evidence': group.get('evidence', []),
+                       **({'previously_passing_test': group.get('test')}
+                          if group.get('origin') == 'regression_flow' else {})})
     return result
 
 
-def attach_observations(memory, bundle, patch_hash, round_number):
+def attach_observations(memory, bundle, patch_hash, round_number, history=None):
     memory = copy.deepcopy(memory)
     # Current observations are separate from inferred functional relationships.
     for item in bundle['observations']:
@@ -207,6 +297,7 @@ def attach_observations(memory, bundle, patch_hash, round_number):
     memory['observation_limits'] = bundle['limits']
     memory['current_patch_sha256'] = patch_hash
     memory = _attach_execution_flows(memory, bundle, patch_hash, round_number)
+    memory = _attach_regression_flows(memory, bundle, history, patch_hash, round_number)
     for kind in COLLECTIONS:
         for entry in memory[kind].values():
             if entry.get('patch_sha256') and entry['patch_sha256'] != patch_hash:
@@ -397,7 +488,7 @@ def merge_update(memory, delta, code_files):
             else:
                 clean['applies_to'] = references(entry.get('applies_to', []), {'elements', 'groups', 'links'})
             old = result[kind].get(key)
-            if (old and old.get('origin') == 'execution_flow'
+            if (old and old.get('origin') in {'execution_flow', 'regression_flow'}
                     and old.get('patch_sha256') == memory.get('current_patch_sha256')):
                 raise ValueError('Current execution-flow observations cannot be overwritten')
             if old:
@@ -411,7 +502,7 @@ def merge_update(memory, delta, code_files):
         if key not in all_ids or key in new_ids:
             raise ValueError('Cannot retire unknown or simultaneously updated entry')
         entry = result[all_ids[key]][key]
-        if (entry.get('origin') == 'execution_flow'
+        if (entry.get('origin') in {'execution_flow', 'regression_flow'}
                 and entry.get('patch_sha256') == memory.get('current_patch_sha256')):
             raise ValueError('Current execution-flow observations cannot be retired')
         entry.update(status='retired', updated_revision=revision,

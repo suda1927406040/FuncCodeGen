@@ -129,6 +129,22 @@ def selected_test(test):
         test.endswith('::'+name) or name.endswith('::'+test) for name in failures)
 
 
+def watched_callers(frame, limit=4):
+    """Describe monitored callers without retaining or inspecting their objects."""
+    result = []
+    current = frame.f_back
+    while current is not None and len(result) < limit:
+        filename, name = current.f_code.co_filename, current.f_code.co_name
+        rel = filename[9:] if filename.startswith('/testbed/') else ''
+        if rel and name in _config.get('watch', {}).get(rel, []):
+            owner = current.f_locals.get('self')
+            result.append({'file': rel,
+                           'function': (type(owner).__name__ + '.' if owner is not None else '') + name,
+                           'line': current.f_lineno})
+        current = current.f_back
+    return result
+
+
 def trace(frame, event, arg):
     global _seq, _errors, _command, _invocation, _frame_sequence, _process_limited
     if _stream is None:
@@ -186,6 +202,9 @@ def trace(frame, event, arg):
                     'frame': str(_frames[key]), 'file': rel or 'recipe/conanfile.py',
                     'function': (type(owner).__name__ + '.' if owner is not None else '') + name,
                     'line': frame.f_lineno, 'statement': statement, 'values': values}
+            callers = watched_callers(frame)
+            if callers:
+                item['watched_callers'] = callers
             if branch:
                 item['branch'] = branch
             if _conan is not None:

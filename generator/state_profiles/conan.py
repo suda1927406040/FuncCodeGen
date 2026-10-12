@@ -6,7 +6,7 @@ from collections import defaultdict
 import json
 
 
-def extract(events, field='cant_build', validator='validate_build', context='cppstd'):
+def extract(events, field='cant_build', validator='validate_build', context='cppstd', declared=None):
     validation_calls = defaultdict(list)
     refresh_calls = defaultdict(list)
     field_reads = defaultdict(list)
@@ -160,6 +160,86 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                             'field': field, 'observed_value': record['observed_value'],
                                             'validator': validator, 'consumer_observed': bool(reads)},
                             'evidence': record['evidence']})
+        # A callback can be correct for the initial object yet stale for cloned
+        # configurations when it lives above the shared refresh boundary.
+        owners = []
+        for event in events:
+            if (event.get('test') == record['test'] and event.get('invocation') == record.get('invocation')
+                    and event.get('event') == 'call'
+                    and event.get('function', '').split('.')[-1] == validator):
+                owners.extend(event.get('watched_callers') or [])
+        if refresh and owners:
+            owner = owners[0]
+            refresh_actor = actor(refresh[-1], 'shared_configuration_refresh')
+            owner_actor = {'file': owner.get('file'), 'symbol': owner.get('function'),
+                           'role': 'current_one_time_state_owner', 'line': owner.get('line')}
+            placement_actors = [owner_actor, refresh_actor]
+            if reads:
+                placement_actors.append(actor(reads[0], 'derived_state_consumer'))
+            causal_flow.append({
+                'stage': 'responsibility_placement', 'status': 'broken', 'test': record['test'],
+                'invocation': record.get('invocation'), 'command': record.get('command'),
+                'actors': placement_actors,
+                'relation': 'A configuration-dependent callback ran under a one-time state owner, but not when the shared refresh boundary was reused for another receiver or configuration.',
+                'required_invariant': 'A configuration-dependent responsibility must run exactly once inside the shared refresh boundary used for every receiver and configuration.',
+                'observation': {'validator': validator, 'current_owner': owner,
+                                'shared_refresh': refresh_actor,
+                                'unrefreshed_receiver': record['receiver'],
+                                'configuration': record['configuration']},
+                'evidence': record['evidence']})
+
+    declared = declared or {}
+    declared_targets = [(file, symbol) for file, symbols in declared.items() for symbol in symbols]
+    if declared_targets:
+        policy_concepts = {symbol.split('.')[-1][len('allowed_'):]
+                           for _, symbol in declared_targets
+                           if symbol.split('.')[-1].startswith('allowed_')}
+        requested_scopes = set()
+        for event, params, _ in mode_initializations:
+            if any(isinstance(token, str) and token.split(':', 1)[0] in policy_concepts
+                   for token in params):
+                requested_scopes.add((event.get('test'), event.get('invocation')))
+        calls = defaultdict(set)
+        for event in events:
+            if event.get('event') != 'call':
+                continue
+            scope = (event.get('test'), event.get('invocation'))
+            leaf = event.get('function', '').split('.')[-1]
+            for file, symbol in declared_targets:
+                if event.get('file') == file and leaf == symbol.split('.')[-1]:
+                    calls[scope].add((file, symbol))
+        seen_dispatch = set()
+        for event in events:
+            if not (event.get('event') == 'return'
+                    and event.get('function', '').endswith('._evaluate_node')):
+                continue
+            state = event.get('state') or {}
+            node = state.get('node') or {}
+            if node.get('binary') not in {'Invalid', 'Missing'}:
+                continue
+            scope = (event.get('test'), event.get('invocation'))
+            if scope not in requested_scopes:
+                continue
+            missing = [(file, symbol) for file, symbol in declared_targets
+                       if (file, symbol) not in calls.get(scope, set())]
+            key = scope + tuple(missing)
+            if not missing or key in seen_dispatch:
+                continue
+            seen_dispatch.add(key)
+            actors = [actor(event, 'feature_dispatch_controller')]
+            actors.extend({'file': file, 'symbol': symbol,
+                           'role': 'declared_feature_responsibility_not_reached'}
+                          for file, symbol in missing)
+            causal_flow.append({
+                'stage': 'state_to_feature_dispatch', 'status': 'broken',
+                'test': event.get('test'), 'invocation': event.get('invocation'),
+                'command': event.get('command'), 'actors': actors,
+                'relation': 'Execution ended in a terminal binary state without reaching one or more declared feature responsibilities in the same command.',
+                'required_invariant': 'After state production, dispatch must reach the feature responsibilities under their policy conditions while preserving existing command paths.',
+                'observation': {'terminal_binary': node.get('binary'),
+                                'unreached_responsibilities': [symbol for _, symbol in missing]},
+                'evidence': {'seq': event.get('seq'), 'file': event.get('file'),
+                             'function': event.get('function'), 'line': event.get('line')}})
     return {'schema_version': 1, 'identity_scope': ['test', 'invocation', 'receiver', context],
             'field': field, 'validator': validator,
             'causal_flow': causal_flow,
