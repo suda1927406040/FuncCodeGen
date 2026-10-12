@@ -199,25 +199,35 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
         decisions = [(event, outcome) for event, name, outcome, _ in policy_decisions
                      if name == 'compatible' and event.get('test') == record['test']
                      and event.get('invocation') == record.get('invocation')]
+        decision = decisions[-1][1] if decisions else 'not_observed'
         actors = []
         controller = record.get('controller')
         if controller:
             actors.append({'file': controller.get('file'), 'symbol': controller.get('function'),
                            'role': 'mode_dispatch_controller', 'line': controller.get('line')})
         if decisions:
-            actors.append(actor(decisions[-1][0], 'feature_policy_consumer'))
+            role = ('feature_policy_consumer_wrong_decision'
+                    if decision is True else 'feature_policy_consumer_after_dispatch')
+            actors.append(actor(decisions[-1][0], role))
         actors.append({'file': record['evidence'].get('file'),
                        'symbol': record.get('observed_consumer'),
                        'role': 'feature_specific_responsibility',
                        'line': record['evidence'].get('line')})
+        late_gate = decision is not True
         causal_flow.append({
             'stage': 'policy_to_dispatch', 'status': 'broken', 'test': record['test'],
             'invocation': record.get('invocation'), 'command': record.get('command'),
             'actors': actors,
-            'relation': 'An ordinary missing-build request entered a feature-specific compatible-build responsibility without that feature policy in the request.',
-            'required_invariant': 'Each build policy must dispatch to its own responsibility; ordinary missing-binary search and feature-specific compatible building remain separate paths.',
+            'relation': (
+                'An ordinary missing-build request entered the feature-specific compatible-build responsibility before its policy consumer rejected that request.'
+                if late_gate else
+                'The compatible-build policy consumer granted feature permission to an ordinary missing-build request.'),
+            'required_invariant': (
+                'The dispatch controller must evaluate compatible-build permission before entering the feature-specific responsibility.'
+                if late_gate else
+                'The compatible-build permission must reject requests that contain only the ordinary missing-build policy.'),
             'observation': {'request_policy': 'missing',
-                            'feature_permission_decision': decisions[-1][1] if decisions else 'not_observed',
+                            'feature_permission_decision': decision,
                             'entered_responsibility': record.get('observed_consumer'),
                             'node_binary': record.get('node_binary')},
             'evidence': record['evidence']})

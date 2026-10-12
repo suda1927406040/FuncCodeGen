@@ -107,7 +107,7 @@ class EvidenceTests(unittest.TestCase):
             'stage': 'policy_to_dispatch', 'status': 'broken', 'test': 'missing',
             'actors': [
                 {'file': 'graph.py', 'symbol': 'Graph.evaluate', 'role': 'mode_dispatch_controller'},
-                {'file': 'mode.py', 'symbol': 'Mode.allowed_feature', 'role': 'feature_policy_consumer'},
+                {'file': 'mode.py', 'symbol': 'Mode.allowed_feature', 'role': 'feature_policy_consumer_wrong_decision'},
                 {'file': 'graph.py', 'symbol': 'Graph.feature_handler', 'role': 'feature_specific_responsibility'}],
             'relation': 'An ordinary request entered the feature-specific handler.',
             'required_invariant': 'Each policy dispatches only to its own responsibility.'}]}}
@@ -117,6 +117,24 @@ class EvidenceTests(unittest.TestCase):
                           if item['stage'] == 'policy_to_dispatch')
         self.assertEqual(obligation['required_repair_targets'], [
             {'file': 'mode.py', 'symbol': 'Mode.allowed_feature'}])
+
+    def test_late_rejected_policy_dispatch_requires_the_controller(self):
+        instance = {'instance_id': 'late-policy', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [{
+            'stage': 'policy_to_dispatch', 'status': 'broken', 'test': 'missing',
+            'actors': [
+                {'file': 'graph.py', 'symbol': 'Graph.evaluate', 'role': 'mode_dispatch_controller'},
+                {'file': 'mode.py', 'symbol': 'Mode.allowed_feature', 'role': 'feature_policy_consumer_after_dispatch'},
+                {'file': 'graph.py', 'symbol': 'Graph.feature_handler', 'role': 'feature_specific_responsibility'}],
+            'relation': 'The handler ran before the policy rejected the request.',
+            'required_invariant': 'Evaluate permission before entering the handler.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'policy_to_dispatch')
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'graph.py', 'symbol': 'Graph.evaluate'}])
 
     def test_diagnosis_checks_bind_named_functions_as_verification_responsibilities(self):
         instance = {'instance_id': 'checks', 'repo': 'test/repo', 'base_commit': 'base',

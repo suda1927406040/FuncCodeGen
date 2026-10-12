@@ -109,9 +109,28 @@ class StatePacketTests(unittest.TestCase):
         self.assertEqual(flow['observation']['request_policy'], 'missing')
         self.assertTrue(flow['observation']['feature_permission_decision'])
         self.assertEqual([actor['role'] for actor in flow['actors']],
-                         ['mode_dispatch_controller', 'feature_policy_consumer',
+                         ['mode_dispatch_controller', 'feature_policy_consumer_wrong_decision',
                           'feature_specific_responsibility'])
         self.assertTrue(packet['policy_decision_observations'][0]['decision'])
+
+    def test_rejected_policy_after_handler_entry_locates_late_dispatch_gate(self):
+        entered = event(1, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'node': {'receiver': 'node', 'binary': 'Missing'}}, 'call')
+        entered['watched_callers'] = [{
+            'file': 'conans/client/graph/graph_binaries.py',
+            'function': 'GraphBinariesAnalyzer._evaluate_node', 'line': 210}]
+        decision = event(2, 'BuildMode.allowed_compatible', {
+            'build_mode': {'receiver': 'mode', 'compatible': False}, 'return_value': False})
+        for item, file in [(entered, 'conans/client/graph/graph_binaries.py'),
+                           (decision, 'conans/client/graph/build_mode.py')]:
+            item.update(invocation=2, command='install . --build=missing', file=file)
+        flow = next(item for item in extract([entered, decision])['causal_flow']
+                    if item['stage'] == 'policy_to_dispatch')
+        self.assertEqual([actor['role'] for actor in flow['actors']],
+                         ['mode_dispatch_controller', 'feature_policy_consumer_after_dispatch',
+                          'feature_specific_responsibility'])
+        self.assertIn('before its policy consumer rejected', flow['relation'])
+        self.assertIn('before entering', flow['required_invariant'])
 
     def test_validation_of_main_info_does_not_validate_a_different_candidate(self):
         trace = [event(1, 'Pkg.validate_build', {'current_info': {'receiver': 'main', 'cppstd': '11'}}, 'call'),

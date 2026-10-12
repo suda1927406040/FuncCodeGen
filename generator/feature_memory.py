@@ -271,14 +271,17 @@ def execution_obligations(memory):
                 marker in role for role in entry.get('execution_roles', [])
                 for marker in ('owner', 'refresh'))]
         elif stage == 'policy_to_dispatch':
-            # The trace observed the feature permission returning the wrong
-            # decision for this request. That policy consumer is the unique
-            # repair location established by this flow; the controller and
-            # handler describe downstream context but need not themselves
-            # change when the gate is corrected.
+            # A true decision for the wrong request locates the fault in the
+            # policy consumer. If the consumer rejected the request only after
+            # the handler was entered, the policy is correct and the dispatch
+            # controller evaluates it too late.
             targets = [entry for entry in members if any(
-                role == 'feature_policy_consumer'
+                role == 'feature_policy_consumer_wrong_decision'
                 for role in entry.get('execution_roles', []))]
+            if not targets:
+                targets = [entry for entry in members if any(
+                    role == 'mode_dispatch_controller'
+                    for role in entry.get('execution_roles', []))]
         else:
             targets = [entry for entry in members if any(
                 'producer' in role or 'refresh' in role for role in entry.get('execution_roles', []))]
