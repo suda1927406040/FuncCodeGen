@@ -100,6 +100,24 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(len(obligation['responsibilities']), 2)
         self.assertEqual(obligation['required_repair_targets'], [])
 
+    def test_wrong_policy_dispatch_requires_only_the_observed_permission_consumer(self):
+        instance = {'instance_id': 'policy', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [{
+            'stage': 'policy_to_dispatch', 'status': 'broken', 'test': 'missing',
+            'actors': [
+                {'file': 'graph.py', 'symbol': 'Graph.evaluate', 'role': 'mode_dispatch_controller'},
+                {'file': 'mode.py', 'symbol': 'Mode.allowed_feature', 'role': 'feature_policy_consumer'},
+                {'file': 'graph.py', 'symbol': 'Graph.feature_handler', 'role': 'feature_specific_responsibility'}],
+            'relation': 'An ordinary request entered the feature-specific handler.',
+            'required_invariant': 'Each policy dispatches only to its own responsibility.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'policy_to_dispatch')
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'mode.py', 'symbol': 'Mode.allowed_feature'}])
+
     def test_diagnosis_checks_bind_named_functions_as_verification_responsibilities(self):
         instance = {'instance_id': 'checks', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': [{'file': 'mode.py', 'components': [
