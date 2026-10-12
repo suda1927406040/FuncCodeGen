@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import sys
 import tarfile
 import uuid
@@ -68,7 +69,9 @@ def main():
             for name in ['test_output.txt', 'run_instance.log']:
                 path = log / name
                 if path.is_file():
-                    (result / name).write_bytes(path.read_bytes()[:2_000_000])
+                    # Assertions can follow a multi-MB source dump. Preserve the
+                    # full artifact and select bounded evidence on the controller.
+                    shutil.copyfile(path, result / name)
         for report in run_dir.glob('*.json'):
             if report.name not in {'predictions.json', 'source_predictions.json'}:
                 (destination / report.name).write_bytes(report.read_bytes())
