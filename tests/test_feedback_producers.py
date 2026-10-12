@@ -9,9 +9,37 @@ from generator.feedback_context import expand_producers
 from generator.feedback_candidates import record_candidate, candidate_view, select_candidate
 from generator.state_feedback import extract_packet
 from generator.state_profiles.conan import extract
+from generator.feedback_edits import parse_current_edits
 
 
 class ProducerFeedbackTests(unittest.TestCase):
+    def test_function_replacement_preserves_binding_and_prevents_append(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            (root/'mode.py').write_text('class Mode:\n    @staticmethod\n    def allowed(value):\n        return False\n')
+            edit={'file_path':'mode.py','symbol':'Mode.allowed','replacement':'def allowed(value):\n    return value'}
+            entries=parse_current_edits(json.dumps({'edits':[edit]}),root)
+            self.assertTrue(entries[0]['after'].startswith('    @staticmethod\n    def allowed'))
+            edit['replacement']+='\n\ndef allowed(value):\n    return True\n'
+            with self.assertRaisesRegex(ValueError,'exactly the named function'):
+                parse_current_edits(json.dumps({'edits':[edit]}),root)
+
+    def test_failure_route_uses_last_command_not_an_earlier_call(self):
+        events=[{'seq':1,'test':'case','process':1,'invocation':1,'command':'old',
+                 'file':'state.py','function':'helper','event':'call'},
+                {'seq':2,'test':'case','process':1,'invocation':2,'command':'new',
+                 'file':'state.py','function':'select','event':'line','branch':{
+                     'condition':'state == Missing','guard_line':5,'outcome':False,
+                     'body_calls':['helper'],'next_line':8,'state_before':{'node':{'binary':'Invalid'}}}}]
+        meta={'trace_status':'observed','observer_summaries':[{'process':1,'finished':True,
+              'truncated':False,'truncated_tests':[],'observer_errors':0}]}
+        packet=extract_packet(events,{'tests_status':{'FAIL_TO_PASS':{'failure':['case']}}},meta,
+                              {'watch':{'state.py':['helper']},'declared_interfaces':{'state.py':['helper']}})
+        route=packet['failure_routes'][0]
+        self.assertEqual(route['command'],'new')
+        self.assertEqual(route['target_calls'][0]['status'],'not_called_confirmed')
+        self.assertEqual(route['blocked_guards'][0]['condition'],'state == Missing')
+
     def test_retrieval_finds_unedited_producer_and_excludes_tests(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -33,6 +61,7 @@ class ProducerFeedbackTests(unittest.TestCase):
             records=record_candidate(temp,'case','patch2',report(['d','e']),{},2)
             view=candidate_view(temp,'case',records,'patch2')
             self.assertEqual(len(view),2)
+            self.assertNotIn('earlier_patch_reference',str(view))
             chosen,patch,grade=select_candidate(temp,'case')
             self.assertEqual(patch,'patch1')
             self.assertEqual(chosen['new_passes'],['a','b','c'])

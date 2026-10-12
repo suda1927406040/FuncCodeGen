@@ -47,11 +47,7 @@ def candidate_view(root, iid, records, current_patch):
     current_sha = hashlib.sha256(current_patch.encode()).hexdigest()
     for record in selected:
         item = dict(record, is_current=record['patch_sha256'] == current_sha)
-        if not item['is_current']:
-            patch = (Path(root) / 'candidates' / iid / (record['patch_sha256'] + '.patch')).read_text()
-            item['earlier_patch_reference'] = patch[:5000]
-            item['reference_truncated'] = len(patch) > 5000
-            item['reference_scope'] = 'Earlier candidate, not current source. Do not copy edits blindly.'
+        item['reference_scope'] = 'Test outcomes of this exact candidate; no claim about current source.'
         result.append(item)
     return result
 

@@ -176,6 +176,11 @@ def memory_view(memory, budget=24000):
             if queues[kind]:
                 entries.append((kind, queues[kind].pop(0)))
     for kind, entry in entries:
+        # Unevidenced planner constraints are not repair obligations. Retain them
+        # in the full memory for audit; the original requirement remains supplied.
+        if kind in {'groups', 'links'} and entry.get('origin') in {'initial_plan', 'initial_plan_context'} and not entry.get('evidence'):
+            view['omitted_entries'][kind] += 1
+            continue
         view[kind].append(entry)
         if len(json.dumps(view, ensure_ascii=False)) > budget:
             view[kind].pop()

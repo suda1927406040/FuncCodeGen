@@ -103,6 +103,7 @@ def watch_config(repo, instance, patch, recall=None, output=''):
         watch[item['file']] = item['symbols']
     return {'schema_version': 1, 'watch': watch, 'repo': instance['repo'],
             'source_expansion': expansion,
+            'declared_interfaces': dict(declared_symbols),
             'event_limit_per_process': 40000, 'event_limit_per_test': 5000,
             'line_timing': 'before_execution', 'reference_patch_used': False}
 
@@ -235,6 +236,36 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
                          'Tracing is bounded and may not cover every producer.',
                          'Branch outcomes state which suite a guard took, derived from the next executed line in the same frame.',
                          'watched_call_coverage: not_called_confirmed holds only for failed tests under complete coverage; not_observed_unknown cannot decide.']}
+    routes = []
+    declared = (watch or {}).get('declared_interfaces', {})
+    target_names = {name for names in declared.values() for name in names}
+    for test in failures:
+        samples = by_test.get(test, [])
+        if not samples:
+            continue
+        # One pytest test may execute multiple CLI commands. The last observed
+        # command is kept separate from earlier expected failures in that test.
+        last = samples[-1]
+        samples = [e for e in samples if (e.get('process'), e.get('invocation')) == (last.get('process'), last.get('invocation'))]
+        targets = []
+        for file, names in declared.items():
+            for name in names:
+                calls = [e for e in samples if e.get('event') == 'call' and e.get('file') == file and e.get('function','').split('.')[-1] == name]
+                targets.append({'file': file, 'function': name, 'calls': len(calls),
+                                'status': 'called' if calls else 'not_called_confirmed' if coverage['status'] == 'complete' else 'unknown'})
+        blocked = []
+        for event in samples:
+            branch = event.get('branch', {})
+            if branch.get('outcome') is False and target_names.intersection(branch.get('body_calls', [])):
+                state = branch.get('state_before') or {}
+                blocked.append({'file': event.get('file'), 'function': event.get('function'),
+                                'line': branch['guard_line'], 'condition': branch['condition'],
+                                'skipped_target_calls': sorted(target_names.intersection(branch['body_calls'])),
+                                'node': state.get('node'), 'current_info': state.get('current_info'),
+                                'seq': event.get('seq')})
+        routes.append({'test': test, 'command': last.get('command'), 'invocation': last.get('invocation'),
+                       'process': last.get('process'), 'target_calls': targets, 'blocked_guards': blocked[-3:]})
+    packet['failure_routes'] = routes
     # Conan adapter uses receiver/configuration facts; no instance-specific fix.
     def scoped_receivers(value, process):
         if isinstance(value, dict):
@@ -327,7 +358,11 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
     if prior:
         header += '\nPrevious repair was rejected and NOT applied:\n' + prior[:2000] + '\n'
     tail = ('\nReturn only JSON: {"edits": [{"file_path": "relative/path.py", '
-            '"before": "exact contiguous snippet from CURRENT source", "after": "complete replacement"}]}. '
+            '"symbol": "Class.method", "replacement": "def method(...):\\n    complete implementation"}]}. '
+            'Replace existing functions by their exact qualified symbol and provide ONE complete function '
+            'including its decorators. These interfaces already exist in the current candidate; do not append '
+            'duplicate definitions. For imports or changes outside functions use '
+            '{"file_path":"relative/path.py","before":"exact CURRENT snippet","after":"replacement"}. '
             'Include every required production edit and imports. Keep snippets concise. '
             'Do not add duplicate method definitions or repeat a rejected/ineffective candidate.\n')
     remaining = budget - len(header) - len(tail) - 100
@@ -344,6 +379,12 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
     header = ('Update a repository-specific FeatureSpace before generating a repair. Do not return code edits.\n'
               '<requirement evidence_id="requirement">\n' + instance['problem_statement'] + '\n</requirement>\n'
               + STATE_CONTRACT + '\n'
+              'Start with failure_routes: for each failed command, check whether the declared interfaces '
+              'were called and which observed condition blocked their caller. A call in a different command '
+              'does not prove this failing command reached it. Identify ALL independent blockers, including '
+              'state production upstream and permission/dispatch downstream; one coordinated repair can '
+              'address more than one. Check claimed missing code against CURRENT code before repeating a '
+              'previous diagnosis: already present restoration or validation is not a missing implementation. '
               'Source expansion provides previously unseen state producers and related responsibilities. '
               'Trace the observed field back to its writer and check whether that writer runs after each '
               'configuration/object change. Do not assume the initial plan contains every required file. '
@@ -531,7 +572,8 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             (directory / 'prompt.md').write_text(prompt)
             raw = model_stage('repair', prompt, 16384)
             (directory / 'response.json').write_text(raw)
-            edits = parse_edits(raw)
+            from generator.feedback_edits import parse_current_edits
+            edits = parse_current_edits(raw, current)
             if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
                 raise ValueError('Repair needs complete production edits')
             for edit in edits:

@@ -116,7 +116,7 @@ def _diverse(items):
 def evidence_bundle(packet, output, budget=26000):
     """Produce stable, citeable observations; keep every nonempty category visible."""
     categories = OrderedDict()
-    for key in ['invocation_calls', 'branch_outcomes', 'successful_execution']:
+    for key in ['failure_routes', 'invocation_calls', 'branch_outcomes', 'successful_execution']:
         categories[key] = packet.get(key, [])
     # Adapter relations are already distilled; allocate them before raw snapshots.
     for key, value in packet.items():
@@ -161,6 +161,10 @@ def evidence_bundle(packet, output, budget=26000):
         item = {'id': identity, 'category': category, 'observation': _bounded(value)}
         # test_output already has a deliberate per-failure budget.
         if category == 'test_output':
+            item['observation'] = value
+        elif category == 'failure_routes':
+            # Compact, command-specific facts must survive without losing the
+            # blocked condition in the middle of an arbitrary string excerpt.
             item['observation'] = value
         else:
             cap = min(2200, max(600, (budget - len(excerpt) - 4000) // max(1, sum(bool(v) for v in categories.values()))))
