@@ -59,6 +59,23 @@ def info_state(info):
             'invalid': scalar(getattr(info, 'invalid', None)), 'cant_build': scalar(getattr(info, 'cant_build', None))}
 
 
+def plain_object_state(value):
+    """Read stored scalar/list fields without knowing the expected implementation."""
+    result = {}
+    try:
+        attributes = vars(value)
+    except TypeError:
+        return result
+    for name in sorted(attributes)[:48]:
+        raw = attributes[name]
+        if raw is None or isinstance(raw, (str, bool, int, float)):
+            result[name] = scalar(raw)
+        elif isinstance(raw, (list, tuple)) and all(
+                item is None or isinstance(item, (str, bool, int, float)) for item in raw[:32]):
+            result[name] = [scalar(item) for item in raw[:32]]
+    return result
+
+
 def snapshot(frame, event, arg):
     local = frame.f_locals
     node = local.get('node')
@@ -88,9 +105,13 @@ def snapshot(frame, event, arg):
     if owner is not None and type(owner).__name__ == 'BuildMode':
         mode = owner
     if mode is not None:
-        result['build_mode'] = {name: scalar(getattr(mode, name, None)) for name in ['missing', 'never', 'cascade']}
-        for name in ['patterns', 'build_missing_patterns', '_build_compatible_patterns', '_build_compatible_excluded']:
-            result['build_mode'][name] = getattr(mode, name, None)
+        result['build_mode'] = {'receiver': tag(mode)}
+        result['build_mode'].update(plain_object_state(mode))
+        # Preserve the policy input beside the resulting object state. This
+        # lets feedback discover a missing input-to-state relation without
+        # deriving semantics from a command string or a reference change.
+        if frame.f_code.co_name == '__init__' and isinstance(local.get('params'), list):
+            result['build_mode_input'] = {'params': [scalar(value) for value in local['params'][:32]]}
     if event == 'return':
         if frame.f_code.co_name == 'compatibles' and isinstance(arg, dict):
             result['returned_candidates'] = [{'package_id': k, 'info': info_state(v)} for k, v in arg.items()]

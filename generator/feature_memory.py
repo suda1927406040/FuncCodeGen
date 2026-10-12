@@ -100,6 +100,74 @@ def focused_elements(memory):
     return elements
 
 
+def _attach_execution_flows(memory, bundle, patch_hash, round_number):
+    """Turn observed producer/refresh/consumer breaks into FeatureSpace entries."""
+    from generator.state_feedback import production_path, safe_path
+    flow_focus = []
+    for item in bundle.get('observations', []):
+        if '.causal_flow.' not in item.get('category', ''):
+            continue
+        flow = item.get('observation')
+        if not isinstance(flow, dict) or flow.get('status') != 'broken':
+            continue
+        actors = []
+        for actor in flow.get('actors', []):
+            if not isinstance(actor, dict) or not actor.get('file') or not actor.get('symbol'):
+                continue
+            try:
+                file = safe_path(actor['file'])
+            except ValueError:
+                continue
+            if not production_path(file):
+                continue
+            symbol = str(actor['symbol'])
+            key = _id('E', file + ':' + symbol)
+            entry = memory['elements'].get(key)
+            if entry is None:
+                entry = {'id': key, 'file': file, 'symbol': symbol,
+                         'text': actor.get('role') or symbol, 'status': 'active',
+                         'certainty': 'execution_observed', 'origin': 'execution_flow',
+                         'evidence': []}
+                memory['elements'][key] = entry
+            entry['evidence'] = list(dict.fromkeys(entry.get('evidence', []) + [item['id']]))[-8:]
+            entry['execution_roles'] = list(dict.fromkeys(
+                entry.get('execution_roles', []) + ([actor['role']] if actor.get('role') else [])))
+            entry.update(last_observed_patch_sha256=patch_hash, last_observed_round=round_number)
+            actors.append(key)
+        if not actors:
+            continue
+        stage = str(flow.get('stage') or 'state_flow')
+        identity = stage + ':' + '->'.join(actors)
+        group_id = _id('G', 'execution-flow:' + identity)
+        memory['groups'][group_id] = {
+            'id': group_id, 'text': str(flow.get('relation') or stage), 'members': actors,
+            'status': 'active', 'certainty': 'execution_observed', 'origin': 'execution_flow',
+            'flow_status': 'broken', 'flow_stage': stage, 'evidence': [item['id']],
+            'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
+        relation_targets = []
+        for left, right in zip(actors, actors[1:]):
+            link_id = _id('L', 'execution-flow:' + stage + ':' + left + '->' + right)
+            memory['links'][link_id] = {
+                'id': link_id, 'from': left, 'to': right, 'kind': stage,
+                'text': str(flow.get('relation') or stage), 'status': 'active',
+                'certainty': 'execution_observed', 'origin': 'execution_flow',
+                'flow_status': 'broken', 'evidence': [item['id']],
+                'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
+            relation_targets.append(link_id)
+        condition_id = _id('C', 'execution-flow:' + identity)
+        memory['conditions'][condition_id] = {
+            'id': condition_id,
+            'text': str(flow.get('required_invariant') or flow.get('relation') or stage),
+            'applies_to': relation_targets or [group_id], 'status': 'active',
+            'certainty': 'execution_observed', 'origin': 'execution_flow',
+            'flow_status': 'broken', 'evidence': [item['id']],
+            'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
+        flow_focus.extend([condition_id, group_id] + relation_targets + actors)
+    if flow_focus:
+        memory['focus'] = list(dict.fromkeys(flow_focus + memory.get('focus', [])))[:96]
+    return memory
+
+
 def attach_observations(memory, bundle, patch_hash, round_number):
     memory = copy.deepcopy(memory)
     # Current observations are separate from inferred functional relationships.
@@ -109,6 +177,7 @@ def attach_observations(memory, bundle, patch_hash, round_number):
     memory['current_grade'] = bundle['grade']
     memory['observation_limits'] = bundle['limits']
     memory['current_patch_sha256'] = patch_hash
+    memory = _attach_execution_flows(memory, bundle, patch_hash, round_number)
     for kind in COLLECTIONS:
         for entry in memory[kind].values():
             if entry.get('patch_sha256') and entry['patch_sha256'] != patch_hash:
@@ -176,11 +245,6 @@ def memory_view(memory, budget=24000):
             if queues[kind]:
                 entries.append((kind, queues[kind].pop(0)))
     for kind, entry in entries:
-        # Unevidenced planner constraints are not repair obligations. Retain them
-        # in the full memory for audit; the original requirement remains supplied.
-        if kind in {'groups', 'links'} and entry.get('origin') in {'initial_plan', 'initial_plan_context'} and not entry.get('evidence'):
-            view['omitted_entries'][kind] += 1
-            continue
         view[kind].append(entry)
         if len(json.dumps(view, ensure_ascii=False)) > budget:
             view[kind].pop()

@@ -21,6 +21,40 @@ def section(prompt, name):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_causal_stages_survive_as_separate_evidence_and_enter_featurespace(self):
+        actors = lambda left, right: [
+            {'file': 'policy.py', 'symbol': left, 'role': 'producer'},
+            {'file': 'select.py', 'symbol': right, 'role': 'consumer'}]
+        packet = {'repo_state_relations': {'causal_flow': [
+            {'stage': 'input_to_state', 'status': 'broken', 'test': 'a',
+             'actors': actors('parse', 'allow'), 'relation': 'policy state is absent',
+             'required_invariant': 'policy input reaches its consumer'},
+            {'stage': 'configuration_to_state', 'status': 'broken', 'test': 'a',
+             'actors': actors('refresh', 'select'), 'relation': 'derived state is stale',
+             'required_invariant': 'derived state is refreshed after configuration changes'}]}}
+        bundle = evidence_bundle(packet, 'E   AssertionError: wrong state')
+        self.assertGreater(bundle['categories']['repo_state_relations.causal_flow.input_to_state']['selected'], 0)
+        self.assertGreater(bundle['categories']['repo_state_relations.causal_flow.configuration_to_state']['selected'], 0)
+        instance = {'instance_id': 'flow', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        memory = attach_observations(seed_featurespace(instance), bundle, 'patch', 1)
+        observed = [entry for entry in memory['groups'].values()
+                    if entry.get('origin') == 'execution_flow']
+        self.assertEqual({entry['flow_stage'] for entry in observed},
+                         {'input_to_state', 'configuration_to_state'})
+        self.assertTrue(memory['focus'])
+        view = memory_view(memory)
+        self.assertTrue(any(entry.get('flow_status') == 'broken' for entry in view['conditions']))
+
+    def test_trace_metadata_is_summarized_before_evidence_budgeting(self):
+        packet = {'trace_metadata': {'trace_status': 'observed', 'trace_events': 50,
+                  'observer_summaries': [{'process': 1, 'finished': True, 'observer_errors': 0,
+                                          'truncated': False, 'truncated_tests': [],
+                                          'watch': {'large.py': ['name'] * 1000}}]}}
+        bundle = evidence_bundle(packet, 'failed')
+        self.assertEqual(bundle['trace_metadata']['observer_summary']['finished_processes'], 1)
+        self.assertNotIn('watch', json.dumps(bundle['trace_metadata']))
+
     def test_real_failures_survive_large_harness_source_dump(self):
         prefix = '+    raise AssertionError("not an actual failure")\n' * 100000
         output = prefix + '''============================= test session starts ==============================

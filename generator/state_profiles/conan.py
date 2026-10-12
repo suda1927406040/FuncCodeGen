@@ -8,11 +8,19 @@ import json
 
 def extract(events, field='cant_build', validator='validate_build', context='cppstd'):
     validation_calls = defaultdict(list)
+    refresh_calls = defaultdict(list)
+    field_reads = defaultdict(list)
     test_has_validator = set()
     candidates = {}
     unvalidated, mismatches, mode_errors, producer_errors, dispatch_errors, stale_guards = [], [], [], [], [], []
     seen_unvalidated, seen_mismatch, seen_mode = set(), set(), set()
     last_invalid_guard = {}
+    mode_initializations, policy_decisions = [], []
+
+    def actor(event, role):
+        return {'file': event.get('file'), 'symbol': event.get('function'), 'role': role,
+                'line': event.get('line')}
+
     for event in events:
         test, seq, state = event['test'], event['seq'], event['state']
         info = state.get('current_info') or {}
@@ -47,6 +55,21 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
             key = (test, event.get('invocation'), info.get('receiver'), info.get(context))
             validation_calls[key].append(seq)
             test_has_validator.add(test)
+        if event['event'] == 'call' and event['function'].split('.')[-1] == 'run_validate_package_id':
+            key = (test, event.get('invocation'), info.get('receiver'), info.get(context))
+            refresh_calls[key].append(event)
+        if field in event.get('statement', '') and info.get('receiver') is not None:
+            key = (test, event.get('invocation'), info.get('receiver'), info.get(context))
+            field_reads[key].append(event)
+        mode = state.get('build_mode') or {}
+        mode_input = state.get('build_mode_input') or {}
+        if event['event'] == 'return' and event['function'].endswith('BuildMode.__init__'):
+            mode_initializations.append((event, list(mode_input.get('params') or []), mode))
+        leaf = event.get('function', '').split('.')[-1]
+        if event['event'] == 'return' and leaf.startswith('allowed_'):
+            policy_decisions.append((event, leaf[len('allowed_'):],
+                                     state.get('return_value', event.get('return_value')),
+                                     mode.get('receiver')))
         for candidate in state.get('returned_candidates', []):
             value = candidate['info']
             candidates[(test, event.get('invocation'), candidate['package_id'])] = value
@@ -60,6 +83,7 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                     'observed_value': value.get(field),
                                     'invocation': event.get('invocation'), 'command': event.get('command'),
                                     'status': 'validation_not_observed_for_this_receiver_and_configuration',
+                                    'producer': actor(event, 'candidate_state_producer'),
                                     'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
         node = state.get('node') or {}
         if event['event'] == 'return' and event['function'].endswith('._evaluate_node'):
@@ -74,16 +98,71 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                        'current_info_receiver': info.get('receiver'),
                                        'invocation': event.get('invocation'), 'command': event.get('command'),
                                        'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
-            mode = state.get('build_mode') or {}
-            tokens = [x for x in mode.get('patterns', []) if isinstance(x, str) and x.startswith('compatible')]
-            if tokens and mode.get('_build_compatible_patterns') is None and test not in seen_mode:
-                seen_mode.add(test)
-                mode_errors.append({'test': test, 'requested_tokens': tokens, 'observed_storage': 'build_mode.patterns',
-                                    'dedicated_compatible_state': None, 'node_binary': node.get('binary'),
-                                    'invocation': event.get('invocation'), 'command': event.get('command'),
-                                    'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
+    policy_concepts = {concept for _, concept, _, _ in policy_decisions}
+    for event, params, mode in mode_initializations:
+        for token in params:
+            if not isinstance(token, str):
+                continue
+            concept = token.split(':', 1)[0]
+            if concept not in policy_concepts:
+                continue
+            matching = [(decision, outcome) for decision, name, outcome, receiver in policy_decisions
+                        if name == concept and decision.get('test') == event.get('test')
+                        and decision.get('invocation') == event.get('invocation')
+                        and receiver == mode.get('receiver')]
+            if matching and any(outcome is True for _, outcome in matching):
+                continue
+            key = (event.get('test'), event.get('invocation'), mode.get('receiver'), concept)
+            if key in seen_mode:
+                continue
+            seen_mode.add(key)
+            mode_errors.append({'test': event.get('test'), 'requested_tokens': [token],
+                                'resulting_policy_state': {k: v for k, v in mode.items() if k != 'receiver'},
+                                'permission_decision': (matching[-1][1] if matching else 'not_observed'),
+                                'invocation': event.get('invocation'), 'command': event.get('command'),
+                                'producer': actor(event, 'policy_state_producer'),
+                                'consumer': actor(matching[-1][0], 'policy_state_consumer') if matching else None,
+                                'evidence': {'seq': event.get('seq'), 'file': event.get('file'),
+                                             'function': event.get('function'), 'line': event.get('line')}})
+    causal_flow = []
+    for record in mode_errors:
+        actors = [record['producer']]
+        if record.get('consumer'):
+            actors.append(record['consumer'])
+        causal_flow.append({'stage': 'input_to_state', 'status': 'broken', 'test': record['test'],
+                            'invocation': record['invocation'], 'command': record.get('command'),
+                            'actors': actors,
+                            'relation': 'A request-specific policy input was observed, but its permission decision was false or was not reached.',
+                            'required_invariant': 'A request-specific policy input must produce state that its permission decision consumes.',
+                            'observation': {'input': record['requested_tokens'],
+                                            'resulting_state': record['resulting_policy_state'],
+                                            'permission_decision': record['permission_decision']},
+                            'evidence': record['evidence']})
+    for record in unvalidated:
+        key = (record['test'], record.get('invocation'), record.get('receiver'),
+               record.get('configuration', {}).get(context))
+        refresh = refresh_calls.get(key, [])
+        reads = [event for event in field_reads.get(key, []) if event.get('seq', 0) > record['evidence']['seq']]
+        actors = []
+        if refresh:
+            actors.append(actor(refresh[-1], 'configuration_state_refresh'))
+        else:
+            actors.append(record['producer'])
+        if reads:
+            actors.append(actor(reads[0], 'derived_state_consumer'))
+        causal_flow.append({'stage': 'configuration_to_state', 'status': 'broken', 'test': record['test'],
+                            'invocation': record.get('invocation'), 'command': record.get('command'),
+                            'actors': actors,
+                            'relation': 'A configuration-specific candidate reached a state-refresh boundary without the derived field being validated for the same receiver and configuration.',
+                            'required_invariant': 'After an object or configuration changes, every derived field used downstream must be recomputed for that same receiver and configuration.',
+                            'observation': {'receiver': record['receiver'],
+                                            'configuration': record['configuration'],
+                                            'field': field, 'observed_value': record['observed_value'],
+                                            'validator': validator, 'consumer_observed': bool(reads)},
+                            'evidence': record['evidence']})
     return {'schema_version': 1, 'identity_scope': ['test', 'invocation', 'receiver', context],
             'field': field, 'validator': validator,
+            'causal_flow': causal_flow,
             'unvalidated_candidates': unvalidated, 'identity_mismatches': mismatches,
             'compatible_mode_observations': mode_errors,
             'producer_execution_errors': producer_errors,

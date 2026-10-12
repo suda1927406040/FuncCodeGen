@@ -113,17 +113,44 @@ def _diverse(items):
                 del groups[key]
 
 
+def _trace_summary(metadata):
+    """Keep execution integrity facts without spending evidence budget on watch dumps."""
+    metadata = metadata or {}
+    result = {key: metadata.get(key) for key in [
+        'instance_id', 'network_mode', 'image_id', 'base_commit', 'fresh_initial_container',
+        'prediction_sha256', 'baseline_verified', 'timed_out', 'seconds', 'trace_events',
+        'extraction_bytes', 'trace_status', 'extraction_truncated'] if key in metadata}
+    summaries = metadata.get('observer_summaries') or []
+    if summaries:
+        result['observer_summary'] = {
+            'processes': len(summaries),
+            'finished_processes': sum(bool(item.get('finished')) for item in summaries),
+            'observer_errors': sum(item.get('observer_errors', 0) for item in summaries),
+            'truncated_processes': sum(bool(item.get('truncated')) for item in summaries),
+            'truncated_tests': sorted({test for item in summaries
+                                       for test in item.get('truncated_tests', [])})[:20]}
+    return result
+
+
 def evidence_bundle(packet, output, budget=26000):
     """Produce stable, citeable observations; keep every nonempty category visible."""
     categories = OrderedDict()
-    for key in ['failure_routes', 'invocation_calls', 'branch_outcomes', 'successful_execution']:
-        categories[key] = packet.get(key, [])
-    # Adapter relations are already distilled; allocate them before raw snapshots.
+    # Execution-discovered responsibility breaks come first. Split stages so
+    # one frequent flow cannot displace a different upstream relation.
     for key, value in packet.items():
         if key.endswith('_state_relations') and isinstance(value, dict):
             for name, records in value.items():
                 if isinstance(records, list) and name not in {'limits', 'identity_scope'}:
-                    categories[key + '.' + name] = records
+                    if name == 'causal_flow':
+                        stages = OrderedDict()
+                        for record in records:
+                            stages.setdefault(record.get('stage', 'unknown'), []).append(record)
+                        for stage, items in stages.items():
+                            categories[key + '.causal_flow.' + stage] = items
+                    else:
+                        categories[key + '.' + name] = records
+    for key in ['successful_execution', 'failure_routes', 'invocation_calls', 'branch_outcomes']:
+        categories[key] = packet.get(key, [])
     # Distilled execution facts (branch outcomes, watch coverage) come before
     # raw snapshots so they survive tight budgets.
     if packet.get('trace_coverage'):
@@ -136,7 +163,7 @@ def evidence_bundle(packet, output, budget=26000):
         categories['trace_tail:' + test] = records[-3:]
     result = {'grade': grade_summary(packet.get('grade')),
               'output_source': packet.get('output_source', 'provided_test_output'),
-              'trace_metadata': _bounded(packet.get('trace_metadata', {})),
+              'trace_metadata': _trace_summary(packet.get('trace_metadata', {})),
               'line_timing': 'before_execution',
               'limits': list(packet.get('limits', [])) + [
                   'Absence from a bounded trace is a coverage gap, not proof a producer never ran.',
@@ -162,9 +189,9 @@ def evidence_bundle(packet, output, budget=26000):
         # test_output already has a deliberate per-failure budget.
         if category == 'test_output':
             item['observation'] = value
-        elif category == 'failure_routes':
+        elif category == 'failure_routes' or '.causal_flow.' in category:
             # Compact, command-specific facts must survive without losing the
-            # blocked condition in the middle of an arbitrary string excerpt.
+            # broken relation in the middle of an arbitrary string excerpt.
             item['observation'] = value
         else:
             cap = min(2200, max(600, (budget - len(excerpt) - 4000) // max(1, sum(bool(v) for v in categories.values()))))

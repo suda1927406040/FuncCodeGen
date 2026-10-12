@@ -9,6 +9,42 @@ def event(seq, function, state, kind='return', test='case'):
 
 
 class StatePacketTests(unittest.TestCase):
+    def test_policy_input_without_runtime_state_becomes_an_upstream_causal_break(self):
+        init = event(1, 'BuildMode.__init__', {
+            'build_mode_input': {'params': ['compatible:&']},
+            'build_mode': {'receiver': 'mode', 'patterns': ['compatible:&'],
+                           'build_missing_patterns': []}})
+        allowed = event(2, 'BuildMode.allowed_compatible', {
+            'build_mode': {'receiver': 'mode'}, 'return_value': False})
+        for item in [init, allowed]:
+            item.update(invocation=7, command='create . --build=compatible:&', file='conans/client/graph/build_mode.py')
+        packet = extract([init, allowed])
+        flow = packet['causal_flow'][0]
+        self.assertEqual(flow['stage'], 'input_to_state')
+        self.assertEqual([a['role'] for a in flow['actors']],
+                         ['policy_state_producer', 'policy_state_consumer'])
+        self.assertEqual(flow['observation']['input'], ['compatible:&'])
+        self.assertFalse(flow['observation']['permission_decision'])
+
+    def test_candidate_field_without_same_configuration_validation_links_refresh_to_consumer(self):
+        refresh = event(1, 'run_validate_package_id', {
+            'current_info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}, 'call')
+        produced = event(2, 'BinaryCompatibility.compatibles', {'has_build_validator': True,
+            'returned_candidates': [{'package_id': 'p14', 'info': {
+                'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}]})
+        consumed = event(3, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'current_info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}, 'line')
+        consumed['statement'] = 'if compatible_package.cant_build:'
+        for item, file in [(refresh, 'conans/client/graph/compute_pid.py'),
+                           (produced, 'conans/client/graph/compatibility.py'),
+                           (consumed, 'conans/client/graph/graph_binaries.py')]:
+            item.update(invocation=4, command='create . --build=compatible', file=file)
+        flow = extract([refresh, produced, consumed])['causal_flow'][0]
+        self.assertEqual(flow['stage'], 'configuration_to_state')
+        self.assertEqual([a['role'] for a in flow['actors']],
+                         ['configuration_state_refresh', 'derived_state_consumer'])
+        self.assertTrue(flow['observation']['consumer_observed'])
+
     def test_validation_of_main_info_does_not_validate_a_different_candidate(self):
         trace = [event(1, 'Pkg.validate_build', {'current_info': {'receiver': 'main', 'cppstd': '11'}}, 'call'),
                  event(2, 'Compatibility.compatibles', {'returned_candidates': [
