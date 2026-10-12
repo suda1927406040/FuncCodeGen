@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from generator.feedback_evidence import evidence_bundle, failure_excerpt, read_failure_output, test_delta
 from generator.feature_memory import (attach_observations, execution_obligations, merge_update,
-                                      seed_featurespace, memory_view)
+                                      preserve_runtime_observations, seed_featurespace, memory_view)
 from generator.llm_interface import LLMResponse
 from generator.state_feedback import (_edited_responsibilities, diagnosis_prompt,
                                       repair_once, repair_prompt, watch_config)
@@ -62,6 +62,38 @@ class EvidenceTests(unittest.TestCase):
             'evidence': observed_group['evidence']}], 'focus': [], 'checks': []}
         with self.assertRaisesRegex(ValueError, 'cannot be retired'):
             merge_update(memory, delta, ['policy.py', 'select.py'])
+
+    def test_invalid_runtime_overwrite_can_be_filtered_without_losing_diagnosis(self):
+        instance = {'instance_id': 'salvage', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [{
+            'stage': 'policy_to_dispatch', 'status': 'broken', 'test': 'missing',
+            'actors': [{'file': 'mode.py', 'symbol': 'Mode.allowed',
+                        'role': 'feature_policy_consumer_wrong_decision'}],
+            'relation': 'The policy returned the wrong decision.',
+            'required_invariant': 'The feature policy rejects ordinary requests.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        group = next(entry for entry in memory['groups'].values()
+                     if entry.get('origin') == 'execution_flow')
+        evidence = group['evidence']
+        delta = {
+            'summary': 'The policy state and ordinary request are conflated.',
+            'upsert': {'groups': [{
+                'id': group['id'], 'text': 'attempted overwrite',
+                'members': group['members'], 'evidence': evidence}]},
+            'focus': [group['id']],
+            'checks': [{
+                'hypothesis': 'The policy grants an ordinary request.',
+                'expected_change': 'The permission decision becomes false.',
+                'evidence': evidence, 'basis': 'Observed decision.'}]}
+        filtered, removed = preserve_runtime_observations(memory, delta)
+        self.assertEqual(removed[0]['id'], group['id'])
+        merged = merge_update(memory, filtered, ['mode.py'])
+        self.assertEqual(merged['groups'][group['id']]['text'], group['text'])
+        self.assertEqual(merged['diagnosis'], delta['summary'])
+        self.assertEqual(merged['checks'][0]['hypothesis'],
+                         'The policy grants an ordinary request.')
 
     def test_new_regression_becomes_a_featurespace_preservation_flow(self):
         instance = {'instance_id': 'regression', 'repo': 'test/repo', 'base_commit': 'base',

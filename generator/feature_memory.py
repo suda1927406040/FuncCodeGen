@@ -613,6 +613,50 @@ def merge_update(memory, delta, code_files):
     return result
 
 
+def preserve_runtime_observations(memory, delta):
+    """Remove attempted mutations of current execution facts from a model delta.
+
+    Runtime flows remain immutable. The diagnosis, new hypotheses and checks can
+    still be useful, so callers may validate the filtered transaction instead
+    of discarding the whole reflection.
+    """
+    clean = copy.deepcopy(delta)
+    current = memory.get('current_patch_sha256')
+    protected = {
+        key
+        for kind in COLLECTIONS
+        for key, entry in memory.get(kind, {}).items()
+        if entry.get('origin') in {'execution_flow', 'regression_flow'}
+        and entry.get('patch_sha256') == current
+    }
+    removed = []
+    upsert = clean.get('upsert')
+    if isinstance(upsert, dict):
+        for kind in COLLECTIONS:
+            entries = upsert.get(kind)
+            if not isinstance(entries, list):
+                continue
+            kept = []
+            for entry in entries:
+                key = entry.get('id') if isinstance(entry, dict) else None
+                if key in protected:
+                    removed.append({'operation': 'upsert', 'kind': kind, 'id': key})
+                else:
+                    kept.append(entry)
+            upsert[kind] = kept
+    retirements = clean.get('retire')
+    if isinstance(retirements, list):
+        kept = []
+        for item in retirements:
+            key = item.get('id') if isinstance(item, dict) else None
+            if key in protected:
+                removed.append({'operation': 'retire', 'id': key})
+            else:
+                kept.append(item)
+        clean['retire'] = kept
+    return clean, removed
+
+
 def save_memory(path, memory):
     from pathlib import Path
     path = Path(path)

@@ -12,7 +12,8 @@ from generator.feedback_evidence import failure_excerpt, evidence_bundle, grade_
 from generator.feature_memory import (seed_featurespace, attach_observations, memory_files,
                                       memory_view, associated_evidence, merge_update,
                                       save_memory, focused_elements, history_view,
-                                      execution_obligations, UPDATE_SCHEMA)
+                                      execution_obligations, preserve_runtime_observations,
+                                      UPDATE_SCHEMA)
 import re
 import shutil
 import subprocess
@@ -700,8 +701,19 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     prompt, files = diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle)
                     raw = model_stage('diagnosis', prompt, 6144)
                     delta = json.loads(raw)
-                    memory = merge_update(memory, delta, files)
-                    save_memory(directory / 'featurespace_delta.json', delta)
+                    try:
+                        memory = merge_update(memory, delta, files)
+                        accepted_delta = delta
+                    except ValueError:
+                        filtered, protected = preserve_runtime_observations(memory, delta)
+                        if not protected:
+                            raise
+                        memory = merge_update(memory, filtered, files)
+                        accepted_delta = filtered
+                        save_memory(directory / 'diagnosis_warning.json', {
+                            'warning': 'Ignored attempted mutations of immutable current execution observations',
+                            'ignored': protected})
+                    save_memory(directory / 'featurespace_delta.json', accepted_delta)
                 except (ValueError, TypeError, KeyError, LLMCallError) as error:
                     # A bad reflection must not make a formerly repairable case empty.
                     save_memory(directory / 'diagnosis_error.json', {'error': type(error).__name__ + ': ' + str(error)[:1500]})
