@@ -86,7 +86,7 @@ class StateFeedbackTests(unittest.TestCase):
         watch={'watch':{'state.py':['select','unreached_helper']}}
         report={'tests_status':{'FAIL_TO_PASS':{'failure':['failed']}}}
         complete={'trace_status':'observed','observer_summaries':[
-            {'process':1,'truncated':False,'truncated_tests':[],'observer_errors':0}]}
+            {'process':1,'truncated':False,'truncated_tests':[],'observer_errors':0,'finished':True}]}
         packet=extract_packet(events,report,complete,watch)
         self.assertEqual(packet['trace_coverage']['status'],'complete')
         outcome=packet['branch_outcomes'][0]
@@ -120,7 +120,7 @@ class StateFeedbackTests(unittest.TestCase):
         self.assertGreaterEqual(counts['watched_call_coverage']['selected'],1)
         selected={observation['category'] for observation in bundle['observations']}
         self.assertIn('branch_outcomes',selected)
-        self.assertTrue(any('not_called_confirmed' in json.dumps(o) for o in bundle['observations']))
+        self.assertTrue(any('not_observed_unknown' in json.dumps(o) for o in bundle['observations']))
 
     def test_probe_records_real_python_transition_without_altering_result(self):
         config=self.root/'watch.json'
@@ -134,6 +134,10 @@ class StateFeedbackTests(unittest.TestCase):
         guard=next(e for e in events if e['statement'].startswith('if node.state'))
         self.assertEqual(guard['values']['node']['fields']['state'],'Missing')
         self.assertEqual(events[-1]['return_value'],'Invalid')
+        branch=next(e['branch'] for e in events if e.get('branch'))
+        self.assertFalse(branch['outcome'])
+        self.assertEqual(branch['guard_line'],3)
+        self.assertEqual(branch['next_line'],5)
         self.assertEqual(json.loads(next(output.glob('summary-*.json')).read_text())['observer_errors'],0)
 
     def test_unsafe_patch_paths_rejected(self):

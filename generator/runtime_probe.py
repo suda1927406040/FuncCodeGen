@@ -4,6 +4,7 @@ No user-defined repr/equality/properties are evaluated by the generic snapshot.
 One observer file per process; identities are only meaningful within that file.
 """
 import atexit
+import ast
 import json
 import linecache
 import os
@@ -23,6 +24,54 @@ _conan = None
 _errors = 0
 _command = None
 _invocation = 0
+_branches = {}
+_pending = {}
+_frames = {}
+_frame_sequence = 0
+_dropped_tests = set()
+_process_limited = False
+
+
+def branch_layout(filename):
+    """Read syntax only; never evaluate a condition a second time."""
+    if filename not in _branches:
+        source = ''.join(linecache.getlines(filename))
+        result = {}
+        try:
+            for node in ast.walk(ast.parse(source)):
+                if not isinstance(node, (ast.If, ast.While)) or not node.body:
+                    continue
+                # Same-line suites have no distinct line event proving an outcome.
+                if node.body[0].lineno <= node.test.end_lineno:
+                    continue
+                calls = []
+                for statement in node.body:
+                    for child in ast.walk(statement):
+                        if isinstance(child, ast.Call):
+                            name = child.func.attr if isinstance(child.func, ast.Attribute) else getattr(child.func, 'id', '')
+                            if name and name not in calls:
+                                calls.append(name)
+                result[node.lineno] = {
+                    'condition': ast.get_source_segment(source, node.test),
+                    'guard_line': node.lineno, 'test_end': node.test.end_lineno,
+                    'body_start': node.body[0].lineno, 'body_end': node.body[-1].end_lineno,
+                    'end': node.end_lineno, 'body_calls': calls[:16]}
+        except (SyntaxError, ValueError, AttributeError):
+            pass
+        _branches[filename] = result
+    return _branches[filename]
+
+
+def branch_followup(pending, event, line):
+    if not pending or event != 'line' or line <= pending['test_end']:
+        return None
+    # The next executed line of this SAME frame identifies the suite taken.
+    # Exceptions/returns never establish a false outcome.
+    result = {key: pending[key] for key in ['condition', 'guard_line', 'body_calls', 'values_before', 'state_before']}
+    result.update({
+        'outcome': pending['body_start'] <= line <= pending['body_end'],
+        'next_line': line, 'basis': 'next_executed_line_in_same_frame'})
+    return result
 
 
 def identity(value):
@@ -75,14 +124,17 @@ def scoped_test(frame):
 
 
 def selected_test(test):
-    failures = _config.get('failed_tests', [])
+    failures = _config.get('observed_tests', _config.get('failed_tests', []))
     return not failures or test in failures or any(
         test.endswith('::'+name) or name.endswith('::'+test) for name in failures)
 
 
 def trace(frame, event, arg):
-    global _seq, _errors, _command, _invocation
-    if _stream is None or _seq >= _config.get('event_limit_per_process', 6000):
+    global _seq, _errors, _command, _invocation, _frame_sequence, _process_limited
+    if _stream is None:
+        return None
+    if _seq >= _config.get('event_limit_per_process', 6000):
+        _process_limited = True
         return None
     filename, name = frame.f_code.co_filename, frame.f_code.co_name
     rel = filename[9:] if filename.startswith('/testbed/') else ''
@@ -101,6 +153,7 @@ def trace(frame, event, arg):
             if not selected_test(test):
                 return trace
             if _counts.get(test, 0) >= _config.get('event_limit_per_test', 800):
+                _dropped_tests.add(test)
                 return trace
             statement = linecache.getline(filename, frame.f_lineno).strip()[:250]
             names = sorted(frame.f_locals, key=lambda n: (n not in {'node', 'self', 'conanfile', 'info', 'compatible', 'result', 'settings', 'options'}, n))[:8]
@@ -112,17 +165,29 @@ def trace(frame, event, arg):
                 values = {'observed_state': state}
             marker = json.dumps([values, state], sort_keys=True)
             key = (threading.current_thread().ident, id(frame))
+            if event == 'call' or key not in _frames:
+                _frame_sequence += 1
+                _frames[key] = _frame_sequence
+            pending = _pending.get(key)
+            branch = branch_followup(pending, event, frame.f_lineno)
+            if branch or event in {'exception', 'return'}:
+                _pending.pop(key, None)
+            layout = branch_layout(filename).get(frame.f_lineno) if event == 'line' else None
+            if layout:
+                _pending[key] = dict(layout, values_before=values, state_before=state)
             guard = statement.startswith(('if ', 'elif ', 'while ', 'for '))
-            if event == 'line' and marker == _last.get(key) and not guard:
+            if event == 'line' and marker == _last.get(key) and not guard and not branch:
                 return trace
             _last[key] = marker
             _seq += 1
             _counts[test] = _counts.get(test, 0) + 1
             owner = frame.f_locals.get('self')
             item = {'seq': _seq, 'process': os.getpid(), 'test': test, 'event': event,
-                    'frame': str(key), 'file': rel or 'recipe/conanfile.py',
+                    'frame': str(_frames[key]), 'file': rel or 'recipe/conanfile.py',
                     'function': (type(owner).__name__ + '.' if owner is not None else '') + name,
                     'line': frame.f_lineno, 'statement': statement, 'values': values}
+            if branch:
+                item['branch'] = branch
             if _conan is not None:
                 item.update(command=_command, invocation=_invocation)
             if state is not None:
@@ -132,6 +197,7 @@ def trace(frame, event, arg):
             if event == 'return':
                 item['return_value'] = value_state(arg)
                 _last.pop(key, None)
+                _frames.pop(key, None)
             _stream.write(json.dumps(item, ensure_ascii=False) + '\n')
     except Exception:
         _errors += 1
@@ -148,7 +214,8 @@ def finish():
         path = os.path.join(os.environ['FEA_STATE_OUTPUT'], 'summary-%d.json' % os.getpid())
         with open(path, 'w') as stream:
             json.dump({'events': _seq, 'observer_errors': _errors, 'tests': _counts,
-                       'truncated': _seq >= _config.get('event_limit_per_process', 6000),
+                       'truncated': _process_limited, 'truncated_tests': sorted(_dropped_tests),
+                       'watch': _config.get('watch', {}), 'finished': True,
                        'process': os.getpid(), 'line_timing': 'before_execution'}, stream)
 
 

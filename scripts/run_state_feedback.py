@@ -288,6 +288,11 @@ def main():
                 memories[iid]['attempts'] = histories[iid]
                 save_memory(args.run_root/'featurespaces'/(iid+'.json'), memories[iid])
                 write_json(args.run_root/'repairs'/iid/str(attempt['round'])/'outcome.json', attempt)
+        from generator.feedback_candidates import record_candidate, candidate_view
+        for iid in ids:
+            records = record_candidate(args.run_root, iid, current[iid], grade.get(iid, {}), memories[iid], number)
+            memories[iid]['verified_candidates'] = candidate_view(args.run_root, iid, records, current[iid])
+            save_memory(args.run_root/'featurespaces'/(iid+'.json'), memories[iid])
         write_json(args.run_root/'repair_history.json', histories)
         write_json(args.run_root/'latest_case_reports.json',grade)
         resolved = sum(bool(r.get('resolved')) for r in grade.values())
@@ -319,6 +324,10 @@ def main():
                         watch['watch'].setdefault(file, [])
                         watch['watch'][file] = list(dict.fromkeys([symbol] + watch['watch'][file]))[:64]
             watch['failed_tests'] = list(dict.fromkeys(t for group in grade[iid].get('tests_status',{}).values() for t in group.get('failure',[])))
+            passed = grade[iid].get('tests_status', {})
+            witnesses = passed.get('FAIL_TO_PASS', {}).get('success', [])[:4] + passed.get('PASS_TO_PASS', {}).get('success', [])[:2]
+            watch['observed_tests'] = list(dict.fromkeys(watch['failed_tests'] + witnesses))
+            watch['passing_witnesses'] = witnesses
             write_json(args.run_root/'rounds'/str(number)/'watch'/(iid+'.json'),watch)
         traced = None
         if traceable:
@@ -387,6 +396,16 @@ def main():
                 write_json(args.run_root/'repair_history.json',histories)
                 progress('feedback_generation',round=number+1,instances=len(failed),completed=done)
         predictions(args.run_root/'rounds'/str(number+1)/'predictions.jsonl',list(current))
+    from generator.feedback_candidates import select_candidate
+    selection = {}
+    for iid in current:
+        selected = select_candidate(args.run_root, iid)
+        if selected:
+            record, candidate, report = selected
+            selection[iid] = dict(record, last_patch_sha256=hashlib.sha256(current[iid].encode()).hexdigest())
+            current[iid], grade[iid] = candidate, report
+    write_json(args.run_root/'candidate_selection.json', selection)
+    write_json(args.run_root/'selected_case_reports.json', grade)
     predictions(args.run_root/'predictions_final.jsonl',list(current))
     if total == 200:
         predictions(args.run_root/'predictions_final200.jsonl',list(current))

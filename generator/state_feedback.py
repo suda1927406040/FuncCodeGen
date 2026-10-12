@@ -97,8 +97,13 @@ def watch_config(repo, instance, patch, recall=None, output=''):
             elif changed_by_file[name] or declared_symbols[name]:
                 focused[name] = list(dict.fromkeys(changed_by_file[name] + declared_symbols[name]))
         watch = focused
+    from generator.feedback_context import expand_producers
+    expansion = expand_producers(repo, watch, patch)
+    for item in expansion:
+        watch[item['file']] = item['symbols']
     return {'schema_version': 1, 'watch': watch, 'repo': instance['repo'],
-            'event_limit_per_process': 12000, 'event_limit_per_test': 1600,
+            'source_expansion': expansion,
+            'event_limit_per_process': 40000, 'event_limit_per_test': 5000,
             'line_timing': 'before_execution', 'reference_patch_used': False}
 
 
@@ -148,7 +153,13 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
     if meta.get('timed_out'):
         reasons.append('diagnosis_timed_out')
     summaries = meta.get('observer_summaries') or []
+    observed_processes = {e.get('process') for e in events}
+    summarized_processes = {s.get('process') for s in summaries if s.get('finished')}
+    if not summaries or observed_processes - summarized_processes:
+        reasons.append('missing_complete_process_summary')
     for summary in summaries:
+        if 'truncated_tests' not in summary:
+            reasons.append('missing_per_test_limit_status')
         if summary.get('truncated') or summary.get('truncated_tests'):
             reasons.append('process_event_limit=' + str(summary.get('process')))
         if summary.get('observer_errors'):
@@ -172,7 +183,7 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
                 if not called_failed and not not_called:
                     continue
                 per_test = [{'test': t,
-                             'status': 'not_called_confirmed' if complete and t not in truncated_tests
+                             'status': 'not_called_confirmed' if complete and t in by_test and t not in truncated_tests
                                        else 'not_observed_unknown'} for t in not_called[:6]]
                 coverage_records.append({'file': file, 'function': name,
                                          'called_in_failed_tests': called_failed[:6],
@@ -180,6 +191,30 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
         # Functions absent from failed tests are the most diagnostic; list them first.
         coverage_records.sort(key=lambda record: not record['not_called'])
         coverage_records = coverage_records[:60]
+    # Successful examples are observations of this candidate, not rules inferred
+    # from test names. Preserve a few contrasting paths alongside failure evidence.
+    passing = [t for group in status.values() for t in group.get('success', [])]
+    successful = []
+    for test in passing:
+        observed = by_test.get(test, [])
+        returns = [e for e in observed if e.get('event') == 'return']
+        if returns:
+            successful.append({'test': test, 'outcome': 'passed', 'events': [
+                {k: e[k] for k in ['file', 'function', 'command', 'invocation', 'state', 'return_value'] if k in e}
+                for e in returns[-3:]]})
+    invocations = []
+    scopes = defaultdict(list)
+    for e in events:
+        scopes[(e.get('test'), e.get('process'), e.get('invocation'), e.get('command'))].append(e)
+    for (test, process, invocation, command), scoped in scopes.items():
+        if not relevant(scoped[-1]):
+            continue
+        calls = defaultdict(int)
+        for e in scoped:
+            if e.get('event') == 'call':
+                calls[e.get('file', '') + ':' + e.get('function', '')] += 1
+        invocations.append({'test': test, 'process': process, 'invocation': invocation, 'command': command,
+                            'calls': dict(calls), 'coverage': coverage['status']})
     tails = {t: es[-12:] for t, es in by_test.items() if t in failures}
     if not tails and events:
         tails = {'unscoped': events[-24:]}
@@ -190,6 +225,8 @@ def extract_packet(events, report=None, trace_meta=None, watch=None):
               'state_transitions': [e for e in transitions if relevant(e)][-20:],
               'consumer_guards': [e for e in guards if relevant(e)][-12:],
               'branch_outcomes': branch_outcomes,
+              'invocation_calls': invocations[-16:],
+              'successful_execution': successful[:6],
               'trace_coverage': coverage,
               'watched_call_coverage': coverage_records if watch is not None else [],
               'failure_trace_tails': dict(list(tails.items())[:8]),
@@ -230,7 +267,10 @@ def source_context(instance, current, patch, packet, watch, budget, memory=None)
             entry = memory.get('elements', {}).get(key)
             if entry:
                 focused.append(entry['file'])
-    files = list(dict.fromkeys(focused + primary + patch_paths(patch) + memory_files(memory or {}) + list(watch.get('watch', {}))))
+    expanded = [item['file'] for item in watch.get('source_expansion', [])]
+    for item in watch.get('source_expansion', []):
+        priority_symbols[item['file']].extend(item['symbols'])
+    files = list(dict.fromkeys(expanded + focused + primary + patch_paths(patch) + memory_files(memory or {}) + list(watch.get('watch', {}))))
     files = [f for f in files if f and production_path(f) and (Path(current) / safe_path(f)).is_file()][:24]
     remaining = budget
     sections, included = [], []
@@ -270,7 +310,11 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
                    'retired entries must not constrain the repair. Check the cited evidence against current source. '
                    'Each check states a hypothesis and the expected_change this repair must realize; '
-                   'do not repeat a change whose expected change a check review already refuted.\n'
+                   'do not repeat a change whose expected change a check review already refuted. '
+                   'Preserve the supported behaviors in verified_candidates and successful_execution evidence. '
+                   'When a callback is optional, distinguish absence, validation rejection, and an execution bug. '
+                   'Repair the lifecycle or dispatch condition instead of discarding a responsibility that other '
+                   'passing executions require. Reuse existing producer/validation routines when appropriate.\n'
                    '<featurespace>\n' + json.dumps(memory_view(memory), ensure_ascii=False) + '\n</featurespace>\n'
                    '<featurespace_evidence>\n' + json.dumps(associated_evidence(memory), ensure_ascii=False) + '\n</featurespace_evidence>\n')
     else:
@@ -294,9 +338,19 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
 
 
 def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, budget=80000):
+    historical = associated_evidence(memory, budget=9000)
+    historical['observations'] = [e for e in historical['observations'] if e['id'] not in memory.get('current_evidence', [])]
+    memory['diagnosis_evidence_ids'] = list(memory.get('current_evidence', [])) + [e['id'] for e in historical['observations']]
     header = ('Update a repository-specific FeatureSpace before generating a repair. Do not return code edits.\n'
               '<requirement evidence_id="requirement">\n' + instance['problem_statement'] + '\n</requirement>\n'
               + STATE_CONTRACT + '\n'
+              'Source expansion provides previously unseen state producers and related responsibilities. '
+              'Trace the observed field back to its writer and check whether that writer runs after each '
+              'configuration/object change. Do not assume the initial plan contains every required file. '
+              'Compare failing paths with successful_execution and verified_candidates: identify the '
+              'conditions under which each behavior is required. Test identifiers locate evidence, never '
+              'become code conditions. A different output identity can result from selecting a different '
+              'object/configuration; do not assume the identity calculation itself is wrong. '
               'First review the previous round checks: compare each expected_change with the current '
               'branch_outcomes, watched_call_coverage and the attempt test deltas, and record the outcome '
               'in check_reviews. If an expected change did not occur, re-examine that repair and the '
@@ -318,7 +372,8 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
               'Every change must come with a check whose expected_change is observable next round. '
               'Keep the delta small; all inferred claims remain hypotheses until evaluated.\n'
               '<featurespace>\n' + json.dumps(memory_view(memory, 18000), ensure_ascii=False) + '\n</featurespace>\n'
-              '<current_execution_evidence>\n' + json.dumps(bundle, ensure_ascii=False) + '\n</current_execution_evidence>\n')
+              '<current_execution_evidence>\n' + json.dumps(bundle, ensure_ascii=False) + '\n</current_execution_evidence>\n'
+              '<historical_execution_evidence>\n' + json.dumps(historical, ensure_ascii=False) + '\n</historical_execution_evidence>\n')
     tail = '\nReturn only a JSON object using this schema; omit unused entries, never invent evidence IDs:\n' + UPDATE_SCHEMA
     remaining = budget - len(header) - len(tail) - 100
     if remaining < 1000:
@@ -401,6 +456,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
         raise ValueError('FeatureSpace belongs to a different instance/base')
     memory = attach_observations(memory, bundle, patch_hash, round_number)
     memory['attempts'] = history
+    memory['source_expansion'] = watch.get('source_expansion', [])
     save_memory(directory / 'featurespace_before.json', memory)
     names = list(dict.fromkeys(patch_paths(patch) + list(watch.get('watch', {})) + memory_files(memory)))
     for event in packet.get('exceptions', []) + packet.get('state_transitions', []) + packet.get('consumer_guards', []):

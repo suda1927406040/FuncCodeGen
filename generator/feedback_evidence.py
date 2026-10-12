@@ -116,6 +116,8 @@ def _diverse(items):
 def evidence_bundle(packet, output, budget=26000):
     """Produce stable, citeable observations; keep every nonempty category visible."""
     categories = OrderedDict()
+    for key in ['invocation_calls', 'branch_outcomes', 'successful_execution']:
+        categories[key] = packet.get(key, [])
     # Adapter relations are already distilled; allocate them before raw snapshots.
     for key, value in packet.items():
         if key.endswith('_state_relations') and isinstance(value, dict):
@@ -154,7 +156,8 @@ def evidence_bundle(packet, output, budget=26000):
                 records.append((key, queue.pop(0)))
     for category, value in records:
         raw = json.dumps(value, ensure_ascii=False, sort_keys=True)
-        identity = 'ev:' + hashlib.sha256((category + raw).encode()).hexdigest()[:16]
+        candidate = packet.get('trace_metadata', {}).get('prediction_sha256', '')
+        identity = 'ev:' + hashlib.sha256((candidate + category + raw).encode()).hexdigest()[:16]
         item = {'id': identity, 'category': category, 'observation': _bounded(value)}
         # test_output already has a deliberate per-failure budget.
         if category == 'test_output':

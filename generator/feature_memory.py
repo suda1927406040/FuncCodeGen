@@ -136,7 +136,7 @@ def history_view(history):
                 item[key] = attempt[key][:350]
         item['changed_files'] = [f[:140] for f in attempt.get('changed_files', [])[:4]]
         delta = attempt.get('test_delta', {})
-        item['test_delta'] = {k: [test[:160] for test in tests[:2]] for k, tests in delta.items()}
+        item['test_delta'] = {k: [test[:220] for test in tests[:12]] for k, tests in delta.items()}
         item['test_delta_counts'] = {k: len(tests) for k, tests in delta.items()}
         result.append(item)
     return result
@@ -146,7 +146,9 @@ def memory_view(memory, budget=24000):
     """Serialize whole entries with explicit omissions; never slice JSON or keys."""
     view = {key: _brief(copy.deepcopy(memory.get(key))) for key in [
         'instance_id', 'base_commit', 'revision', 'current_patch_sha256',
-        'current_grade', 'observation_limits', 'focus', 'checks', 'diagnosis', 'diagnosis_status']}
+        'current_grade', 'observation_limits', 'focus', 'checks', 'diagnosis', 'diagnosis_status', 'source_expansion']}
+    # Keep whole bounded candidate references; _brief would cut a diff mid-token.
+    view['verified_candidates'] = copy.deepcopy(memory.get('verified_candidates', []))
     view['attempts'] = history_view(memory.get('attempts', []))
     if view.get('current_grade'):
         for key in ['failed', 'passed']:
@@ -232,7 +234,9 @@ def merge_update(memory, delta, code_files):
     # Historical observations stay citable: each is stamped with the patch and
     # round it belongs to. They describe earlier candidates, never the current one.
     stored_ids = set(memory.get('evidence', {}))
-    valid_evidence = current_ids | stored_ids | {'code:' + f for f in code_files} | {'requirement'}
+    # Only observations actually supplied in the diagnosis are citable.
+    supplied = set(memory.get('diagnosis_evidence_ids', current_ids | stored_ids))
+    valid_evidence = supplied | {'code:' + f for f in code_files} | {'requirement'}
     def historical(ids):
         return sorted({e for e in ids if e in stored_ids and e not in current_ids})
     def evidence(value):

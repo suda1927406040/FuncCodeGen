@@ -44,13 +44,13 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                     'error': error, 'evidence': {'seq': seq, 'file': event['file'],
                                                                'function': event['function'], 'line': event['line']}})
         if event['event'] == 'call' and event['function'].split('.')[-1] == validator:
-            key = (test, info.get('receiver'), info.get(context))
+            key = (test, event.get('invocation'), info.get('receiver'), info.get(context))
             validation_calls[key].append(seq)
             test_has_validator.add(test)
         for candidate in state.get('returned_candidates', []):
             value = candidate['info']
-            candidates[(test, candidate['package_id'])] = value
-            key = (test, value.get('receiver'), value.get(context))
+            candidates[(test, event.get('invocation'), candidate['package_id'])] = value
+            key = (test, event.get('invocation'), value.get('receiver'), value.get(context))
             validated = any(s < seq for s in validation_calls[key])
             has_validator = state.get('has_build_validator', test in test_has_validator)
             if has_validator and not validated and key not in seen_unvalidated:
@@ -63,7 +63,7 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                     'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
         node = state.get('node') or {}
         if event['event'] == 'return' and event['function'].endswith('._evaluate_node'):
-            candidate = candidates.get((test, node.get('package_id')))
+            candidate = candidates.get((test, event.get('invocation'), node.get('package_id')))
             if candidate and candidate.get(context) is not None and info.get(context) is not None and candidate[context] != info[context]:
                 key = (test, node.get('receiver'), node.get('package_id'), info.get('receiver'))
                 if key not in seen_mismatch:
@@ -82,7 +82,7 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                     'dedicated_compatible_state': None, 'node_binary': node.get('binary'),
                                     'invocation': event.get('invocation'), 'command': event.get('command'),
                                     'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
-    return {'schema_version': 1, 'identity_scope': ['test', 'receiver', context],
+    return {'schema_version': 1, 'identity_scope': ['test', 'invocation', 'receiver', context],
             'field': field, 'validator': validator,
             'unvalidated_candidates': unvalidated, 'identity_mismatches': mismatches,
             'compatible_mode_observations': mode_errors,
