@@ -485,7 +485,9 @@ class EvolutionTests(unittest.TestCase):
             self.instance, self.repo, self.initial, packet, 'failed',
             self.watch, memory=memory)
         checklist = section(prompt, 'required_edit_checklist')
-        self.assertEqual(checklist, [{'file_path': 'state.py', 'symbol': 'select'}])
+        self.assertEqual([(e['file_path'], e['symbol']) for e in checklist],
+                 [('state.py', 'select')])
+        self.assertIn('return "Missing"', checklist[0]['current_source'])
         tail = prompt[prompt.index('<required_edit_checklist>'):]
         self.assertIn('real executable change for EVERY exact', tail)
         self.assertIn('Return only JSON', tail)

@@ -22,8 +22,16 @@ class ProducerFeedbackTests(unittest.TestCase):
             self.assertTrue(entries[0]['after'].startswith('    @staticmethod\n    def allowed'))
             self.assertEqual(entries[0]['symbol'], 'Mode.allowed')
             edit['replacement']+='\n\ndef allowed(value):\n    return True\n'
-            with self.assertRaisesRegex(ValueError,'exactly the named function'):
+            # A same-name duplicate is ambiguous and still rejected...
+            with self.assertRaisesRegex(ValueError,'named function exactly once'):
                 parse_current_edits(json.dumps({'edits':[edit]}),root)
+            # ...but appended DIFFERENT-name siblings are trimmed to the
+            # named function instead of wasting the repair round.
+            edit['replacement']=edit['replacement'].replace(
+                '\n\ndef allowed(value):\n    return True\n', '\n\ndef _helper(value):\n    return True\n')
+            entries=parse_current_edits(json.dumps({'edits':[edit]}),root)
+            self.assertNotIn('_helper', entries[0]['after'])
+            self.assertIn('return value', entries[0]['after'])
 
     def test_failure_route_uses_last_command_not_an_earlier_call(self):
         events=[{'seq':1,'test':'case','process':1,'invocation':1,'command':'old',

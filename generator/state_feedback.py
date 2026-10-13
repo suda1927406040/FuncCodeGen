@@ -400,13 +400,25 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
         header += '\nPrevious repair was rejected and NOT applied:\n' + prior[:2000] + '\n'
     checklist = ''
     if required_targets:
+        from generator.feedback_edits import current_symbol_source
+        entries = []
+        for file, symbol in required_targets:
+            entry = {'file_path': file, 'symbol': symbol}
+            try:
+                source = (Path(current) / file).read_text(errors='replace')
+                extracted = current_symbol_source(source, symbol)
+                if extracted:
+                    entry['current_source'] = extracted
+            except OSError:
+                pass
+            entries.append(entry)
         checklist = (
             '\n<required_edit_checklist>\n'
-            + json.dumps([
-                {'file_path': file, 'symbol': symbol}
-                for file, symbol in required_targets
-            ], ensure_ascii=False)
+            + json.dumps(entries, ensure_ascii=False)
             + '\n</required_edit_checklist>\n'
+            'Each current_source is the exact current implementation the checklist '
+            'entry must change; keep its commit helper calls and backing-field updates '
+            'unless the obligations identify them as the break.\n'
             'The checklist is an executable completion contract derived from the current '
             'FeatureSpace. Your JSON must contain a real executable change for EVERY exact '
             'file_path and symbol in it. Review the producer-to-consumer invariant before '
@@ -773,23 +785,36 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             from generator.feedback_edits import parse_current_edits
             obligations = execution_obligations(memory) if mode == 'featurespace' else []
             retained_edits = []
+            omitted = []
             for repair_attempt in range(4):
-                proposed_edits = parse_current_edits(raw, current)
-                edits = _merge_repair_edits(retained_edits, proposed_edits)
-                if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
-                    raise ValueError('Repair needs complete production edits')
-                edited_symbols = _edited_responsibilities(edits, current)
-                omitted = []
-                for obligation in obligations:
-                    targets = obligation.get('required_repair_targets', [])
-                    missing = [target for target in targets
-                               if (target['file'], target['symbol']) not in edited_symbols]
-                    if missing:
-                        omitted.append({'stage': obligation.get('stage'), 'targets': missing})
-                if not omitted:
-                    break
-                message = ('Repair omits or only echoes runtime-discovered coordinated responsibilities: '
-                           + json.dumps(omitted, ensure_ascii=False))
+                parse_failure = None
+                edits = None
+                try:
+                    proposed_edits = parse_current_edits(raw, current)
+                    merged = _merge_repair_edits(retained_edits, proposed_edits)
+                    if merged and all(production_path(safe_path(e['file_path'])) for e in merged):
+                        edits = merged
+                except ValueError as error:
+                    parse_failure = str(error)
+                if edits is None:
+                    # Format failures (unresolvable symbol, malformed edit) and
+                    # empty/non-production proposals join the same retry ladder
+                    # instead of discarding the whole repair round.
+                    parse_failure = parse_failure or 'Repair needs complete production edits'
+                if edits is not None:
+                    edited_symbols = _edited_responsibilities(edits, current)
+                    omitted = []
+                    for obligation in obligations:
+                        targets = obligation.get('required_repair_targets', [])
+                        missing = [target for target in targets
+                                   if (target['file'], target['symbol']) not in edited_symbols]
+                        if missing:
+                            omitted.append({'stage': obligation.get('stage'), 'targets': missing})
+                    if not omitted:
+                        break
+                message = parse_failure or (
+                    'Repair omits or only echoes runtime-discovered coordinated responsibilities: '
+                    + json.dumps(omitted, ensure_ascii=False))
                 if repair_attempt == 3:
                     raise ValueError(message)
                 if repair_attempt == 0:
@@ -801,11 +826,17 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     continue
                 missing_targets = list({
                     (target['file'], target['symbol']): target
-                    for item in omitted for target in item['targets']
-                }.values())
+                    for item in (omitted or []) for target in item['targets']
+                }.values()) or [
+                    {'file': file, 'symbol': symbol}
+                    for obligation in obligations
+                    for target in obligation.get('required_repair_targets', [])
+                    for file, symbol in [(target.get('file'), target.get('symbol'))]
+                    if file and symbol
+                ]
                 missing_keys = {(target['file'], target['symbol'])
                                 for target in missing_targets}
-                retained_edits = [edit for edit in edits
+                retained_edits = [edit for edit in (edits or [])
                                   if (edit.get('file_path'), edit.get('symbol')) not in missing_keys]
                 if repair_attempt == 2:
                     current_flows = [

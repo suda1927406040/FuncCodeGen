@@ -4,6 +4,27 @@ import json
 import textwrap
 
 
+def current_symbol_source(source, symbol, limit=4000):
+    """Bounded current source of a qualified Class.method or function."""
+    nodes = []
+    def visit(body, prefix=''):
+        for node in body:
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                name = prefix + node.name
+                if name == symbol:
+                    nodes.append(node)
+                visit(node.body, name + '.')
+    try:
+        visit(ast.parse(source).body)
+    except (SyntaxError, ValueError):
+        return ''
+    if len(nodes) != 1:
+        return ''
+    start = min([nodes[0].lineno] + [d.lineno for d in nodes[0].decorator_list]) - 1
+    text = ''.join(source.splitlines(keepends=True)[start:nodes[0].end_lineno])
+    return text[:limit]
+
+
 def parse_current_edits(raw, current):
     from generator.state_feedback import safe_path
     from run_oracle import parse_edits
@@ -40,13 +61,24 @@ def parse_current_edits(raw, current):
         seen.add((file, symbol))
         replacement = textwrap.dedent(entry['replacement']).strip('\n') + '\n'
         parsed = ast.parse(replacement)
-        if len(parsed.body) != 1 or not isinstance(parsed.body[0], (ast.FunctionDef, ast.AsyncFunctionDef)) or parsed.body[0].name != nodes[0].name:
-            raise ValueError('Replacement must contain exactly the named function, not appended sibling definitions')
+        named = [node for node in parsed.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == nodes[0].name]
+        if len(named) != 1:
+            raise ValueError('Replacement must contain the named function exactly once: ' + str(symbol))
+        if len(parsed.body) > 1:
+            # Appended sibling definitions/helpers are trimmed instead of
+            # wasting a repair round: the resolver replaces exactly the named
+            # function, and any trimming-induced name errors surface in the
+            # compile preflight with a retry message.
+            segment = ast.get_source_segment(replacement, named[0])
+            if segment is None:
+                segment = ast.unparse(named[0])
+            replacement = textwrap.dedent(segment).strip('\n') + '\n'
         node = nodes[0]
         start = min([node.lineno] + [d.lineno for d in node.decorator_list]) - 1
         indent = lines[node.lineno-1][:node.col_offset]
         # Preserve method binding decorators unless a full decorator list is supplied.
-        if node.decorator_list and not parsed.body[0].decorator_list:
+        if node.decorator_list and not named[0].decorator_list:
             replacement = textwrap.dedent(''.join(lines[start:node.lineno-1])) + replacement
         result.append({'file_path': file, 'symbol': symbol,
                        'before': ''.join(lines[start:node.end_lineno]).rstrip('\n'),
