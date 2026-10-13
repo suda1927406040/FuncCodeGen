@@ -493,6 +493,33 @@ class EvolutionTests(unittest.TestCase):
         completion = calls[-1][calls[-1].index('<required_edit_checklist>'):]
         self.assertIn('Only complete these missing responsibilities', completion)
 
+    def test_echoed_focused_completion_gets_execution_flow_revision(self):
+        eid = next(iter(self.memory['elements']))
+        calls = []
+        def model(prompt, **kwargs):
+            calls.append(prompt)
+            if 'Do not return code edits' in prompt:
+                evidence = section(prompt, 'current_execution_evidence')['observations'][0]['id']
+                return response({'summary': 'select still consumes the wrong state.',
+                                 'focus': [eid], 'checks': [{
+                                     'hypothesis': 'select returns the invalid state.',
+                                     'expected_change': 'select returns the buildable state.',
+                                     'evidence': [evidence], 'basis': 'Current execution.'}]})
+            replacement = ('def select(node):\n    return "Build"'
+                           if '<still_broken_current_flows>' in prompt
+                           else 'def select(node):\n    return "Invalid"')
+            return response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
+                                        'replacement': replacement}]})
+        directory = self.root/'obligation_revision'
+        result = repair_once(
+            self.instance, self.repo, self.initial,
+            self.packet_with_select_flow(), 'failed', self.watch, directory,
+            call=model, memory=self.memory)
+        self.assertEqual(len(calls), 5)
+        self.assertIn('+    return "Build"', result)
+        self.assertTrue((directory/'repair_obligation_revision_response.json').is_file())
+        self.assertIn('Current-candidate execution facts', calls[-1])
+
     def test_invalid_reflection_does_not_block_code_generation(self):
         replies = [response({'broken': 'no valid delta'}), response({'edits': [
             {'file_path': 'state.py', 'before': '    return "Invalid"', 'after': '    return "Build"'}]})]

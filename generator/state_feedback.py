@@ -368,6 +368,8 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'and conditions that must be repaired together. Initial-plan conditions are hypotheses; '
                    'retired entries must not constrain the repair. Check the cited evidence against current source. '
                    'Entries with origin=execution_flow are responsibilities discovered by the self-evolution cycle. '
+                   'Current execution obligations describe the candidate that just failed and take precedence over '
+                   'diagnosis prose, checks, and historical observations when they conflict. '
                    'Repair every focused broken flow as a producer-to-consumer chain: represent the input state, '
                    'refresh derived state after object or configuration changes, and only then repair its consumer. '
                    'For candidate-selection flows, preserve the candidate producer and make the selector continue '
@@ -731,7 +733,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
             from generator.feedback_edits import parse_current_edits
             obligations = execution_obligations(memory) if mode == 'featurespace' else []
             retained_edits = []
-            for repair_attempt in range(3):
+            for repair_attempt in range(4):
                 proposed_edits = parse_current_edits(raw, current)
                 edits = _merge_repair_edits(retained_edits, proposed_edits)
                 if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
@@ -748,7 +750,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     break
                 message = ('Repair omits or only echoes runtime-discovered coordinated responsibilities: '
                            + json.dumps(omitted, ensure_ascii=False))
-                if repair_attempt == 2:
+                if repair_attempt == 3:
                     raise ValueError(message)
                 if repair_attempt == 0:
                     retry_prompt = repair_prompt(
@@ -757,11 +759,37 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                         memory=memory, history=history, mode=mode)
                     raw = model_stage('repair_retry', retry_prompt, 16384)
                     continue
-                retained_edits = edits
                 missing_targets = list({
                     (target['file'], target['symbol']): target
                     for item in omitted for target in item['targets']
                 }.values())
+                missing_keys = {(target['file'], target['symbol'])
+                                for target in missing_targets}
+                retained_edits = [edit for edit in edits
+                                  if (edit.get('file_path'), edit.get('symbol')) not in missing_keys]
+                if repair_attempt == 2:
+                    current_flows = [
+                        obligation for obligation in obligations
+                        if any((target.get('file'), target.get('symbol')) in missing_keys
+                               for target in obligation.get('required_repair_targets', []))]
+                    revision_message = (
+                        'The previous exact replacements for the missing responsibilities are structurally '
+                        'equivalent to their CURRENT implementations, so they cannot change the observed flow. '
+                        'Current-candidate execution facts below override any conflicting diagnosis narrative. '
+                        'Change executable control flow or state consumption after the observed producer transition; '
+                        'leaving every current branch condition and return point unchanged is invalid. For selection '
+                        'flows, distinguish rejecting one alternative from exhausting all alternatives.\n'
+                        '<still_broken_current_flows>\n'
+                        + json.dumps(current_flows, ensure_ascii=False)
+                        + '\n</still_broken_current_flows>')
+                    revision_prompt = repair_prompt(
+                        instance, current, patch, packet, output, watch,
+                        '\n'.join(value for value in [previous_error, message, revision_message]
+                                  if value),
+                        memory=memory, history=history, mode=mode,
+                        required_edit_targets=missing_targets)
+                    raw = model_stage('repair_obligation_revision', revision_prompt, 8192)
+                    continue
                 completion_prompt = repair_prompt(
                     instance, current, patch, packet, output, watch,
                     '\n'.join(value for value in [
