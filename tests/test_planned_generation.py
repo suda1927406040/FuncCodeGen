@@ -8,7 +8,7 @@ from unittest.mock import patch
 from explorer.context_builder import ContextBuilder
 from generator.llm_interface import LLMCallError, LLMResponse
 from generator.planned_generation import PlanContext, PlanError
-from run_oracle import OUTPUT_FORMAT_INSTRUCTION, run_single
+from run_oracle import OUTPUT_FORMAT_INSTRUCTION, edits_to_patch, run_single
 
 
 def edit(file, before, after):
@@ -341,6 +341,30 @@ class PlannedGenerationTests(unittest.TestCase):
         for symbol in ['Mode.__init__', 'Mode.allowed', 'Mode.should_build_missing']:
             self.assertIn(symbol, generation)
         self.assertIn('not mandatory templates', generation)
+
+        source = (self.root / 'engine/mode.py').read_text()
+        bad_source = source.replace(
+            '        self._build_missing_excluded = []\n',
+            '        self._build_missing_excluded = []\n        self.compatible_state = []\n').replace(
+            '        for param in params:\n',
+            '        for param in params:\n            if param.startswith("compatible:"):\n'
+            '                self.compatible_state.append(param)\n').replace(
+            '    def should_build_missing(self, item):\n',
+            '    def allowed_compatible(self, item):\n        return bool(self.compatible_state)\n'
+            '    def should_build_missing(self, item):\n')
+        bad_patch = edits_to_patch([{'file_path': 'engine/mode.py', 'before': source,
+                                     'after': bad_source}], self.root)
+        errors = context.validate_structural_patch(checked, bad_patch)
+        self.assertTrue(any('counterpart input forms' in error for error in errors))
+        self.assertTrue(any('does not call' in error for error in errors))
+        good_source = bad_source.replace(
+            '            if param.startswith("compatible:"):',
+            '            if param == "compatible" or param.startswith("compatible:"):').replace(
+            '        return self.should_build_missing(item)',
+            '        return self.should_build_missing(item) or self.allowed_compatible(item)')
+        good_patch = edits_to_patch([{'file_path': 'engine/mode.py', 'before': source,
+                                      'after': good_source}], self.root)
+        self.assertEqual(context.validate_structural_patch(checked, good_patch), [])
 
         plan['steps'] = plan['steps'][:2]
         completed, report = context.parse_validate(json.dumps(plan))

@@ -7,6 +7,9 @@ from dataclasses import asdict
 import json
 from pathlib import Path, PurePosixPath
 import re
+import shutil
+import subprocess
+import tempfile
 
 from config import MAX_CONTEXT_CHARS
 from explorer.context_renderer import render_code_files
@@ -600,3 +603,109 @@ class PlanContext:
         return prompt, {'planned_files': list(dict.fromkeys(planned_files)), 'supplemented_files': supplemented,
                         'visible_code_files': sorted(shown_files), 'visible_symbols': sorted(shown_symbols),
                         'dependencies': dependencies[:30], 'prompt_chars': len(prompt)}
+
+    def validate_structural_patch(self, plan, patch):
+        """Check accepted lifecycle roles against the generated source, without domain names."""
+        applied = {item['component']: item for item in plan.get('analogy_decisions', [])
+                   if item.get('decision') == 'apply'}
+        candidates = [item for item in plan.get('structural_analogies', [])
+                      if item.get('component') in applied]
+        if not candidates:
+            return []
+        patch_files = set(re.findall(r'^diff --git a/(.+?) b/(.+)$', patch, re.MULTILINE))
+        patch_files = {right for _, right in patch_files}
+        errors = []
+
+        def function(tree, qualified):
+            parts = qualified.split('.')
+            nodes = tree.body
+            for part in parts:
+                found = next((node for node in nodes
+                              if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+                              and node.name == part), None)
+                if found is None:
+                    return None
+                nodes = found.body
+            return found
+
+        def self_fields(node, context):
+            return {item.attr for item in ast.walk(node)
+                    if isinstance(item, ast.Attribute) and isinstance(item.value, ast.Name)
+                    and item.value.id == 'self' and isinstance(item.ctx, context)}
+
+        def self_calls(node):
+            return {item.func.attr for item in ast.walk(node) if isinstance(item, ast.Call)
+                    and isinstance(item.func, ast.Attribute) and isinstance(item.func.value, ast.Name)
+                    and item.func.value.id == 'self'}
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            needed = patch_files | {item['file'] for item in candidates}
+            for file in needed:
+                source = self.repo_dir / file
+                if source.is_file():
+                    target = root / file
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, target)
+            check = subprocess.run(['git', 'apply', '--whitespace=nowarn', '-'], cwd=root,
+                                   input=patch, text=True, capture_output=True)
+            if check.returncode:
+                return ['Generated patch could not be materialized for lifecycle validation']
+            for candidate in candidates:
+                file = candidate['file']
+                try:
+                    before_tree = ast.parse((self.repo_dir / file).read_text(errors='replace'))
+                    after_tree = ast.parse((root / file).read_text(errors='replace'))
+                except (OSError, SyntaxError):
+                    errors.append('Lifecycle file could not be parsed: ' + file)
+                    continue
+                roles = applied[candidate['component']].get('role_mapping', {})
+                owner_name = roles.get('input_state_owner', '')
+                target_name = roles.get('policy_query', '')
+                dispatcher_name = roles.get('dispatcher', '')
+                owner_before = function(before_tree, owner_name)
+                owner_after = function(after_tree, owner_name)
+                target = function(after_tree, target_name)
+                dispatcher = function(after_tree, dispatcher_name)
+                if owner_after is None or target is None or dispatcher is None:
+                    errors.append('Applied lifecycle is missing a required symbol for ' + candidate['component'])
+                    continue
+                expected_forms = {form.replace(candidate['source_concept'], candidate['target_concept'], 1)
+                                  for item in candidate.get('observed_chain', [])
+                                  if item.get('role') == 'input_state_owner'
+                                  for form in item.get('input_forms', [])
+                                  if candidate['source_concept'] in form}
+                literals = {item.value for item in ast.walk(owner_after)
+                            if isinstance(item, ast.Constant) and isinstance(item.value, str)}
+                missing_forms = sorted(expected_forms - literals)
+                if missing_forms:
+                    errors.append('%s is missing counterpart input forms derived from the observed lifecycle: %s'
+                                  % (owner_name, missing_forms))
+                target_short = target_name.rsplit('.', 1)[-1]
+                if target_short not in self_calls(dispatcher):
+                    errors.append('%s does not call the applied target query %s'
+                                  % (dispatcher_name, target_short))
+                new_fields = self_fields(owner_after, ast.Store)
+                if owner_before is not None:
+                    new_fields -= self_fields(owner_before, ast.Store)
+                class_name = target_name.rpartition('.')[0]
+                class_node = function(after_tree, class_name) if class_name else None
+                methods = ({node.name: node for node in class_node.body
+                            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                           if isinstance(class_node, ast.ClassDef) else {})
+                pending = [target_short]
+                visited, reads = set(), set()
+                while pending:
+                    name = pending.pop()
+                    if name in visited or name not in methods:
+                        continue
+                    visited.add(name)
+                    reads |= self_fields(methods[name], ast.Load)
+                    pending.extend(self_calls(methods[name]) - visited)
+                if not new_fields:
+                    errors.append('%s does not add distinct target state at the observed owner'
+                                  % owner_name)
+                elif not (new_fields & reads):
+                    errors.append('%s is not connected to target state written by %s'
+                                  % (target_name, owner_name))
+        return errors

@@ -1574,6 +1574,7 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
         return reply
     t0 = time.time()
     direct_prompt = prompt
+    plan = None
     try:
         if plan_context:
             try:
@@ -1628,6 +1629,10 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
                                        cwd=repo_dir, input=patch, text=True, capture_output=True)
                 if check.returncode:
                     raise ValueError('Patch does not apply: ' + check.stderr[:2000])
+                if plan_context is not None and plan is not None:
+                    lifecycle_errors = plan_context.validate_structural_patch(plan, patch)
+                    if lifecycle_errors:
+                        raise ValueError('Applied structural lifecycle is incomplete: ' + '; '.join(lifecycle_errors))
                 break
             except (ValueError, SyntaxError) as error:
                 history.append({'attempt': attempt, 'error_type': type(error).__name__, 'error': str(error)})
