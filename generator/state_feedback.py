@@ -801,8 +801,8 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     merged = _merge_repair_edits(retained_edits, proposed_edits)
                     if merged and all(production_path(safe_path(e['file_path'])) for e in merged):
                         edits = merged
-                except ValueError as error:
-                    parse_failure = str(error)
+                except (ValueError, KeyError, TypeError) as error:
+                    parse_failure = str(error) or repr(error)
                 if edits is None:
                     # Format failures (unresolvable symbol, malformed edit) and
                     # empty/non-production proposals join the same retry ladder

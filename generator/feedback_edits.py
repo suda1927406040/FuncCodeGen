@@ -38,6 +38,10 @@ def parse_current_edits(raw, current):
     result = []
     seen = set()
     for entry in entries:
+        if 'symbol' in entry and 'replacement' not in entry and 'before' in entry and 'after' in entry:
+            # Hybrid form: the model named the symbol but supplied a snippet.
+            # Fall back to the snippet edit; it anchors on the same function.
+            entry = {k: entry[k] for k in ('file_path', 'before', 'after')}
         if 'symbol' not in entry:
             if not all(isinstance(entry.get(k), str) for k in ['file_path', 'before', 'after']):
                 raise ValueError('Incomplete text edit')
