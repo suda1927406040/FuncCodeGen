@@ -434,13 +434,47 @@ class PlanContext:
                 }
                 if not all(required_roles.values()):
                     raise PlanError("Applied structural analogy does not contain a complete lifecycle")
-                missing_roles = []
                 for role, symbol in required_roles.items():
                     action = step_actions.get((candidate['file'], symbol))
-                    if action not in {'modify', 'create_symbol', 'create'}:
-                        missing_roles.append(role + ':' + symbol)
-                if missing_roles:
-                    raise PlanError("Applied structural analogy is missing edit steps for " + ', '.join(missing_roles))
+                    if action in {'modify', 'create_symbol', 'create'}:
+                        continue
+                    inspected = next((step for step in ordered
+                                      if step['file'] == candidate['file'] and step['symbol'] == symbol), None)
+                    if inspected is not None:
+                        inspected['action'] = 'modify'
+                        step_actions[(candidate['file'], symbol)] = 'modify'
+                        report['warnings'].append(
+                            "Applied analogy promoted inspected role to edit: " + role + ':' + symbol)
+                        continue
+                    sid_number = 1
+                    sid = 'A%d' % sid_number
+                    existing_ids = {step['id'] for step in ordered}
+                    while sid in existing_ids:
+                        sid_number += 1
+                        sid = 'A%d' % sid_number
+                    key = candidate['file'] + ':' + symbol
+                    if (candidate['file'], symbol) in self.declared and key not in self.index.symbols:
+                        role_action = 'create_symbol'
+                        owner = symbol.rpartition('.')[0]
+                        current_symbols = self.resolve(candidate['file'], owner)[1] if owner else []
+                        role_evidence = [{'source': 'requirement', 'file': candidate['file'], 'symbol': symbol}]
+                    else:
+                        role_action = 'modify'
+                        _, current_symbols = self.resolve(candidate['file'], symbol)
+                        role_evidence = [{'source': 'current', 'file': candidate['file'],
+                                          'symbols': current_symbols}]
+                    added = {'id': sid, 'file': candidate['file'], 'action': role_action,
+                             'symbol': symbol,
+                             'purpose': 'Implement the target counterpart of the observed ' + role + ' role',
+                             'constraints': ['Preserve the complete applied lifecycle and existing behavior'],
+                             'depends_on': [], 'evidence': role_evidence,
+                             'current_file': candidate['file'], 'current_symbols': current_symbols}
+                    ordered.append(added)
+                    step_actions[(candidate['file'], symbol)] = role_action
+                    report['steps'].append({'id': sid, 'file': candidate['file'],
+                                            'symbols': current_symbols, 'action': role_action})
+                    report['warnings'].append(
+                        "Applied analogy added missing edit role: " + role + ':' + symbol)
                 checked['role_mapping'] = required_roles
             checked_decisions.append(checked)
         if seen_decisions != set(candidate_by_component):

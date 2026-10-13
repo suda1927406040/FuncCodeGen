@@ -343,8 +343,10 @@ class PlannedGenerationTests(unittest.TestCase):
         self.assertIn('not mandatory templates', generation)
 
         plan['steps'] = plan['steps'][:2]
-        with self.assertRaisesRegex(PlanError, 'dispatcher:Mode.allowed'):
-            context.parse_validate(json.dumps(plan))
+        completed, report = context.parse_validate(json.dumps(plan))
+        added = next(step for step in completed['steps'] if step['symbol'] == 'Mode.allowed')
+        self.assertEqual(added['action'], 'modify')
+        self.assertTrue(any('dispatcher:Mode.allowed' in warning for warning in report['warnings']))
 
     def test_name_similarity_without_owned_state_is_not_an_analogy(self):
         self.write('engine/mode.py', 'class Engine:\n'
