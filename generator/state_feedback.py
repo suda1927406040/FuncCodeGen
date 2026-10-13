@@ -654,6 +654,61 @@ def _merge_repair_edits(existing, completion):
     return merged
 
 
+def producer_hint(current, edits):
+    """Fields consumed by the echoed edit targets but never produced anywhere
+    in the current candidate. A consumer filtering on a field nothing writes
+    is reading noise; surface that fact plus the nearest existing producers
+    of the same attribute so the repair can extend one instead of echoing."""
+    import ast as _ast
+    files = {}
+    targets = {e.get('file_path') for e in edits if e.get('file_path')}
+    consumed = {}
+    for name in sorted(targets):
+        path = Path(current) / safe_path(name)
+        if not path.is_file():
+            continue
+        try:
+            tree = _ast.parse(path.read_text(errors='replace'))
+        except (SyntaxError, ValueError):
+            continue
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Attribute) and isinstance(node.value, _ast.Name):
+                consumed.setdefault(node.attr, set()).add(name)
+    if not consumed:
+        return ''
+    producers = {}
+    for path in sorted(Path(current).rglob('*.py')):
+        if not production_path(path.relative_to(Path(current)).as_posix()):
+            continue
+        try:
+            tree = _ast.parse(path.read_text(errors='replace'))
+        except (SyntaxError, ValueError):
+            continue
+        rel = path.relative_to(Path(current)).as_posix()
+        for node in _ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for child in _ast.walk(node):
+                    if (isinstance(child, _ast.Attribute) and isinstance(child.ctx, _ast.Store)
+                            and child.attr in consumed):
+                        producers.setdefault(child.attr, set()).add('%s:%s' % (rel, node.name))
+    lines = []
+    for field, readers in sorted(consumed.items()):
+        if not field.startswith('_') and len(field) > 3:
+            writes = producers.get(field, set())
+            if writes:
+                lines.append('Field "%s" is consumed in %s but only produced by %s; extend that '
+                             'producer for the candidate configuration when needed.'
+                             % (field, ', '.join(sorted(readers)[:3]), ', '.join(sorted(writes)[:4])))
+            else:
+                lines.append('Field "%s" is consumed in %s but has NO producer in the current '
+                             'candidate; the consumer is reading an unset field. Add its producer '
+                             'where the owning object is built.' % (field, ', '.join(sorted(readers)[:3])))
+    if not lines:
+        return ''
+    return ('\nStructural producer facts derived from the current source:\n- '
+            + '\n- '.join(lines[:6]) + '\n')
+
+
 def behavior_signature(current, repo, names):
     """Fingerprint changed ASTs/other bytes, independent of diff hunks or comments."""
     changes = {}
@@ -896,9 +951,14 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                 # useful execution/diagnosis cycle is not discarded.
                 noop_message = (
                     'The proposed edits exactly match the CURRENT source and make no executable change. '
-                    'The observed tests still fail, so do not repeat that implementation. Re-read the '
-                    'current execution obligations and return a different executable repair that changes '
-                    'the broken producer-to-consumer behavior.')
+                    'The observed tests still fail, so do not repeat that implementation. Do NOT return '
+                    'the whole function again: use surgical snippet edits anchored on the few lines that '
+                    'must change (the guard conjuncts, the branch following the observed terminal state, '
+                    'the candidate loop continue/commit points, the state switched onto the candidate '
+                    'configuration). The before snippet must be copied verbatim from the current source. '
+                    'Re-read the current execution obligations and return a different executable repair '
+                    'that changes the broken producer-to-consumer behavior.'
+                    + producer_hint(current, edits))
                 noop_prompt = repair_prompt(
                     instance, current, patch, packet, output, watch,
                     '\n'.join(value for value in [previous_error, noop_message] if value),

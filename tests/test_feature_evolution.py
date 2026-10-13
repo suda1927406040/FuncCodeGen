@@ -770,3 +770,31 @@ class EvolutionTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ProducerHintTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        (self.root / 'consumer.py').write_text(
+            'def select(candidates):\n    for c in candidates:\n'
+            '        if not c.cant_build and c.ready:\n            return c\n    return None\n')
+        (self.root / 'producer.py').write_text(
+            'def stamp(info):\n    info.ready = True\n    return info\n')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_unproduced_field_is_flagged_and_produced_field_names_its_producer(self):
+        from generator.state_feedback import producer_hint
+        edits = [{'file_path': 'consumer.py'}]
+        hint = producer_hint(self.root, edits)
+        self.assertIn('NO producer', hint)
+        self.assertIn('cant_build', hint)
+        self.assertIn('producer.py:stamp', hint)
+        self.assertIn('ready', hint)
+
+    def test_no_attribute_reads_yield_no_hint(self):
+        from generator.state_feedback import producer_hint
+        (self.root / 'plain.py').write_text('def f(x):\n    return x + 1\n')
+        self.assertEqual(producer_hint(self.root, [{'file_path': 'plain.py'}]), '')
