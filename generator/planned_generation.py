@@ -24,6 +24,9 @@ class PlanError(ValueError):
 PLAN_FORMAT = """Return one JSON object with this schema. Do not generate code or edits.
 {
   "contracts": ["Required behavior and existing behavior that must remain valid"],
+  "analogy_decisions": [
+    {"component": "Exact candidate component", "decision": "apply", "reason": "Why the observed lifecycle does or does not fit"}
+  ],
   "steps": [
     {"id": "S1", "file": "pkg/api.py", "action": "modify", "symbol": "Engine.select",
      "purpose": "Brief description of this responsibility and the necessary change",
@@ -47,6 +50,8 @@ For imports, exports, and module constants, use an empty symbol with current fil
 History is a reference: map applicable responsibilities to current base code. Package exports are necessary only
 for public entry points required by the task; internal helpers need not become package APIs.
 Every edit step needs at least one evidence reference. Dependencies must reference step IDs without cycles.
+Give exactly one analogy_decision for every supplied structural analogy, and use an empty list when none are supplied.
+An applied analogy needs edit steps for every role in its lifecycle; a rejected analogy needs a concrete reason.
 Use missing_context for unseen definitions; do not invent an existing file or assume an unresolved symbol exists.
 Keep purposes and contracts brief. Output JSON only, no hidden reasoning or additional prose.
 """
@@ -399,6 +404,47 @@ class PlanContext:
                 ordered.append(step)
                 done.add(step['id'])
                 pending.remove(step)
+
+        candidate_by_component = {item['component']: item for item in self.structural_analogies}
+        decisions = plan.get('analogy_decisions', [] if not candidate_by_component else None)
+        if not isinstance(decisions, list):
+            raise PlanError("Plan must decide whether each structural analogy applies")
+        checked_decisions = []
+        seen_decisions = set()
+        step_actions = {(step['file'], step['symbol']): step['action'] for step in ordered}
+        for decision in decisions:
+            if not isinstance(decision, dict):
+                raise PlanError("Every structural analogy decision must be an object")
+            component = decision.get('component')
+            choice = decision.get('decision')
+            reason = decision.get('reason')
+            if component not in candidate_by_component or component in seen_decisions:
+                raise PlanError("Structural analogy decision names an unknown or duplicate component")
+            if choice not in {'apply', 'reject'} or not isinstance(reason, str) or not reason.strip():
+                raise PlanError("Structural analogy decision needs apply/reject and a reason")
+            seen_decisions.add(component)
+            candidate = candidate_by_component[component]
+            checked = {'component': component, 'decision': choice, 'reason': reason.strip()}
+            if choice == 'apply':
+                roles = {item['role']: item['symbol'] for item in candidate.get('observed_chain', [])}
+                required_roles = {
+                    'input_state_owner': roles.get('input_state_owner'),
+                    'policy_query': component,
+                    'dispatcher': roles.get('dispatcher'),
+                }
+                if not all(required_roles.values()):
+                    raise PlanError("Applied structural analogy does not contain a complete lifecycle")
+                missing_roles = []
+                for role, symbol in required_roles.items():
+                    action = step_actions.get((candidate['file'], symbol))
+                    if action not in {'modify', 'create_symbol', 'create'}:
+                        missing_roles.append(role + ':' + symbol)
+                if missing_roles:
+                    raise PlanError("Applied structural analogy is missing edit steps for " + ', '.join(missing_roles))
+                checked['role_mapping'] = required_roles
+            checked_decisions.append(checked)
+        if seen_decisions != set(candidate_by_component):
+            raise PlanError("Plan must include one decision for every structural analogy candidate")
         requests = plan.get('missing_context', [])
         if not isinstance(requests, list) or len(requests) > 16:
             raise PlanError("missing_context must be a list with at most 16 entries")
@@ -413,7 +459,8 @@ class PlanContext:
             except PlanError as error:
                 report['warnings'].append(str(error))
         result = {'contracts': contracts, 'steps': ordered, 'context': supplements,
-                  'structural_analogies': self.structural_analogies}
+                  'structural_analogies': self.structural_analogies,
+                  'analogy_decisions': checked_decisions}
         if len(json.dumps(result, ensure_ascii=False)) > 16000:
             raise PlanError("Plan is too large for bounded generation context")
         return result, report
@@ -491,8 +538,9 @@ class PlanContext:
                   + STATE_CONTRACT + _task(instance, self.ctx) + '\n<checked_plan>\n' + factual_plan + '\n</checked_plan>\n'
                   + "The script checked path/symbol existence and dependency order, not semantic correctness. "
                     "Treat contracts as proposals to verify against the request and current code. "
-                    "The structural_analogies are repository evidence, not mandatory templates. For an applicable "
-                    "candidate, preserve its end-to-end lifecycle roles: represent independent target state, handle "
+                    "The structural_analogies are repository evidence, not mandatory templates. The checked "
+                    "analogy_decisions record whether each candidate applies. For an applied candidate, preserve "
+                    "its complete role_mapping: represent independent target state, handle "
                     "the corresponding exact and qualified input forms, query that state, and integrate the query at "
                     "the observed dispatcher boundary. Adapt representation to current conventions instead of copying "
                     "source-specific conditions. A plan constraint cannot justify collapsing independently requested "

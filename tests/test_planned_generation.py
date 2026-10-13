@@ -315,16 +315,36 @@ class PlannedGenerationTests(unittest.TestCase):
         self.assertNotIn('PRIMARY template', prompt)
 
         plan = self.plan()
-        plan['steps'][0].update(file='engine/mode.py', symbol='Mode.allowed_compatible',
-                                action='create_symbol')
-        plan['steps'][0]['evidence'] = [
-            {'source': 'requirement', 'file': 'engine/mode.py',
-             'symbol': 'Mode.allowed_compatible'}]
+        plan['analogy_decisions'] = [{'component': 'Mode.allowed_compatible',
+                                      'decision': 'apply',
+                                      'reason': 'The requested policy needs the observed input-state-query-dispatch lifecycle.'}]
+        plan['steps'] = [
+            {'id': 'S1', 'file': 'engine/mode.py', 'symbol': 'Mode.allowed_compatible',
+             'action': 'create_symbol', 'purpose': 'Create the target policy query',
+             'depends_on': [], 'constraints': [],
+             'evidence': [{'source': 'requirement', 'file': 'engine/mode.py',
+                           'symbol': 'Mode.allowed_compatible'}]},
+            {'id': 'S2', 'file': 'engine/mode.py', 'symbol': 'Mode.__init__',
+             'action': 'modify', 'purpose': 'Own target input state',
+             'depends_on': [], 'constraints': [],
+             'evidence': [{'source': 'current', 'file': 'engine/mode.py',
+                           'symbol': 'Mode.__init__'}]},
+            {'id': 'S3', 'file': 'engine/mode.py', 'symbol': 'Mode.allowed',
+             'action': 'modify', 'purpose': 'Connect the target query at the observed dispatcher',
+             'depends_on': ['S1'], 'constraints': [],
+             'evidence': [{'source': 'current', 'file': 'engine/mode.py',
+                           'symbol': 'Mode.allowed'}]},
+        ]
         checked, _ = context.parse_validate(json.dumps(plan))
+        self.assertEqual(checked['analogy_decisions'][0]['role_mapping']['dispatcher'], 'Mode.allowed')
         generation, _ = context.generation_prompt(self.instance, checked, OUTPUT_FORMAT_INSTRUCTION)
         for symbol in ['Mode.__init__', 'Mode.allowed', 'Mode.should_build_missing']:
             self.assertIn(symbol, generation)
         self.assertIn('not mandatory templates', generation)
+
+        plan['steps'] = plan['steps'][:2]
+        with self.assertRaisesRegex(PlanError, 'dispatcher:Mode.allowed'):
+            context.parse_validate(json.dumps(plan))
 
     def test_name_similarity_without_owned_state_is_not_an_analogy(self):
         self.write('engine/mode.py', 'class Engine:\n'
