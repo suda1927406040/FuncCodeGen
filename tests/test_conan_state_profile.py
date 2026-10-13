@@ -197,7 +197,9 @@ class StatePacketTests(unittest.TestCase):
         after = event(3, 'GraphBinariesAnalyzer._process_node', {
             'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p'}}, 'return')
         evaluated = event(4, 'GraphBinariesAnalyzer._evaluate_node', {
-            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p'}}, 'return')
+            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p',
+                     'should_build': True, 'build_allowed': False},
+            'current_info': {'receiver': 'info', 'cppstd': '11', 'cant_build': 'needs 17'}}, 'return')
         for item in (init, before, after, evaluated):
             item.update(invocation=9, command='create . --build=compatible',
                         file='conans/client/graph/graph_binaries.py')
@@ -211,6 +213,8 @@ class StatePacketTests(unittest.TestCase):
         self.assertEqual(flow['actors'][0]['role'], 'terminal_state_producer')
         self.assertEqual(flow['actors'][0]['symbol'], 'GraphBinariesAnalyzer._evaluate_build')
         self.assertEqual(flow['observation']['state_transition']['to'], 'Invalid')
+        self.assertTrue(flow['observation']['terminal_state']['should_build'])
+        self.assertEqual(flow['observation']['terminal_state']['cant_build'], 'needs 17')
 
     def test_callback_free_recipe_does_not_get_a_spurious_missing_validation_warning(self):
         trace = [event(1, 'Compatibility.compatibles', {'returned_candidates': [

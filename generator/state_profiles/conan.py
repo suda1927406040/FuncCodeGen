@@ -346,6 +346,13 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                 'relation': 'Execution ended in a terminal binary state without reaching one or more declared feature responsibilities in the same command.',
                 'required_invariant': 'After state production, dispatch must reach the feature responsibilities under their policy conditions while preserving existing command paths.',
                 'observation': {'terminal_binary': node.get('binary'),
+                                'terminal_state': {
+                                    'binary': node.get('binary'),
+                                    'should_build': node.get('should_build'),
+                                    'build_allowed': node.get('build_allowed'),
+                                    'package_id': node.get('package_id'),
+                                    'current_configuration': {context: (state.get('current_info') or {}).get(context)},
+                                    field: (state.get('current_info') or {}).get(field)},
                                 'unreached_responsibilities': [symbol for _, symbol in missing],
                                 **({'state_transition': {
                                     'from': transition['before'], 'to': transition['after'],

@@ -145,29 +145,46 @@ def _attach_execution_flows(memory, bundle, patch_hash, round_number):
         stage = str(flow.get('stage') or 'state_flow')
         identity = stage + ':' + '->'.join(actors)
         group_id = _id('G', 'execution-flow:' + identity)
+        previous_group = memory['groups'].get(group_id, {})
+        same_candidate = previous_group.get('patch_sha256') == patch_hash
+        group_evidence = ((previous_group.get('evidence', []) if same_candidate else [])
+                          + [item['id']])
+        flow_observations = ((previous_group.get('flow_observations', []) if same_candidate else [])
+                             + ([flow['observation']] if isinstance(flow.get('observation'), dict) else []))
         memory['groups'][group_id] = {
             'id': group_id, 'text': str(flow.get('relation') or stage), 'members': actors,
             'member_roles': member_roles,
             'status': 'active', 'certainty': 'execution_observed', 'origin': 'execution_flow',
-            'flow_status': 'broken', 'flow_stage': stage, 'evidence': [item['id']],
+            'flow_status': 'broken', 'flow_stage': stage,
+            'evidence': list(dict.fromkeys(group_evidence))[-8:],
+            'flow_observations': flow_observations[-8:],
             'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
         relation_targets = []
         for left, right in zip(actors, actors[1:]):
             link_id = _id('L', 'execution-flow:' + stage + ':' + left + '->' + right)
+            previous_link = memory['links'].get(link_id, {})
+            link_evidence = ((previous_link.get('evidence', [])
+                              if previous_link.get('patch_sha256') == patch_hash else [])
+                             + [item['id']])
             memory['links'][link_id] = {
                 'id': link_id, 'from': left, 'to': right, 'kind': stage,
                 'text': str(flow.get('relation') or stage), 'status': 'active',
                 'certainty': 'execution_observed', 'origin': 'execution_flow',
-                'flow_status': 'broken', 'evidence': [item['id']],
+                'flow_status': 'broken', 'evidence': list(dict.fromkeys(link_evidence))[-8:],
                 'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
             relation_targets.append(link_id)
         condition_id = _id('C', 'execution-flow:' + identity)
+        previous_condition = memory['conditions'].get(condition_id, {})
+        condition_evidence = ((previous_condition.get('evidence', [])
+                               if previous_condition.get('patch_sha256') == patch_hash else [])
+                              + [item['id']])
         memory['conditions'][condition_id] = {
             'id': condition_id,
             'text': str(flow.get('required_invariant') or flow.get('relation') or stage),
             'applies_to': relation_targets or [group_id], 'status': 'active',
             'certainty': 'execution_observed', 'origin': 'execution_flow',
-            'flow_status': 'broken', 'flow_stage': stage, 'evidence': [item['id']],
+            'flow_status': 'broken', 'flow_stage': stage,
+            'evidence': list(dict.fromkeys(condition_evidence))[-8:],
             'updated_revision': memory['revision'], 'patch_sha256': patch_hash}
         flow_focus.extend([condition_id, group_id] + relation_targets + actors)
     if flow_focus:
@@ -320,6 +337,7 @@ def execution_obligations(memory):
                             'roles': roles(entry)} for entry in members],
                        'required_repair_targets': [
                            {'file': entry['file'], 'symbol': entry['symbol']} for entry in targets],
+                       'observed_states': group.get('flow_observations', []),
                        'evidence': group.get('evidence', []),
                        **({'previously_passing_test': group.get('test')}
                           if group.get('origin') == 'regression_flow' else {})})

@@ -158,6 +158,31 @@ class EvidenceTests(unittest.TestCase):
             {'file': 'refresh.py', 'symbol': 'refresh'}])
         self.assertEqual(downstream['required_repair_targets'], [])
 
+    def test_same_execution_flow_aggregates_terminal_states_across_tests(self):
+        instance = {'instance_id': 'aggregate-flow', 'repo': 'test/repo',
+                    'base_commit': 'base', 'new_components': []}
+        def flow(test, should_build):
+            return {'stage': 'state_to_feature_dispatch', 'status': 'broken', 'test': test,
+                    'actors': [
+                        {'file': 'graph.py', 'symbol': 'Graph.produce',
+                         'role': 'terminal_state_producer'},
+                        {'file': 'graph.py', 'symbol': 'Graph.evaluate',
+                         'role': 'feature_dispatch_controller'}],
+                    'relation': 'Terminal state prevented dispatch.',
+                    'required_invariant': 'Dispatch after state production.',
+                    'observation': {'terminal_state': {'binary': 'Invalid',
+                                                       'should_build': should_build}}}
+        packet = {'repo_state_relations': {'causal_flow': [
+            flow('one', False), flow('two', True)]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'state_to_feature_dispatch')
+        self.assertEqual(len(obligation['observed_states']), 2)
+        self.assertEqual({item['terminal_state']['should_build']
+                          for item in obligation['observed_states']}, {False, True})
+        self.assertEqual(len(obligation['evidence']), 2)
+
     def test_candidate_selection_flow_requires_the_observed_selector(self):
         instance = {'instance_id': 'selection', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': []}
