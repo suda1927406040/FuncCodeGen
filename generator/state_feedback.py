@@ -709,7 +709,7 @@ def producer_hint(current, edits):
             + '\n- '.join(lines[:6]) + '\n')
 
 
-def sibling_template_hint(current, edits):
+def sibling_template_hint(current, edits, obligations=None):
     """Same-family selection loops for the echoed edit targets.
 
     A new selector with no state-field closure still has a structural
@@ -721,9 +721,13 @@ def sibling_template_hint(current, edits):
     callees, no domain vocabulary."""
     import ast as _ast
     hints = []
-    for edit in edits:
-        name = edit.get('file_path')
-        symbol = edit.get('symbol') or ''
+    targets = [(edit.get('file_path'), edit.get('symbol') or '')
+               for edit in edits if edit.get('file_path')]
+    for obligation in obligations or []:
+        for target in obligation.get('required_repair_targets', []):
+            if target.get('file') and target.get('symbol'):
+                targets.append((target['file'], target['symbol']))
+    for name, symbol in targets:
         if not name:
             continue
         path = Path(current) / safe_path(name)
@@ -1028,7 +1032,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     'Re-read the current execution obligations and return a different executable repair '
                     'that changes the broken producer-to-consumer behavior.'
                     + producer_hint(current, edits)
-                    + sibling_template_hint(current, edits))
+                    + sibling_template_hint(current, edits, obligations))
                 noop_prompt = repair_prompt(
                     instance, current, patch, packet, output, watch,
                     '\n'.join(value for value in [previous_error, noop_message] if value),

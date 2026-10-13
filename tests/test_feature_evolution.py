@@ -847,4 +847,4 @@ class NoopWiringTests(unittest.TestCase):
         from generator import state_feedback
         source = inspect.getsource(state_feedback)
         self.assertIn('+ producer_hint(current, edits)', source)
-        self.assertIn('+ sibling_template_hint(current, edits)', source)
+        self.assertIn('sibling_template_hint(current, edits, obligations)', source)
