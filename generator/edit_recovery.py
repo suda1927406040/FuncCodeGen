@@ -148,7 +148,8 @@ def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=8000
                    + '\n</accepted_structural_obligations>\n'
                      'These obligations came from the checked repository lifecycle. Modify each named role symbol '
                      'so the generated source satisfies the mapping; a call from a different symbol does not satisfy '
-                     'the dispatcher role.\n')
+                     'the dispatcher role. Every required_input_forms value must appear as an exact string literal '
+                     'in the input_state_owner symbol.\n')
     history = '\n<previous_response>\n' + previous[:16000] + '\n</previous_response>\n'
     remaining = output_budget - len(prefix) - len(history) - 100
     if remaining < 1000:

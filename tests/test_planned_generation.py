@@ -337,6 +337,8 @@ class PlannedGenerationTests(unittest.TestCase):
         ]
         checked, _ = context.parse_validate(json.dumps(plan))
         self.assertEqual(checked['analogy_decisions'][0]['role_mapping']['dispatcher'], 'Mode.allowed')
+        self.assertEqual(checked['analogy_decisions'][0]['required_input_forms'],
+                         ['compatible', 'compatible:'])
         generation, _ = context.generation_prompt(self.instance, checked, OUTPUT_FORMAT_INSTRUCTION)
         for symbol in ['Mode.__init__', 'Mode.allowed', 'Mode.should_build_missing']:
             self.assertIn(symbol, generation)

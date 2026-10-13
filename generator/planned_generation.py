@@ -479,6 +479,13 @@ class PlanContext:
                     report['warnings'].append(
                         "Applied analogy added missing edit role: " + role + ':' + symbol)
                 checked['role_mapping'] = required_roles
+                checked['required_input_forms'] = sorted({
+                    form.replace(candidate['source_concept'], candidate['target_concept'], 1)
+                    for item in candidate.get('observed_chain', [])
+                    if item.get('role') == 'input_state_owner'
+                    for form in item.get('input_forms', [])
+                    if candidate['source_concept'] in form
+                })
             checked_decisions.append(checked)
         if seen_decisions != set(candidate_by_component):
             raise PlanError("Plan must include one decision for every structural analogy candidate")
@@ -670,11 +677,7 @@ class PlanContext:
                 if owner_after is None or target is None or dispatcher is None:
                     errors.append('Applied lifecycle is missing a required symbol for ' + candidate['component'])
                     continue
-                expected_forms = {form.replace(candidate['source_concept'], candidate['target_concept'], 1)
-                                  for item in candidate.get('observed_chain', [])
-                                  if item.get('role') == 'input_state_owner'
-                                  for form in item.get('input_forms', [])
-                                  if candidate['source_concept'] in form}
+                expected_forms = set(applied[candidate['component']].get('required_input_forms', []))
                 literals = {item.value for item in ast.walk(owner_after)
                             if isinstance(item, ast.Constant) and isinstance(item.value, str)}
                 missing_forms = sorted(expected_forms - literals)
