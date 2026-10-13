@@ -839,3 +839,12 @@ class SiblingTemplateTests(unittest.TestCase):
             'class Solo:\n    def only(self, x):\n        return x\n')
         self.assertEqual(sibling_template_hint(self.root, [{'file_path': 'solo.py',
                                                            'symbol': 'Solo.only'}]), '')
+
+
+class NoopWiringTests(unittest.TestCase):
+    def test_noop_message_contains_both_structural_hints(self):
+        import inspect
+        from generator import state_feedback
+        source = inspect.getsource(state_feedback)
+        self.assertIn('+ producer_hint(current, edits)', source)
+        self.assertIn('+ sibling_template_hint(current, edits)', source)

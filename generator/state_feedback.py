@@ -1027,7 +1027,8 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                     'configuration). The before snippet must be copied verbatim from the current source. '
                     'Re-read the current execution obligations and return a different executable repair '
                     'that changes the broken producer-to-consumer behavior.'
-                    + producer_hint(current, edits))
+                    + producer_hint(current, edits)
+                    + sibling_template_hint(current, edits))
                 noop_prompt = repair_prompt(
                     instance, current, patch, packet, output, watch,
                     '\n'.join(value for value in [previous_error, noop_message] if value),
