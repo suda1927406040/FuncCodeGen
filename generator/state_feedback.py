@@ -709,6 +709,75 @@ def producer_hint(current, edits):
             + '\n- '.join(lines[:6]) + '\n')
 
 
+def sibling_template_hint(current, edits):
+    """Same-family selection loops for the echoed edit targets.
+
+    A new selector with no state-field closure still has a structural
+    template: same-class functions sharing parameter names and commit-helper
+    calls (iterate the same collection, switch node identity, check each
+    candidate, commit via the shared helper, restore on exhaustion). Surface
+    the closest sibling source so the repair adapts a proven loop instead of
+    free-handing one. Purely structural: parameter-name overlap and shared
+    callees, no domain vocabulary."""
+    import ast as _ast
+    hints = []
+    for edit in edits:
+        name = edit.get('file_path')
+        symbol = edit.get('symbol') or ''
+        if not name:
+            continue
+        path = Path(current) / safe_path(name)
+        if not path.is_file():
+            continue
+        try:
+            tree = _ast.parse(path.read_text(errors='replace'))
+        except (SyntaxError, ValueError):
+            continue
+
+        def signature(node):
+            args = {a.arg for a in node.args.args} | {a.arg for a in node.args.kwonlyargs}
+            calls = {c.func.attr if isinstance(c.func, _ast.Attribute)
+                     else getattr(c.func, 'id', '') for c in _ast.walk(node)
+                     if isinstance(c, _ast.Call)}
+            return args, calls
+        leaf = symbol.split('.')[-1]
+        classes = [n for n in _ast.walk(tree) if isinstance(n, _ast.ClassDef)]
+        target = owner = None
+        for cls in classes:
+            for node in cls.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == leaf:
+                    target, owner = node, cls
+                    break
+        if target is None or owner is None:
+            continue
+        target_args, target_calls = signature(target)
+        if len(target_calls) < 1:
+            continue
+        best, best_score = None, 0
+        for cls in classes:
+            for node in cls.body:
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.name == leaf:
+                    continue
+                args, calls = signature(node)
+                shared_calls = (calls & target_calls) - {'info', 'output'}
+                shared_args = {a for a in (args & target_args) if a not in {'self', 'cls'}}
+                score = 2 * len(shared_calls) + len(shared_args)
+                if score > best_score and len(shared_calls) >= 1 and shared_args:
+                    best, best_score = node, score
+        if best is None:
+            continue
+        lines = path.read_text(errors='replace').splitlines(keepends=True)
+        start = min([best.lineno] + [d.lineno for d in best.decorator_list]) - 1
+        source = ''.join(lines[start:best.end_lineno])
+        hints.append('Target %s has a same-family loop %s in the same file sharing its '
+                     'collection/commit structure. Adapt that proven loop shape (save original '
+                     'state, switch the node to each candidate, apply THIS target\'s eligibility '
+                     'check per candidate, commit via the shared helper, restore on exhaustion); '
+                     'do not copy its eligibility condition.\n<loop_sibling source>\n%s\n'
+                     '</loop_sibling>' % (symbol, best.name, source[:6000]))
+    return '\n'.join(hints[:2])
+
+
 def behavior_signature(current, repo, names):
     """Fingerprint changed ASTs/other bytes, independent of diff hunks or comments."""
     changes = {}

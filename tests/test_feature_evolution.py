@@ -798,3 +798,44 @@ class ProducerHintTests(unittest.TestCase):
         from generator.state_feedback import producer_hint
         (self.root / 'plain.py').write_text('def f(x):\n    return x + 1\n')
         self.assertEqual(producer_hint(self.root, [{'file_path': 'plain.py'}]), '')
+
+
+class SiblingTemplateTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        (self.root / 'graph.py').write_text(
+            'class Analyzer:\n'
+            '    def find_cached(self, node, compatibles):\n'
+            '        original = node.binary\n'
+            '        for pid, cand in compatibles.items():\n'
+            '            node.pid = pid\n'
+            '            self.check(node)\n'
+            '            if node.binary == "cache":\n'
+            '                self.commit(node, pid, cand)\n'
+            '                return\n'
+            '        node.binary = original\n\n'
+            '    def find_built(self, node, compatibles):\n'
+            '        for pid, cand in compatibles.items():\n'
+            '            if not cand.buildable:\n'
+            '                continue\n'
+            '            self.commit(node, pid, cand)\n'
+            '            return\n')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_loop_sibling_is_surfaced_for_selector_targets(self):
+        from generator.state_feedback import sibling_template_hint
+        hint = sibling_template_hint(self.root, [{'file_path': 'graph.py',
+                                                  'symbol': 'Analyzer.find_built'}])
+        self.assertIn('find_cached', hint)
+        self.assertIn('loop_sibling', hint)
+        self.assertIn('commit', hint)
+
+    def test_no_sibling_yields_nothing(self):
+        from generator.state_feedback import sibling_template_hint
+        (self.root / 'solo.py').write_text(
+            'class Solo:\n    def only(self, x):\n        return x\n')
+        self.assertEqual(sibling_template_hint(self.root, [{'file_path': 'solo.py',
+                                                           'symbol': 'Solo.only'}]), '')
