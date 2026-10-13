@@ -252,6 +252,14 @@ def _attach_regression_flows(memory, bundle, history, patch_hash, round_number):
 def execution_obligations(memory):
     """Expose current runtime-discovered responsibilities without naming a fix."""
     current = memory.get('current_patch_sha256')
+    current_stages = {
+        group.get('flow_stage') for group in memory.get('groups', {}).values()
+        if group.get('origin') == 'execution_flow'
+        and group.get('flow_status') == 'broken'
+        and group.get('patch_sha256') == current}
+    upstream_dispatch_stages = {
+        'input_to_state', 'configuration_to_state',
+        'responsibility_placement', 'policy_to_dispatch'}
     result = []
     for group in memory.get('groups', {}).values():
         if (group.get('origin') not in {'execution_flow', 'regression_flow'}
@@ -270,10 +278,13 @@ def execution_obligations(memory):
         elif stage == 'state_to_feature_dispatch':
             # The current trace identifies the controller that returned after
             # a terminal state transition without reaching the feature path.
-            # Keep the producer as context and require the controller to
-            # handle the post-transition state.
-            targets = [entry for entry in members if any(
-                role == 'feature_dispatch_controller' for role in roles(entry))]
+            # While an earlier input/state/policy break remains, keep this as
+            # downstream context: forcing it in the same candidate can discard
+            # a valid upstream repair. Once those earlier breaks disappear,
+            # require the controller to handle the post-transition state.
+            targets = [] if current_stages & upstream_dispatch_stages else [
+                entry for entry in members if any(
+                    role == 'feature_dispatch_controller' for role in roles(entry))]
         elif stage == 'candidate_selection':
             targets = [entry for entry in members if any(
                 role == 'candidate_selector' for role in roles(entry))]

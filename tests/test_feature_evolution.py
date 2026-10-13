@@ -133,6 +133,31 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(obligation['required_repair_targets'], [
             {'file': 'graph.py', 'symbol': 'Graph.evaluate'}])
 
+    def test_terminal_dispatch_target_waits_for_current_upstream_break(self):
+        instance = {'instance_id': 'ordered-dispatch', 'repo': 'test/repo',
+                    'base_commit': 'base', 'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [
+            {'stage': 'configuration_to_state', 'status': 'broken', 'test': 'feature',
+             'actors': [{'file': 'refresh.py', 'symbol': 'refresh',
+                         'role': 'configuration_state_refresh'}],
+             'relation': 'Derived state is stale.',
+             'required_invariant': 'Refresh state before dispatch.'},
+            {'stage': 'state_to_feature_dispatch', 'status': 'broken', 'test': 'feature',
+             'actors': [{'file': 'graph.py', 'symbol': 'Graph.evaluate',
+                         'role': 'feature_dispatch_controller'}],
+             'relation': 'Terminal state prevented dispatch.',
+             'required_invariant': 'Dispatch after state production.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligations = execution_obligations(memory)
+        upstream = next(item for item in obligations
+                        if item['stage'] == 'configuration_to_state')
+        downstream = next(item for item in obligations
+                          if item['stage'] == 'state_to_feature_dispatch')
+        self.assertEqual(upstream['required_repair_targets'], [
+            {'file': 'refresh.py', 'symbol': 'refresh'}])
+        self.assertEqual(downstream['required_repair_targets'], [])
+
     def test_candidate_selection_flow_requires_the_observed_selector(self):
         instance = {'instance_id': 'selection', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': []}
