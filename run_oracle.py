@@ -26,6 +26,7 @@ from dataclasses import asdict
 from data_loader import load_dataset, load_instance, parse_problem_statement
 from repo_manager import prepare_repo, get_file_content
 from explorer.context_builder import ContextBuilder
+from explorer.structural_analogies import discover_structural_analogies
 from generator.llm_interface import call_llm_with_usage, LLMCallError
 from generator.planned_generation import PlanContext, PlanError
 from generator.state_feedback import STATE_CONTRACT
@@ -122,55 +123,28 @@ def build_code_section(repo_dir: Path, instance: dict, extra_files: set = None,
 
 
 def _detect_structural_sibling_pattern(comp, init_method=None):
-    """Detect dispatcher→worker pattern in call chain where worker is the better template.
-
-    Pattern example: allowed → should_build_missing.
-    New method allowed_compatible should follow should_build_missing's structure, not allowed's.
-
-    Returns dict with primary_template, dispatcher, source_keyword, target_keyword,
-    init_parsing_block; or None if no pattern detected.
-    """
-    if not comp.reference_call_chain or len(comp.reference_call_chain) < 2:
+    """Adapt a closed, data-derived lifecycle candidate for the legacy prompt."""
+    holder = type('ComponentHolder', (), {'components': [comp]})()
+    candidates = discover_structural_analogies(holder, limit=1)
+    if not candidates:
         return None
-
-    new_name = comp.name.split(".")[-1]
-    new_words = set(re.findall(r'[a-z]+', new_name))
-
-    # First node is the dispatcher (matched by name similarity)
-    dispatcher = comp.reference_call_chain[0]
-    dispatcher_words = set(re.findall(r'[a-z]+', dispatcher.method_name))
-
-    # Words unique to new method (not in dispatcher)
-    new_unique = new_words - dispatcher_words
-    if not new_unique:
+    candidate = candidates[0]
+    symbols = {item['role']: item['symbol'].split('.')[-1]
+               for item in candidate['observed_chain']}
+    by_name = {node.method_name: node for node in comp.reference_call_chain}
+    dispatcher = by_name.get(symbols.get('dispatcher'))
+    worker = by_name.get(symbols.get('policy_query'))
+    if dispatcher is None or worker is None:
         return None
-
-    # Look at subsequent nodes (workers called by dispatcher)
-    for node in comp.reference_call_chain[1:]:
-        node_words = set(re.findall(r'[a-z]+', node.method_name))
-        worker_unique = node_words - dispatcher_words
-
-        if not worker_unique:
-            continue
-
-        # Found a worker with unique keywords — this is the structural sibling
-        source_kw = max(worker_unique, key=len)
-        target_kw = max(new_unique, key=len)
-
-        # Extract __init__ parsing pattern for source keyword
-        init_block = None
-        if init_method:
-            init_block = _extract_init_parsing_pattern(init_method.body_source, source_kw)
-
-        return {
-            'primary_template': node,
-            'dispatcher': dispatcher,
-            'source_keyword': source_kw,
-            'target_keyword': target_kw,
-            'init_parsing_block': init_block,
-        }
-
-    return None
+    return {
+        'candidate': candidate,
+        'analogy_worker': worker,
+        'dispatcher': dispatcher,
+        'source_keyword': candidate['source_concept'],
+        'target_keyword': candidate['target_concept'],
+        'init_parsing_block': (_extract_init_parsing_pattern(
+            init_method.body_source, candidate['source_concept']) if init_method else None),
+    }
 
 
 def _extract_init_parsing_pattern(init_source, keyword):
@@ -670,41 +644,33 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
                         # else: variable might come from base class
                     parts.append("")
 
-        # === Structural Sibling Pattern: __init__ must be modified ===
+        # A closed repository lifecycle is evidence to verify, never a mandatory template.
         if structural_pattern:
             sp = structural_pattern
             src_kw = sp['source_keyword']
             tgt_kw = sp['target_keyword']
-            worker = sp['primary_template']
+            worker = sp['analogy_worker']
+            candidate = sp['candidate']
 
             if sp['init_parsing_block']:
-                parts.append(f"**CRITICAL `__init__` PARSING PATTERN TO COPY**:")
+                parts.append("**Repository lifecycle analogy candidate (verify before use)**:")
                 parts.append(
-                    f"Method `{worker.method_name}()` uses `self.build_{src_kw}_patterns` and "
-                    f"`self._build_{src_kw}_excluded`, which are populated in `__init__` by parsing "
-                    f"`{src_kw}:` parameters. You MUST add analogous parsing for `{tgt_kw}:` parameters.\n"
+                    f"Current code connects `{src_kw}` input forms to state, "
+                    f"`{worker.method_name}()`, and `{sp['dispatcher'].method_name}()`. "
+                    f"The requested component introduces the distinct token `{tgt_kw}`.\n"
                 )
-                parts.append(f"Extracted `{src_kw}:` parsing from `__init__` (mirror this for `{tgt_kw}:`):")
+                parts.append("Observed chain: " + json.dumps(
+                    candidate['observed_chain'], ensure_ascii=False))
+                parts.append(f"Relevant `{src_kw}` parsing excerpt:")
                 parts.append(f"```python")
                 parts.append(sp['init_parsing_block'])
                 parts.append(f"```\n")
 
-            parts.append(f"**WHY YOU MUST MODIFY `__init__`**:")
             parts.append(
-                f"- `{worker.method_name}()` works because `__init__` parses `{src_kw}:` params → "
-                f"`self.build_{src_kw}_patterns` / `self._build_{src_kw}_excluded`."
-            )
-            parts.append(
-                f"- Your new method `{comp.name.split('.')[-1]}()` needs analogous variables: "
-                f"`self.build_{tgt_kw}_patterns` / `self._build_{tgt_kw}_excluded`."
-            )
-            parts.append(
-                f"- Therefore, you MUST add `{tgt_kw}:` parsing logic in `__init__`, "
-                f"mirroring the `{src_kw}:` pattern above."
-            )
-            parts.append(
-                f"- You should also modify `{sp['dispatcher'].method_name}()` to call your new method, "
-                f"just as it already calls `{worker.method_name}()`.\n"
+                "Use this analogy only if the request needs the target concept to participate in the same "
+                "lifecycle. If it applies, map every role while preserving distinct state; adapt names and "
+                "representation to current conventions. Do not copy source-specific conditions or force this "
+                "analogy onto other components.\n"
             )
 
         # Sibling methods (LLM needs to see these to follow patterns)
@@ -779,20 +745,18 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
         if comp.reference_call_chain:
             if structural_pattern:
                 sp = structural_pattern
-                worker = sp['primary_template']
+                worker = sp['analogy_worker']
                 dispatcher = sp['dispatcher']
 
-                parts.append("**REFERENCE IMPLEMENTATION** — complete call chain context:")
+                parts.append("**POTENTIAL STRUCTURAL ANALOGY** — complete source lifecycle:")
                 parts.append(
                     f"`{dispatcher.method_name}()` (dispatcher) calls `{worker.method_name}()` (worker). "
-                    f"Your new method `{comp.name.split('.')[-1]}` should follow "
-                    f"`{worker.method_name}()` as the **PRIMARY template**.\n"
+                    f"Use this chain as evidence to evaluate `{comp.name.split('.')[-1]}`, not as a body to copy.\n"
                 )
 
-                # Show worker first (PRIMARY)
                 parts.append(
                     f"Method `{worker.class_name}.{worker.method_name}()` "
-                    f"**← PRIMARY TEMPLATE, follow this closely**:"
+                    f"(observed source policy query):"
                 )
                 if worker.callees:
                     parts.append(f"  (internally calls: {', '.join(worker.callees)})")
@@ -957,8 +921,8 @@ def build_analysis_section(ctx, base_commit: str = "") -> str:
         if comp.similar_functions:
             if structural_pattern:
                 parts.append(
-                    f"**Similar existing functions** (by name pattern — but note: "
-                    f"`{structural_pattern['primary_template'].method_name}()` shown above is the PRIMARY template):"
+                    f"**Similar existing functions** (name similarity proposes candidates only; "
+                    f"the closed lifecycle above supplies the stronger evidence):"
                 )
             else:
                 parts.append("**Similar existing functions** (by name pattern, follow their style):")

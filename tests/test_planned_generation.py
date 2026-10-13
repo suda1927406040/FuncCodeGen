@@ -271,6 +271,77 @@ class PlannedGenerationTests(unittest.TestCase):
         self.assertEqual([s['id'] for s in checked['steps']], ['S1'])
         self.assertEqual(len(report['ignored_steps']), 1)
 
+    def test_closed_policy_lifecycle_is_a_candidate_not_a_primary_template(self):
+        self.write('engine/mode.py', 'class Mode:\n'
+                   '    def __init__(self, params):\n'
+                   '        self.build_missing_patterns = []\n'
+                   '        self._build_missing_excluded = []\n'
+                   '        for param in params:\n'
+                   '            if param == "missing":\n'
+                   '                pass\n'
+                   '            elif param.startswith("missing:"):\n'
+                   '                value = param[len("missing:"):]\n'
+                   '                if value.startswith("!"):\n'
+                   '                    self._build_missing_excluded.append(value[1:])\n'
+                   '                else:\n'
+                   '                    self.build_missing_patterns.append(value)\n'
+                   '    def allowed(self, item):\n'
+                   '        return self.should_build_missing(item)\n'
+                   '    def should_build_missing(self, item):\n'
+                   '        if self._build_missing_excluded:\n'
+                   '            return item not in self._build_missing_excluded\n'
+                   '        return item in self.build_missing_patterns\n')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+                 'commit', '-qm', 'mode policy')
+        self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
+        self.instance['problem_statement'] = (
+            '<request>Support an independent compatible build policy</request>'
+            '<definitions><definition file="engine/mode.py">'
+            'class Mode:\n    def allowed_compatible(self, item): ...\n'
+            '</definition></definitions>')
+        self.instance['new_components'] = [
+            {'file': 'engine/mode.py', 'components': [
+                {'name': 'Mode.allowed_compatible', 'type': 'function'}]}]
+        context = self.context()
+        prompt = context.planning_prompt(self.instance)
+        self.assertEqual(len(context.structural_analogies), 1)
+        analogy = context.structural_analogies[0]
+        self.assertEqual(analogy['source_concept'], 'missing')
+        self.assertEqual(analogy['target_concept'], 'compatible')
+        self.assertEqual(analogy['observed_chain'][0]['input_forms'], ['missing', 'missing:'])
+        self.assertIn('Mode.__init__', prompt)
+        self.assertIn('candidate_to_verify', prompt)
+        self.assertNotIn('PRIMARY template', prompt)
+
+        plan = self.plan()
+        plan['steps'][0].update(file='engine/mode.py', symbol='Mode.allowed_compatible',
+                                action='create_symbol')
+        plan['steps'][0]['evidence'] = [
+            {'source': 'requirement', 'file': 'engine/mode.py',
+             'symbol': 'Mode.allowed_compatible'}]
+        checked, _ = context.parse_validate(json.dumps(plan))
+        generation, _ = context.generation_prompt(self.instance, checked, OUTPUT_FORMAT_INSTRUCTION)
+        for symbol in ['Mode.__init__', 'Mode.allowed', 'Mode.should_build_missing']:
+            self.assertIn(symbol, generation)
+        self.assertIn('not mandatory templates', generation)
+
+    def test_name_similarity_without_owned_state_is_not_an_analogy(self):
+        self.write('engine/mode.py', 'class Engine:\n'
+                   '    def find_existing(self, node):\n'
+                   '        return self.download(node)\n'
+                   '    def download(self, node):\n'
+                   '        return node\n')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+                 'commit', '-qm', 'selection helpers')
+        self.instance['base_commit'] = self.git('rev-parse', 'HEAD')
+        self.instance['problem_statement'] = '<request>Find a build compatible</request>'
+        self.instance['new_components'] = [
+            {'file': 'engine/mode.py', 'components': [
+                {'name': 'Engine.find_build_compatible', 'type': 'function'}]}]
+        self.assertEqual(self.context().structural_analogies, [])
+
     def test_required_large_function_is_visible_or_fails_before_codegen(self):
         self.write('model/state.py', 'def initialize_hidden(node):\n' + '    node.profile = 1\n' * 700)
         self.git('add', '.')

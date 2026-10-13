@@ -12,6 +12,7 @@ from config import MAX_CONTEXT_CHARS
 from explorer.context_renderer import render_code_files
 from explorer.feature_retriever import RecallCandidate, RepositoryIndex, identifier_terms, is_source_file
 from explorer.history_patterns import render_commit_patterns
+from explorer.structural_analogies import discover_structural_analogies
 
 
 class PlanError(ValueError):
@@ -99,6 +100,7 @@ class PlanContext:
         self.declared = {(comp.target_file, comp.name) for comp in ctx.components}
         self.targets = {comp.target_file for comp in ctx.components}
         self.history = {pattern.commit: pattern for pattern in ctx.history_patterns}
+        self.structural_analogies = discover_structural_analogies(ctx)
         self._class_fields_cache = {}
         self._module_bindings_cache = {}
 
@@ -239,11 +241,20 @@ class PlanContext:
             evidence = json.dumps([{k: v for k, v in fact.items() if k != 'locations'} for fact in facts], ensure_ascii=False)
         inventory = '\n'.join(sorted(self.targets | {candidate.file for candidate in self.ctx.recalled_files}))
         history = render_commit_patterns(self.ctx.history_patterns, 8000, include_plan_instruction=False)
+        analogies = json.dumps(self.structural_analogies, ensure_ascii=False, indent=2)
         prefix = ("Plan the current repository feature using current code and ancestral coordinated changes.\n"
                   + STATE_CONTRACT + _task(instance, self.ctx) + "\nKnown candidate paths:\n" + inventory
                   + "\nDeclared requirement symbols (exact file/symbol pairs):\n"
                   + json.dumps([{'file': file, 'symbol': symbol} for file, symbol in sorted(self.declared)], ensure_ascii=False)
-                  + "\nStatic evidence (observations, not mandatory edits):\n" + evidence + history + '\n' + PLAN_FORMAT)
+                  + "\nStatic evidence (observations, not mandatory edits):\n" + evidence + history
+                  + "\n<repository_structural_analogies>\n" + analogies
+                  + "\n</repository_structural_analogies>\n"
+                    "These are candidates derived from closed input-state-query-dispatch chains in current code. "
+                    "They are not primary templates. Verify each lifecycle role against the request. If a candidate "
+                    "applies, plan the target concept's state ownership, all corresponding input forms, policy query, "
+                    "and dispatcher integration together. Keep source and target policy state distinct when they can "
+                    "be requested independently. Do not extend an analogy to another component unless that component "
+                    "has its own observed closed chain.\n" + PLAN_FORMAT)
         if len(prefix) > MAX_CONTEXT_CHARS - 2000:
             raise PlanError("Planning instructions exceed context budget")
         files = list(dict.fromkeys(sorted(self.targets) + [candidate.file for candidate in self.ctx.recalled_files]))
@@ -401,7 +412,8 @@ class PlanContext:
                 report['context_requests'].append({'request': request, 'resolved_file': file, 'symbols': symbols})
             except PlanError as error:
                 report['warnings'].append(str(error))
-        result = {'contracts': contracts, 'steps': ordered, 'context': supplements}
+        result = {'contracts': contracts, 'steps': ordered, 'context': supplements,
+                  'structural_analogies': self.structural_analogies}
         if len(json.dumps(result, ensure_ascii=False)) > 16000:
             raise PlanError("Plan is too large for bounded generation context")
         return result, report
@@ -416,6 +428,14 @@ class PlanContext:
         for item in plan['context']:
             planned_files.append(item['file'])
             required[item['file']].extend(item['symbols'])
+        for analogy in plan.get('structural_analogies', []):
+            file = analogy.get('file')
+            if not file:
+                continue
+            planned_files.append(file)
+            required[file].extend(
+                item['symbol'] for item in analogy.get('observed_chain', [])
+                if item.get('symbol'))
         dependencies = []
         frequency = Counter()
         for value in self.index.symbols.values():
@@ -471,6 +491,12 @@ class PlanContext:
                   + STATE_CONTRACT + _task(instance, self.ctx) + '\n<checked_plan>\n' + factual_plan + '\n</checked_plan>\n'
                   + "The script checked path/symbol existence and dependency order, not semantic correctness. "
                     "Treat contracts as proposals to verify against the request and current code. "
+                    "The structural_analogies are repository evidence, not mandatory templates. For an applicable "
+                    "candidate, preserve its end-to-end lifecycle roles: represent independent target state, handle "
+                    "the corresponding exact and qualified input forms, query that state, and integrate the query at "
+                    "the observed dispatcher boundary. Adapt representation to current conventions instead of copying "
+                    "source-specific conditions. A plan constraint cannot justify collapsing independently requested "
+                    "source and target concepts into the same fields. "
                     "Preserve existing API behavior and distinct state/guard meanings. Internal helpers do not require "
                     "public exports unless the task requires them. Dependency evidence is for inspection, not mandatory edits.\n"
                   + relation_text + render_commit_patterns(self.ctx.history_patterns, 5000, include_plan_instruction=False)
