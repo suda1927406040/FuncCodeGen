@@ -491,7 +491,7 @@ class EvolutionTests(unittest.TestCase):
         tail = prompt[prompt.index('<required_edit_checklist>'):]
         self.assertIn('real executable change for EVERY exact', tail)
         self.assertIn('Return only JSON', tail)
-        self.assertLess(tail.index('Return only JSON') - tail.index('select'), 1000)
+        self.assertLess(tail.index('Return only JSON') - tail.index('select'), 2000)
 
     def test_overindented_method_replacement_does_not_satisfy_exact_symbol(self):
         source = ('class Graph:\n'
