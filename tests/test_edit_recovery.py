@@ -2,11 +2,24 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from generator.edit_recovery import expand_omissions
+from generator.edit_recovery import expand_omissions, repair_prompt
 from run_oracle import _align_indent, edits_to_patch, parse_edits
 
 
 class EditRecoveryTests(unittest.TestCase):
+    def test_repair_prompt_keeps_checked_structural_roles(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'file.py').write_text('class Mode:\n    def route(self):\n        return False\n')
+            prompt = repair_prompt(
+                {'problem_statement': 'Add policy', 'new_components': []}, root, [],
+                ValueError('missing dispatcher call'), 'previous',
+                structural_obligations={'decisions': [{'component': 'Mode.policy', 'decision': 'apply',
+                                                       'role_mapping': {'dispatcher': 'Mode.route'}}]})
+        self.assertIn('accepted_structural_obligations', prompt)
+        self.assertIn('Mode.route', prompt)
+        self.assertIn('different symbol does not satisfy', prompt)
+
     def test_mislabeled_closer_is_recovered_only_for_same_path_complete_sections(self):
         response = ('<edit>\n[start of the snippet before editing in file.py]\nVALUE = 1\n'
                     '[end of the snippet before editing in file.py]\n'

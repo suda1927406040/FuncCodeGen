@@ -127,7 +127,8 @@ def new_module_definitions(before, after, source):
     return '\n'.join(additions)
 
 
-def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=80000):
+def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=80000,
+                  structural_obligations=None):
     """Show contiguous actual source rather than asking the model to reuse elisions."""
     statement = instance.get('problem_statement', '')
     declared = instance.get('new_components') or []
@@ -141,6 +142,13 @@ def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=8000
               'Return all edits for the implementation, including unchanged edits from the previous response.\n'
               '<request_and_definitions>\n' + statement + '\n' + json.dumps(declared, ensure_ascii=False)
               + '\n</request_and_definitions>\nValidation failure: ' + str(error)[:2000] + '\n')
+    if structural_obligations:
+        prefix += ('<accepted_structural_obligations>\n'
+                   + json.dumps(structural_obligations, ensure_ascii=False, indent=2)
+                   + '\n</accepted_structural_obligations>\n'
+                     'These obligations came from the checked repository lifecycle. Modify each named role symbol '
+                     'so the generated source satisfies the mapping; a call from a different symbol does not satisfy '
+                     'the dispatcher role.\n')
     history = '\n<previous_response>\n' + previous[:16000] + '\n</previous_response>\n'
     remaining = output_budget - len(prefix) - len(history) - 100
     if remaining < 1000:
