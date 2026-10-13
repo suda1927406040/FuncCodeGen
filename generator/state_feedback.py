@@ -542,8 +542,44 @@ def _edited_responsibilities(edits, current):
             return old != new
         except (SyntaxError, ValueError):
             return True
+    def preserves_symbol_binding(edit):
+        """Reject a method replacement indented into a preceding method body."""
+        file, symbol = edit.get('file_path'), edit.get('symbol')
+        path = Path(current) / safe_path(file)
+        if not path.is_file() or not symbol:
+            return False
+        try:
+            tree = ast.parse(path.read_bytes())
+        except (SyntaxError, ValueError):
+            return False
+        found = []
+        def visit(body, prefix=''):
+            for node in body:
+                if isinstance(node, ast.ClassDef):
+                    visit(node.body, prefix + node.name + '.')
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    qualified = prefix + node.name
+                    if qualified == symbol:
+                        found.append(node)
+                    visit(node.body, qualified + '.')
+        visit(tree.body)
+        if len(found) != 1:
+            return False
+        replacement = edit.get('replacement', edit.get('after'))
+        if replacement is None:
+            return False
+        leaf = symbol.split('.')[-1]
+        definition = re.compile(r'^(\s*)(?:async\s+)?def\s+' + re.escape(leaf) + r'\s*\(')
+        matches = [definition.match(line) for line in replacement.splitlines()]
+        matches = [match for match in matches if match]
+        if len(matches) != 1:
+            return False
+        indentation = len(matches[0].group(1).expandtabs(8))
+        return indentation == found[0].col_offset
+
     result = {(edit.get('file_path'), edit.get('symbol'))
-              for edit in edits if edit.get('symbol') and executable_change(edit)}
+              for edit in edits if edit.get('symbol') and executable_change(edit)
+              and preserves_symbol_binding(edit)}
     for edit in edits:
         if edit.get('symbol') or not edit.get('before') or not executable_change(edit):
             continue
@@ -851,6 +887,23 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                 if file.endswith('.py') and (current / file).is_file():
                     source = (current / file).read_bytes()
                     compile(source, file, 'exec')
+                    tree = ast.parse(source)
+                    defined = set()
+                    def collect(body, prefix=''):
+                        for node in body:
+                            if isinstance(node, ast.ClassDef):
+                                collect(node.body, prefix + node.name + '.')
+                            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                                qualified = prefix + node.name
+                                defined.add(qualified)
+                                collect(node.body, qualified + '.')
+                    collect(tree.body)
+                    missing_bindings = [edit['symbol'] for edit in edits
+                                        if edit.get('file_path') == file and edit.get('symbol')
+                                        and edit['symbol'] not in defined]
+                    if missing_bindings:
+                        raise ValueError('Repair removes exact symbol bindings: '
+                                         + json.dumps(missing_bindings, ensure_ascii=False))
                     duplicates = _duplicate_methods(source)
                     # Only same-name repetition INSIDE one class body shadows an
                     # earlier definition; equal names across different classes are legal.

@@ -466,6 +466,34 @@ class EvolutionTests(unittest.TestCase):
         self.assertIn('Return only JSON', tail)
         self.assertLess(tail.index('Return only JSON') - tail.index('select'), 1000)
 
+    def test_overindented_method_replacement_does_not_satisfy_exact_symbol(self):
+        source = ('class Graph:\n'
+                  '    def choose(self, node):\n'
+                  '        return "Invalid"\n')
+        (self.repo/'graph.py').write_text(source)
+        edit = {'file_path': 'graph.py', 'symbol': 'Graph.choose',
+                'before': '    def choose(self, node):\n        return "Invalid"',
+                'after': ('        def choose(self, node):\n'
+                          '            return "Build"'),
+                'replacement': ('        def choose(self, node):\n'
+                                '            return "Build"')}
+        self.assertNotIn(('graph.py', 'Graph.choose'),
+                         _edited_responsibilities([edit], self.repo))
+
+    def test_correctly_indented_method_replacement_satisfies_exact_symbol(self):
+        source = ('class Graph:\n'
+                  '    def choose(self, node):\n'
+                  '        return "Invalid"\n')
+        (self.repo/'graph.py').write_text(source)
+        edit = {'file_path': 'graph.py', 'symbol': 'Graph.choose',
+                'before': '    def choose(self, node):\n        return "Invalid"',
+                'after': ('    def choose(self, node):\n'
+                          '        return "Build"'),
+                'replacement': ('    def choose(self, node):\n'
+                                '        return "Build"')}
+        self.assertIn(('graph.py', 'Graph.choose'),
+                      _edited_responsibilities([edit], self.repo))
+
     def test_second_omission_keeps_prior_edits_and_gets_focused_completion(self):
         eid = next(iter(self.memory['elements']))
         calls = []
