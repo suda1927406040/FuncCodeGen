@@ -152,6 +152,66 @@ class StatePacketTests(unittest.TestCase):
                      {'package_id': 'p14', 'info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': 'needs 17'}}]})]
         self.assertEqual(extract(trace)['unvalidated_candidates'], [])
 
+    def test_selector_stopping_on_rejected_candidate_with_eligible_alternative_is_a_flow(self):
+        produced = event(1, 'BinaryCompatibility.compatibles', {'returned_candidates': [
+            {'package_id': 'p14', 'info': {'receiver': 'c14', 'cppstd': '14',
+                                           'cant_build': 'needs 17'}},
+            {'package_id': 'p17', 'info': {'receiver': 'c17', 'cppstd': '17',
+                                           'cant_build': False}}]})
+        selected = event(2, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p14'},
+            'compatible_package': {'receiver': 'c14', 'cppstd': '14',
+                                   'cant_build': 'needs 17'}}, 'return')
+        for item, file in [(produced, 'conans/client/graph/compatibility.py'),
+                           (selected, 'conans/client/graph/graph_binaries.py')]:
+            item.update(invocation=4, command='create . --build=compatible', file=file)
+        packet = extract([produced, selected])
+        flow = next(item for item in packet['causal_flow']
+                    if item['stage'] == 'candidate_selection')
+        self.assertEqual([actor['role'] for actor in flow['actors']],
+                         ['candidate_set_producer', 'candidate_selector'])
+        self.assertEqual(flow['observation']['candidate_count'], 2)
+        self.assertEqual(flow['observation']['eligible_count'], 1)
+        self.assertEqual(flow['observation']['selected_candidate']['cppstd'], '14')
+
+    def test_selector_accepting_eligible_candidate_is_not_a_selection_break(self):
+        produced = event(1, 'BinaryCompatibility.compatibles', {'returned_candidates': [
+            {'package_id': 'p17', 'info': {'receiver': 'c17', 'cppstd': '17',
+                                           'cant_build': False}}]})
+        selected = event(2, 'GraphBinariesAnalyzer._find_build_compatible_binary', {
+            'node': {'receiver': 'node', 'binary': 'Build', 'package_id': 'p17'},
+            'compatible_package': {'receiver': 'c17', 'cppstd': '17',
+                                   'cant_build': False}}, 'return')
+        for item in (produced, selected):
+            item.update(invocation=4, command='create . --build=compatible')
+        self.assertFalse(any(item['stage'] == 'candidate_selection'
+                             for item in extract([produced, selected])['causal_flow']))
+
+    def test_terminal_dispatch_flow_names_the_state_producer(self):
+        init = event(1, 'BuildMode.__init__', {
+            'build_mode_input': {'params': ['compatible']},
+            'build_mode': {'receiver': 'mode'}})
+        before = event(2, 'GraphBinariesAnalyzer._evaluate_build', {
+            'node': {'receiver': 'node', 'binary': None, 'package_id': 'p'}}, 'line')
+        before['statement'] = 'node.binary = BINARY_INVALID'
+        after = event(3, 'GraphBinariesAnalyzer._process_node', {
+            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p'}}, 'return')
+        evaluated = event(4, 'GraphBinariesAnalyzer._evaluate_node', {
+            'node': {'receiver': 'node', 'binary': 'Invalid', 'package_id': 'p'}}, 'return')
+        for item in (init, before, after, evaluated):
+            item.update(invocation=9, command='create . --build=compatible',
+                        file='conans/client/graph/graph_binaries.py')
+        init['file'] = 'conans/client/graph/build_mode.py'
+        declared = {
+            'conans/client/graph/build_mode.py': ['BuildMode.allowed_compatible'],
+            'conans/client/graph/graph_binaries.py': [
+                'GraphBinariesAnalyzer._find_build_compatible_binary']}
+        flow = next(item for item in extract([init, before, after, evaluated], declared=declared)['causal_flow']
+                    if item['stage'] == 'state_to_feature_dispatch')
+        self.assertEqual(flow['actors'][0]['role'], 'terminal_state_producer')
+        self.assertEqual(flow['actors'][0]['symbol'], 'GraphBinariesAnalyzer._evaluate_build')
+        self.assertEqual(flow['observation']['state_transition']['to'], 'Invalid')
+
     def test_callback_free_recipe_does_not_get_a_spurious_missing_validation_warning(self):
         trace = [event(1, 'Compatibility.compatibles', {'returned_candidates': [
                      {'package_id': 'p14', 'info': {'receiver': 'candidate', 'cppstd': '14', 'cant_build': False}}]})]

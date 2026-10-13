@@ -268,12 +268,15 @@ def execution_obligations(memory):
         elif stage in {'input_to_state', 'configuration_to_state'}:
             targets = members
         elif stage == 'state_to_feature_dispatch':
-            # A terminal state can be repaired at its producer, at the
-            # controller, or by restoring the policy gate. The trace proves
-            # the broken flow but does not uniquely identify which function
-            # must change, so keep the responsibilities visible without
-            # turning one downstream frame into a mandatory edit.
-            targets = []
+            # The current trace identifies the controller that returned after
+            # a terminal state transition without reaching the feature path.
+            # Keep the producer as context and require the controller to
+            # handle the post-transition state.
+            targets = [entry for entry in members if any(
+                role == 'feature_dispatch_controller' for role in roles(entry))]
+        elif stage == 'candidate_selection':
+            targets = [entry for entry in members if any(
+                role == 'candidate_selector' for role in roles(entry))]
         elif stage == 'responsibility_placement':
             targets = [entry for entry in members if any(
                 marker in role for role in roles(entry)

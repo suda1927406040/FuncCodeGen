@@ -115,7 +115,7 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(obligation['previously_passing_test'], 'test_old_behavior')
         self.assertEqual(obligation['required_repair_targets'], [])
 
-    def test_terminal_dispatch_flow_keeps_context_without_forcing_one_edit_location(self):
+    def test_terminal_dispatch_flow_requires_the_observed_controller(self):
         instance = {'instance_id': 'dispatch', 'repo': 'test/repo', 'base_commit': 'base',
                     'new_components': []}
         packet = {'repo_state_relations': {'causal_flow': [{
@@ -130,7 +130,27 @@ class EvidenceTests(unittest.TestCase):
         obligation = next(item for item in execution_obligations(memory)
                           if item['stage'] == 'state_to_feature_dispatch')
         self.assertEqual(len(obligation['responsibilities']), 2)
-        self.assertEqual(obligation['required_repair_targets'], [])
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'graph.py', 'symbol': 'Graph.evaluate'}])
+
+    def test_candidate_selection_flow_requires_the_observed_selector(self):
+        instance = {'instance_id': 'selection', 'repo': 'test/repo', 'base_commit': 'base',
+                    'new_components': []}
+        packet = {'repo_state_relations': {'causal_flow': [{
+            'stage': 'candidate_selection', 'status': 'broken', 'test': 'feature',
+            'actors': [
+                {'file': 'compat.py', 'symbol': 'Compatibility.candidates',
+                 'role': 'candidate_set_producer'},
+                {'file': 'graph.py', 'symbol': 'Graph.select_candidate',
+                 'role': 'candidate_selector'}],
+            'relation': 'The selector stopped at a rejected candidate.',
+            'required_invariant': 'Continue until an eligible candidate is found.'}]}}
+        memory = attach_observations(
+            seed_featurespace(instance), evidence_bundle(packet, 'failed'), 'candidate', 1)
+        obligation = next(item for item in execution_obligations(memory)
+                          if item['stage'] == 'candidate_selection')
+        self.assertEqual(obligation['required_repair_targets'], [
+            {'file': 'graph.py', 'symbol': 'Graph.select_candidate'}])
 
     def test_wrong_policy_dispatch_requires_only_the_observed_permission_consumer(self):
         instance = {'instance_id': 'policy', 'repo': 'test/repo', 'base_commit': 'base',
@@ -458,6 +478,24 @@ class EvolutionTests(unittest.TestCase):
         self.assertIn('+    return "Build"', result)
         self.assertTrue((directory/'diagnosis_error.json').is_file())
         self.assertEqual(json.loads((directory/'featurespace_after.json').read_text())['revision'], 0)
+
+    def test_noop_repair_is_retried_with_current_source_failure(self):
+        replies = [
+            response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
+                                 'replacement': 'def select(node):\n    return "Invalid"'}]}),
+            response({'edits': [{'file_path': 'state.py', 'symbol': 'select',
+                                 'replacement': 'def select(node):\n    return "Build"'}]})]
+        prompts = []
+        def model(prompt, **kwargs):
+            prompts.append(prompt)
+            return replies.pop(0)
+        directory = self.root/'noop_retry'
+        result = repair_once(self.instance, self.repo, self.initial, self.packet, 'failed',
+                             self.watch, directory, call=model, mode='basic')
+        self.assertEqual(len(prompts), 2)
+        self.assertIn('exactly match the CURRENT source', prompts[1])
+        self.assertIn('+    return "Build"', result)
+        self.assertTrue((directory/'repair_noop_retry_response.json').is_file())
 
     def test_resume_replays_completed_model_stages_without_new_calls(self):
         directory = self.root/'resumed'

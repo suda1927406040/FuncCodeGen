@@ -370,6 +370,8 @@ def repair_prompt(instance, current, patch, packet, output, watch, prior=None, b
                    'Entries with origin=execution_flow are responsibilities discovered by the self-evolution cycle. '
                    'Repair every focused broken flow as a producer-to-consumer chain: represent the input state, '
                    'refresh derived state after object or configuration changes, and only then repair its consumer. '
+                   'For candidate-selection flows, preserve the candidate producer and make the selector continue '
+                   'past rejected alternatives before concluding that selection failed. '
                    + target_instruction + 'Other listed '
                    'responsibilities must be reviewed against the invariant and changed only when current source violates it. '
                    'A downstream function not being called is a symptom and does not by itself justify widening its guard. '
@@ -454,6 +456,9 @@ def diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle, bu
               'Source expansion provides previously unseen state producers and related responsibilities. '
               'Trace the observed field back to its writer and check whether that writer runs after each '
               'configuration/object change. Do not assume the initial plan contains every required file. '
+              'When a producer returns multiple alternatives, compare each alternative\'s observed eligibility '
+              'state with the selector\'s iteration and return point. Distinguish failure of one candidate from '
+              'exhaustion of the candidate set. '
               'Compare failing paths with successful_execution and verified_candidates: identify the '
               'conditions under which each behavior is required. Test identifiers locate evidence, never '
               'become code conditions. A different output identity can result from selecting a different '
@@ -776,7 +781,41 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                                    for name in names if name.endswith('.py') and (current / name).is_file()}
             incremental = edits_to_patch(edits, current)
             if not incremental.strip():
-                raise ValueError('Repair made no changes')
+                # The model can agree with a diagnosis yet return the exact
+                # current implementation. Give it the concrete failed
+                # transaction in the same semantic round so an otherwise
+                # useful execution/diagnosis cycle is not discarded.
+                noop_message = (
+                    'The proposed edits exactly match the CURRENT source and make no executable change. '
+                    'The observed tests still fail, so do not repeat that implementation. Re-read the '
+                    'current execution obligations and return a different executable repair that changes '
+                    'the broken producer-to-consumer behavior.')
+                noop_prompt = repair_prompt(
+                    instance, current, patch, packet, output, watch,
+                    '\n'.join(value for value in [previous_error, noop_message] if value),
+                    memory=memory, history=history, mode=mode)
+                raw = model_stage('repair_noop_retry', noop_prompt, 16384)
+                edits = parse_current_edits(raw, current)
+                if not edits or any(not production_path(safe_path(e['file_path'])) for e in edits):
+                    raise ValueError('No-op repair retry needs complete production edits')
+                edited_symbols = _edited_responsibilities(edits, current)
+                omitted = []
+                for obligation in obligations:
+                    missing = [target for target in obligation.get('required_repair_targets', [])
+                               if (target['file'], target['symbol']) not in edited_symbols]
+                    if missing:
+                        omitted.append({'stage': obligation.get('stage'), 'targets': missing})
+                if omitted:
+                    raise ValueError('No-op repair retry omits runtime-discovered responsibilities: '
+                                     + json.dumps(omitted, ensure_ascii=False))
+                for edit in edits:
+                    if ('[start of %s]' % edit['file_path']) not in noop_prompt:
+                        raise ValueError('No-op repair retry requested a file outside current-source evidence')
+                (directory / 'response.json').write_text(json.dumps(
+                    {'edits': edits}, ensure_ascii=False))
+                incremental = edits_to_patch(edits, current)
+                if not incremental.strip():
+                    raise ValueError('Repair made no changes after explicit no-op retry')
             git('apply', '--check', '-', input=incremental)
             git('apply', '-', input=incremental)
             (directory / 'incremental.patch').write_text(incremental)

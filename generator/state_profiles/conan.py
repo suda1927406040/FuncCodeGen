@@ -12,7 +12,9 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
     field_reads = defaultdict(list)
     test_has_validator = set()
     candidates = {}
+    candidate_batches, node_observations, binary_transitions = {}, {}, {}
     unvalidated, mismatches, mode_errors, producer_errors, dispatch_errors, stale_guards = [], [], [], [], [], []
+    selection_errors = []
     seen_unvalidated, seen_mismatch, seen_mode = set(), set(), set()
     last_invalid_guard = {}
     mode_initializations, policy_decisions = [], []
@@ -27,6 +29,18 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
         command = event.get('command') or ''
         node = state.get('node') or {}
         scope = (test, event.get('invocation'), node.get('receiver'))
+        if node.get('receiver') is not None and 'binary' in node:
+            previous = node_observations.get(scope)
+            if (previous and previous['binary'] != node.get('binary')
+                    and node.get('binary') == 'Invalid'):
+                # Line tracing observes state before a line executes, so the
+                # previous event produced the value visible at this event.
+                binary_transitions[scope] = {
+                    'before': previous['binary'], 'after': node.get('binary'),
+                    'producer': actor(previous['event'], 'terminal_state_producer'),
+                    'evidence': {'seq': seq, 'file': event.get('file'),
+                                 'function': event.get('function'), 'line': event.get('line')}}
+            node_observations[scope] = {'binary': node.get('binary'), 'event': event}
         if (event['event'] == 'call' and event['function'].endswith('._find_build_compatible_binary')
                 and '--build=missing' in command and '--build=compatible' not in command):
             caller = (event.get('watched_callers') or [None])[0]
@@ -87,6 +101,27 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                                     'status': 'validation_not_observed_for_this_receiver_and_configuration',
                                     'producer': actor(event, 'candidate_state_producer'),
                                     'evidence': {'seq': seq, 'file': event['file'], 'function': event['function'], 'line': event['line']}})
+        if state.get('returned_candidates'):
+            candidate_batches[(test, event.get('invocation'))] = {
+                'event': event, 'candidates': state['returned_candidates']}
+        if (event['event'] == 'return'
+                and event['function'].endswith('._find_build_compatible_binary')):
+            batch = candidate_batches.get((test, event.get('invocation')))
+            selected = state.get('compatible_package') or state.get('current_info') or {}
+            values = batch.get('candidates', []) if batch else []
+            eligible = [item for item in values if item.get('info', {}).get(field) is False]
+            if (batch and node.get('binary') == 'Invalid' and selected.get(field) and eligible):
+                selection_errors.append({
+                    'test': test, 'invocation': event.get('invocation'),
+                    'command': event.get('command'), 'field': field,
+                    'candidate_count': len(values), 'eligible_count': len(eligible),
+                    'selected': {context: selected.get(context), field: selected.get(field),
+                                 'receiver': selected.get('receiver')},
+                    'producer': actor(batch['event'], 'candidate_set_producer'),
+                    'selector': actor(event, 'candidate_selector'),
+                    'terminal_binary': node.get('binary'),
+                    'evidence': {'seq': seq, 'file': event.get('file'),
+                                 'function': event.get('function'), 'line': event.get('line')}})
         node = state.get('node') or {}
         if event['event'] == 'return' and event['function'].endswith('._evaluate_node'):
             candidate = candidates.get((test, event.get('invocation'), node.get('package_id')))
@@ -232,6 +267,20 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                             'node_binary': record.get('node_binary')},
             'evidence': record['evidence']})
 
+    for record in selection_errors:
+        causal_flow.append({
+            'stage': 'candidate_selection', 'status': 'broken', 'test': record['test'],
+            'invocation': record.get('invocation'), 'command': record.get('command'),
+            'actors': [record['producer'], record['selector']],
+            'relation': 'The candidate producer returned later eligible alternatives, but the selector terminated with an invalid result after consuming a rejected candidate.',
+            'required_invariant': 'Selection over ordered alternatives must reject an ineligible candidate and continue until an eligible candidate is found; it may return a terminal failure only after no eligible alternative remains.',
+            'observation': {'candidate_count': record['candidate_count'],
+                            'eligible_count': record['eligible_count'],
+                            'eligibility_field': record['field'],
+                            'selected_candidate': record['selected'],
+                            'terminal_binary': record['terminal_binary']},
+            'evidence': record['evidence']})
+
     decision_observations = []
     for event, concept, outcome, receiver in policy_decisions:
         decision_observations.append({
@@ -281,7 +330,12 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
             if not missing or key in seen_dispatch:
                 continue
             seen_dispatch.add(key)
-            actors = [actor(event, 'feature_dispatch_controller')]
+            transition = binary_transitions.get((event.get('test'), event.get('invocation'),
+                                                 node.get('receiver')))
+            actors = []
+            if transition:
+                actors.append(transition['producer'])
+            actors.append(actor(event, 'feature_dispatch_controller'))
             actors.extend({'file': file, 'symbol': symbol,
                            'role': 'declared_feature_responsibility_not_reached'}
                           for file, symbol in missing)
@@ -292,7 +346,11 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
                 'relation': 'Execution ended in a terminal binary state without reaching one or more declared feature responsibilities in the same command.',
                 'required_invariant': 'After state production, dispatch must reach the feature responsibilities under their policy conditions while preserving existing command paths.',
                 'observation': {'terminal_binary': node.get('binary'),
-                                'unreached_responsibilities': [symbol for _, symbol in missing]},
+                                'unreached_responsibilities': [symbol for _, symbol in missing],
+                                **({'state_transition': {
+                                    'from': transition['before'], 'to': transition['after'],
+                                    'producer': transition['producer']}}
+                                   if transition else {})},
                 'evidence': {'seq': event.get('seq'), 'file': event.get('file'),
                              'function': event.get('function'), 'line': event.get('line')}})
     return {'schema_version': 1, 'identity_scope': ['test', 'invocation', 'receiver', context],
@@ -303,6 +361,7 @@ def extract(events, field='cant_build', validator='validate_build', context='cpp
             'policy_decision_observations': decision_observations,
             'producer_execution_errors': producer_errors,
             'dispatch_contract_observations': dispatch_errors,
+            'candidate_selection_observations': selection_errors,
             'stale_guard_observations': stale_guards,
             'reference_patch_or_execution_used': False,
             'limits': ['Missing validation is an observed coverage gap, not an invented expected field value.',
