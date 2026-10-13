@@ -103,7 +103,7 @@ def main():
     if args.worker:
         worker(args)
         return
-    if args.workers < 1 or not 0 <= args.repair_rounds <= 4:
+    if args.workers < 1 or not 0 <= args.repair_rounds <= 10:
         raise ValueError('Invalid worker/repair bounds')
     if not args.resume:
         args.run_root.mkdir(parents=True, exist_ok=False)
