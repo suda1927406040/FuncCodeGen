@@ -128,19 +128,25 @@ def new_module_definitions(before, after, source):
 
 
 def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=80000,
-                  structural_obligations=None):
+                  structural_obligations=None, incremental=False):
     """Show contiguous actual source rather than asking the model to reuse elisions."""
     statement = instance.get('problem_statement', '')
     declared = instance.get('new_components') or []
-    prefix = ('Fix the previous implementation so its complete edits apply to the CURRENT BASE below.\n'
-              'Implement every requested component. Preserve existing behavior. Do not edit tests or documentation.\n'
+    opening = ('Fix only the reported structural gap in the CURRENT CANDIDATE below.\n'
+               if incremental else
+               'Fix the previous implementation so its complete edits apply to the CURRENT BASE below.\n')
+    edit_scope = ('Return only the incremental edits needed for this validation failure. '
+                  'Each before snippet must match the current candidate below.\n'
+                  if incremental else
+                  'Return all edits for the implementation, including unchanged edits from the previous response.\n')
+    prefix = (opening
+              + 'Implement every requested component. Preserve existing behavior. Do not edit tests or documentation.\n'
               'Return one JSON object: {"edits": [{"file_path": "relative/path.py", "before": "exact current code", '
               '"after": "complete replacement code"}]}. For a new file, before is empty and after is the full file.\n'
               'Use short, unique, contiguous before snippets. Copy them exactly, including indentation. '
               'Separate excerpts are not adjacent in the real file. Never include omission placeholders. '
-              'Avoid duplicate edits and ensure later edits refer to code after earlier edits. '
-              'Return all edits for the implementation, including unchanged edits from the previous response.\n'
-              '<request_and_definitions>\n' + statement + '\n' + json.dumps(declared, ensure_ascii=False)
+              'Avoid duplicate edits and ensure later edits refer to code after earlier edits. ' + edit_scope
+              + '<request_and_definitions>\n' + statement + '\n' + json.dumps(declared, ensure_ascii=False)
               + '\n</request_and_definitions>\nValidation failure: ' + str(error)[:2000] + '\n')
     if structural_obligations:
         prefix += ('<accepted_structural_obligations>\n'
@@ -150,7 +156,7 @@ def repair_prompt(instance, repo_dir, edits, error, previous, output_budget=8000
                      'so the generated source satisfies the mapping; a call from a different symbol does not satisfy '
                      'the dispatcher role. Every required_input_forms value must appear as an exact string literal '
                      'in the input_state_owner symbol.\n')
-    history = '\n<previous_response>\n' + previous[:16000] + '\n</previous_response>\n'
+    history = '' if incremental else '\n<previous_response>\n' + previous[:16000] + '\n</previous_response>\n'
     remaining = output_budget - len(prefix) - len(history) - 100
     if remaining < 1000:
         history = '\n<previous_response>\n' + previous[:2000] + '\n</previous_response>\n'

@@ -12,7 +12,9 @@ import re
 import sys
 import json
 import argparse
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
@@ -1649,14 +1651,73 @@ def run_single(instance: dict, output_base: Path, dry_run: bool = False,
                         'observed_chains': [item for item in plan.get('structural_analogies', [])
                                             if item.get('component') in accepted_names],
                     } if accepted else None
-                feedback = repair_prompt(instance, repo_dir, edits, error, response, MAX_CONTEXT_CHARS,
-                                         structural_obligations=structural_obligations)
-                (out_dir / ('repair_prompt_%d.md' % (attempt + 1))).write_text(feedback)
-                result['repair_attempts'] = attempt + 1
-                reply = invoke('generation_repair_%d' % (attempt + 1), feedback,
-                               system='You repair a repository implementation using validation errors and actual base code. Return only the requested JSON object.',
-                               model=LLM_MODEL_GENERATE, max_tokens=repair_max_tokens,
-                               temperature=LLM_TEMPERATURE, json_mode=True)
+                structural_repair = structural_obligations is not None and str(error).startswith(
+                    'Applied structural lifecycle is incomplete:')
+                if structural_repair:
+                    with tempfile.TemporaryDirectory() as directory:
+                        candidate_root = Path(directory)
+                        staged_files = {edit['file_path'] for edit in edits}
+                        staged_files.update(group['file'] for group in instance.get('new_components', []))
+                        for file in staged_files:
+                            source = repo_dir / file
+                            if source.is_file():
+                                target = candidate_root / file
+                                target.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copyfile(source, target)
+                        applied = subprocess.run(['git', 'apply', '--whitespace=nowarn', '-'], cwd=candidate_root,
+                                                 input=patch, text=True, capture_output=True)
+                        if applied.returncode:
+                            raise ValueError('Could not materialize candidate for structural repair: '
+                                             + applied.stderr[:1000])
+                        feedback = repair_prompt(instance, candidate_root, edits, error, response,
+                                                 MAX_CONTEXT_CHARS,
+                                                 structural_obligations=structural_obligations,
+                                                 incremental=True)
+                        (out_dir / ('repair_prompt_%d.md' % (attempt + 1))).write_text(feedback)
+                        result['repair_attempts'] = attempt + 1
+                        repaired = invoke('generation_repair_%d' % (attempt + 1), feedback,
+                                          system=('You repair only the checked structural gap in the current '
+                                                  'candidate. Return only the requested JSON object.'),
+                                          model=LLM_MODEL_GENERATE, max_tokens=repair_max_tokens,
+                                          temperature=LLM_TEMPERATURE, json_mode=True)
+                        if repaired.finish_reason in {'length', 'max_tokens'}:
+                            reply = repaired
+                            continue
+                        incremental = unique_edits(_fix_edit_name_consistency(parse_edits(repaired.text)))
+                        if not incremental:
+                            reply = repaired
+                            continue
+                        for edit in incremental:
+                            path = candidate_root / edit['file_path']
+                            source = repo_dir / edit['file_path']
+                            if not path.exists() and source.is_file():
+                                path.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copyfile(source, path)
+                        incremental_patch = edits_to_patch(incremental, candidate_root)
+                        inc_apply = subprocess.run(['git', 'apply', '--whitespace=nowarn', '-'], cwd=candidate_root,
+                                                   input=incremental_patch, text=True, capture_output=True)
+                        if inc_apply.returncode:
+                            reply = repaired
+                            continue
+                        final_files = staged_files | {edit['file_path'] for edit in incremental}
+                        combined = []
+                        for file in sorted(final_files):
+                            original_path, final_path = repo_dir / file, candidate_root / file
+                            before = original_path.read_text() if original_path.is_file() else ''
+                            after = final_path.read_text() if final_path.is_file() else ''
+                            if before != after:
+                                combined.append({'file_path': file, 'before': before, 'after': after})
+                        repaired.text = json.dumps({'edits': combined}, ensure_ascii=False)
+                        reply = repaired
+                else:
+                    feedback = repair_prompt(instance, repo_dir, edits, error, response, MAX_CONTEXT_CHARS,
+                                             structural_obligations=structural_obligations)
+                    (out_dir / ('repair_prompt_%d.md' % (attempt + 1))).write_text(feedback)
+                    result['repair_attempts'] = attempt + 1
+                    reply = invoke('generation_repair_%d' % (attempt + 1), feedback,
+                                   system='You repair a repository implementation using validation errors and actual base code. Return only the requested JSON object.',
+                                   model=LLM_MODEL_GENERATE, max_tokens=repair_max_tokens,
+                                   temperature=LLM_TEMPERATURE, json_mode=True)
         (out_dir / 'edits.json').write_text(json.dumps(edits, indent=2))
         (out_dir / 'generated.patch').write_text(patch)
         result['submitted_patch_count'] = 1

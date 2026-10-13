@@ -15,10 +15,14 @@ class EditRecoveryTests(unittest.TestCase):
                 {'problem_statement': 'Add policy', 'new_components': []}, root, [],
                 ValueError('missing dispatcher call'), 'previous',
                 structural_obligations={'decisions': [{'component': 'Mode.policy', 'decision': 'apply',
-                                                       'role_mapping': {'dispatcher': 'Mode.route'}}]})
+                                                       'role_mapping': {'dispatcher': 'Mode.route'}}]},
+                incremental=True)
         self.assertIn('accepted_structural_obligations', prompt)
         self.assertIn('Mode.route', prompt)
         self.assertIn('different symbol does not satisfy', prompt)
+        self.assertIn('CURRENT CANDIDATE', prompt)
+        self.assertIn('incremental edits', prompt)
+        self.assertNotIn('<previous_response>', prompt)
 
     def test_mislabeled_closer_is_recovered_only_for_same_path_complete_sections(self):
         response = ('<edit>\n[start of the snippet before editing in file.py]\nVALUE = 1\n'
