@@ -14,6 +14,7 @@ PROVIDERS = {
     'api.deepseek.com': {'model': 'deepseek-flash', 'thinking': 'disabled'},
     'open.bigmodel.cn': {'model': 'glm-5.3-flash', 'thinking': 'disabled'},  # maps to thinking.type=low
     'dashscope.aliyuncs.com': {'model': 'qwen3-coder-flash', 'thinking': 'disabled'},
+    'maas.qianwenaiapi.com': {'model': 'qwen3.8-flash', 'thinking': 'disabled'},
 }
 
 

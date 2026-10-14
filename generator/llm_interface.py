@@ -110,7 +110,7 @@ def _provider_thinking_kwargs(base_url: str, thinking_mode: str) -> dict:
         # top-level reasoning_effort: low burns single-digit reasoning tokens.
         level = {"disabled": "low", "enabled": "max"}.get(thinking_mode, thinking_mode)
         return {"extra_body": {"reasoning_effort": level}}
-    if thinking_mode and "dashscope" in host:
+    if thinking_mode and ("dashscope" in host or "qianwenaiapi" in host):
         return {"extra_body": {"enable_thinking": thinking_mode == "enabled"}}
     if thinking_mode:
         return {"extra_body": {"thinking": {"type": thinking_mode}}}
