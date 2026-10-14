@@ -37,6 +37,10 @@ def load_credentials(path):
     env['LLM_THINKING_MODE'] = thinking or ''
     if config.get('min_output_tokens'):
         env['LLM_MIN_OUTPUT_TOKENS'] = str(config['min_output_tokens'])
+    elif marker == 'open.bigmodel.cn':
+        # GLM always thinks and the budget is shared: 16k starves the visible
+        # answer to zero (verified: finish_reason=length with empty content).
+        env['LLM_MIN_OUTPUT_TOKENS'] = '49152'
     elif marker != 'api.deepseek.com':
         env['LLM_MIN_OUTPUT_TOKENS'] = '16384'
     return env, marker
