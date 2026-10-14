@@ -804,7 +804,7 @@ def behavior_signature(current, repo, names):
 
 
 def repair_once(instance, repo, patch, packet, output, watch, directory, previous_error=None, call=None,
-                memory=None, history=None, plan=None, recall=None, round_number=1, mode='featurespace'):
+                memory=None, history=None, plan=None, recall=None, round_number=1, mode='featurespace', frozen=False):
     """Reflect, merge FeatureSpace, then edit a disposable source tree.
 
     Completed model responses can be replayed after interruption. Invalid
@@ -890,7 +890,7 @@ def repair_once(instance, repo, patch, packet, output, watch, directory, previou
                 git('apply', '--whitespace=nowarn', '-', input=patch)
             before_signature = behavior_signature(current, repo, names)
             save_memory(directory / 'candidate_before.json', {'patch_sha256': patch_hash, 'behavior_sha256': before_signature})
-            if mode == 'featurespace':
+            if mode == 'featurespace' and not frozen:
                 try:
                     prompt, files = diagnosis_prompt(instance, current, patch, packet, watch, memory, bundle)
                     raw = model_stage('diagnosis', prompt, 6144)

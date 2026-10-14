@@ -43,6 +43,7 @@ class FeedbackControllerTests(unittest.TestCase):
             args = SimpleNamespace(run_root=root/'new', inputs=inputs, prepared_repos=root/'repos',
                 credentials_file=root/'unused-credentials', host='unused', bundle=str(root/'bundle'), workers=1,
                 repair_rounds=2, worker=None, resume=False, same_host=True, proxy=None, feedback_mode='featurespace',
+                frozen_featurespace=False, generation_mode='plan-edit',
                 reuse_initial_from=old, instance_id=['case-0'])
             grades = [
                 {'resolved': False, 'patch_successfully_applied': True, 'tests_status': {'FAIL_TO_PASS': {'failure': ['a', 'b'], 'success': []}, 'PASS_TO_PASS': {'failure': [], 'success': ['old']}}},

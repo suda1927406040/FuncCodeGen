@@ -66,7 +66,7 @@ def worker(args):
     rows = json.loads((args.run_root / 'generation_inputs.json').read_text())
     row = next(r for r in rows if r['instance_id'] == args.worker)
     return run_single(row, args.run_root / 'initial' / 'outputs', repo_dir_override=args.prepared_repos / args.worker,
-                      generation_mode='plan-edit', history_mode='patterns', recall_mode='expanded',
+                      generation_mode=args.generation_mode, history_mode='patterns', recall_mode='expanded',
                       plan_max_tokens=2048, planner_json_mode='api', max_repair_attempts=2)
 
 
@@ -81,6 +81,10 @@ def parse_args():
     parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--repair-rounds', type=int, default=4)
     parser.add_argument('--feedback-mode', choices=['featurespace', 'state', 'basic'], default='featurespace')
+    parser.add_argument('--frozen-featurespace', action='store_true',
+                        help='Seed FeatureSpace from the plan but skip diagnosis updates during repair')
+    parser.add_argument('--generation-mode', choices=['plan-edit', 'single'], default='plan-edit',
+                        help='Initial generation mode: two-stage plan-edit or direct single-shot')
     parser.add_argument('--reuse-initial-from', type=Path, help='Reuse frozen initial candidates in a NEW run; do not regenerate')
     parser.add_argument('--instance-id', action='append', help='Evaluate selected instances from the sanitized 200-case input')
     parser.add_argument('--worker', help=argparse.SUPPRESS)
@@ -123,7 +127,8 @@ def main():
             'source_sha256': hashes, 'instance_count': len(rows), 'workers': args.workers,
             'model': 'deepseek-flash', 'thinking': 'disabled', 'temperature': 0,
             'generation_max_tokens': 16384, 'structural_repair_limit': 2,
-            'semantic_repair_rounds': args.repair_rounds, 'feedback_mode': args.feedback_mode,
+            'semantic_repair_rounds': args.repair_rounds, 'feedback_mode': args.feedback_mode, 'frozen_featurespace': args.frozen_featurespace,
+            'generation_mode': args.generation_mode,
             'initial_reused_from': str(args.reuse_initial_from.resolve()) if args.reuse_initial_from else None,
             'generation_location': 'server' if args.same_host else 'local',
             'evaluation_location': 'same-host-offline' if args.same_host else args.host,
@@ -136,6 +141,8 @@ def main():
     total = len(rows)
     # The frozen run configuration, not new CLI defaults, controls resume.
     args.feedback_mode = config['feedback_mode']
+    args.frozen_featurespace = config.get('frozen_featurespace', False)
+    args.generation_mode = config.get('generation_mode', 'plan-edit')
     args.repair_rounds = config['semantic_repair_rounds']
     if config.get('initial_reused_from'):
         reuse_initial(config['initial_reused_from'], args.run_root, rows)
@@ -355,7 +362,8 @@ def main():
             previous=histories[iid][-1].get('error') if histories[iid] else None
             try:
                 patch=repair_once(row_map[iid],args.prepared_repos/iid,current[iid],packet,text,watch,directory,previous,
-                                  memory=memories[iid], history=histories[iid], round_number=number+1, mode=args.feedback_mode)
+                                  memory=memories[iid], history=histories[iid], round_number=number+1, mode=args.feedback_mode,
+                                  frozen=args.frozen_featurespace)
                 return iid,patch,None
             except Exception as error:
                 directory.mkdir(exist_ok=True)
