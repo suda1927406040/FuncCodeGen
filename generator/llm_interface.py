@@ -100,12 +100,16 @@ def _usage_dict(usage):
 
 
 def _provider_thinking_kwargs(base_url: str, thinking_mode: str) -> dict:
-    """Provider-specific thinking controls. GLM always thinks and rejects an
-    explicit disabled; Qwen toggles with enable_thinking; DeepSeek uses
-    thinking.type. An empty thinking_mode never sends anything."""
+    """Provider-specific thinking controls. GLM always thinks and rejects
+    disabled, but accepts low/high/max, so a disabled intent maps to low to
+    keep the reasoning budget minimal; Qwen toggles with enable_thinking;
+    DeepSeek uses thinking.type. An empty thinking_mode never sends anything."""
     host = (base_url or "").lower()
     if thinking_mode and "bigmodel.cn" in host:
-        return {}
+        # GLM rejects thinking.type (except enabled); the working knob is the
+        # top-level reasoning_effort: low burns single-digit reasoning tokens.
+        level = {"disabled": "low", "enabled": "max"}.get(thinking_mode, thinking_mode)
+        return {"extra_body": {"reasoning_effort": level}}
     if thinking_mode and "dashscope" in host:
         return {"extra_body": {"enable_thinking": thinking_mode == "enabled"}}
     if thinking_mode:
@@ -117,8 +121,8 @@ def _call_openai(prompt: str, system: str, model: str,
                  max_tokens: int, temperature: float, json_mode: bool) -> LLMResponse:
     """Call OpenAI-compatible API."""
     thinking_mode = os.environ.get("LLM_THINKING_MODE", "").strip()
-    if thinking_mode not in {"", "enabled", "disabled"}:
-        raise ValueError("LLM_THINKING_MODE must be enabled, disabled, or unset")
+    if thinking_mode not in {"", "enabled", "disabled", "low", "high", "max"}:
+        raise ValueError("LLM_THINKING_MODE must be enabled/disabled/low/high/max or unset")
     from openai import OpenAI
 
     client = OpenAI(
