@@ -15,6 +15,7 @@ PROVIDERS = {
     'open.bigmodel.cn': {'model': 'glm-5.3-flash', 'thinking': 'disabled'},  # maps to thinking.type=low
     'dashscope.aliyuncs.com': {'model': 'qwen3-coder-flash', 'thinking': 'disabled'},
     'maas.qianwenaiapi.com': {'model': 'qwen3.8-flash', 'thinking': 'disabled'},
+    'api.gptsapi.net': {'model': 'gpt-6-luna', 'thinking': 'disabled'},
 }
 
 
