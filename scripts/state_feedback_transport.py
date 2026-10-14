@@ -45,28 +45,37 @@ def same_host_stage(args, source, mode, number, ids, write_predictions, write_js
     stage.mkdir(parents=True, exist_ok=True)
     archive = workspace / (name + '.tar.gz')
     marker = stage / 'remote_pid.json'
+
+    def launch():
+        predictions = workspace / (name + '.jsonl')
+        write_predictions(predictions, ids)
+        if mode == 'trace':
+            watch = workspace / 'watch'
+            watch.mkdir(exist_ok=True)
+            for iid in ids:
+                shutil.copy2(args.run_root / 'rounds' / str(number) / 'watch' / (iid + '.json'),
+                             watch / (iid + '.json'))
+        command = [str(Path(args.bundle) / 'runtime/bin/python'),
+                   str(source / 'scripts/state_feedback_remote.py'),
+                   '--bundle', str(args.bundle), '--workspace', str(workspace), '--run-id', name,
+                   '--predictions', str(predictions), '--mode', mode, '--workers', str(args.workers)]
+        with (workspace / (name + '.log')).open('w') as log:
+            process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
+                                       env=offline_process_env(args.bundle), start_new_session=True)
+        write_json(marker, {'pid': process.pid, 'run_id': name, 'execution': 'same-host'})
+        return process.pid
+
     if not archive.is_file():
-        if not marker.is_file():
-            predictions = workspace / (name + '.jsonl')
-            write_predictions(predictions, ids)
-            if mode == 'trace':
-                watch = workspace / 'watch'
-                watch.mkdir(exist_ok=True)
-                for iid in ids:
-                    shutil.copy2(args.run_root / 'rounds' / str(number) / 'watch' / (iid + '.json'),
-                                 watch / (iid + '.json'))
-            command = [str(Path(args.bundle) / 'runtime/bin/python'),
-                       str(source / 'scripts/state_feedback_remote.py'),
-                       '--bundle', str(args.bundle), '--workspace', str(workspace), '--run-id', name,
-                       '--predictions', str(predictions), '--mode', mode, '--workers', str(args.workers)]
-            with (workspace / (name + '.log')).open('w') as log:
-                process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
-                                           env=offline_process_env(args.bundle), start_new_session=True)
-            write_json(marker, {'pid': process.pid, 'run_id': name, 'execution': 'same-host'})
-        pid = json.loads(marker.read_text())['pid']
+        # A stale marker from a crashed attempt holds a dead pid; relaunch
+        # instead of failing the whole run on resume.
+        pid = json.loads(marker.read_text())['pid'] if marker.is_file() else launch()
+        relaunches = 0
         while not archive.is_file():
             if not process_alive(pid, name):
-                raise RuntimeError('Offline evaluation/diagnosis exited before completion: ' + name)
+                if relaunches >= 3:
+                    raise RuntimeError('Offline evaluation/diagnosis exited before completion: ' + name)
+                relaunches += 1
+                pid = launch()
             time.sleep(poll_seconds)
     result = workspace / 'results' / name
     if not result.is_dir():
