@@ -63,6 +63,10 @@ def call_llm_with_usage(prompt: str, system: str = "", model: Optional[str] = No
     provider = os.environ.get("LLM_PROVIDER", LLM_PROVIDER)
     model = model or LLM_MODEL_GENERATE
     max_tokens = max_tokens or LLM_MAX_TOKENS
+    # Reasoning models burn completion budget on thinking; providers that
+    # cannot disable it need a floor so the visible answer is not starved.
+    floor = int(os.environ.get("LLM_MIN_OUTPUT_TOKENS") or 0)
+    max_tokens = max(max_tokens, floor)
     temperature = temperature if temperature is not None else LLM_TEMPERATURE
 
     started = time.monotonic()
@@ -95,6 +99,20 @@ def _usage_dict(usage):
     return dict(usage) if isinstance(usage, dict) else vars(usage)
 
 
+def _provider_thinking_kwargs(base_url: str, thinking_mode: str) -> dict:
+    """Provider-specific thinking controls. GLM always thinks and rejects an
+    explicit disabled; Qwen toggles with enable_thinking; DeepSeek uses
+    thinking.type. An empty thinking_mode never sends anything."""
+    host = (base_url or "").lower()
+    if thinking_mode and "bigmodel.cn" in host:
+        return {}
+    if thinking_mode and "dashscope" in host:
+        return {"extra_body": {"enable_thinking": thinking_mode == "enabled"}}
+    if thinking_mode:
+        return {"extra_body": {"thinking": {"type": thinking_mode}}}
+    return {}
+
+
 def _call_openai(prompt: str, system: str, model: str,
                  max_tokens: int, temperature: float, json_mode: bool) -> LLMResponse:
     """Call OpenAI-compatible API."""
@@ -122,8 +140,7 @@ def _call_openai(prompt: str, system: str, model: str,
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
-    if thinking_mode:
-        kwargs["extra_body"] = {"thinking": {"type": thinking_mode}}
+    kwargs.update(_provider_thinking_kwargs(os.environ.get("OPENAI_BASE_URL") or "", thinking_mode))
 
     response = client.chat.completions.create(**kwargs)
     choice = response.choices[0]

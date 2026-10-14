@@ -54,12 +54,9 @@ def reuse_initial(source, destination, rows):
 
 
 def credentials(path):
-    config = json.loads(path.read_text())
-    if config['base_url'].rstrip('/') != 'https://api.deepseek.com':
-        raise ValueError('Credential destination mismatch')
-    os.environ.update(OPENAI_API_KEY=config['api_key'], OPENAI_BASE_URL=config['base_url'],
-                      LLM_PROVIDER='openai', LLM_MODEL_GENERATE='deepseek-flash',
-                      LLM_THINKING_MODE='disabled', LLM_MAX_TOKENS='16384', LLM_TEMPERATURE='0')
+    from generator.provider_credentials import load_credentials
+    env, _marker = load_credentials(path)
+    os.environ.update(env)
 
 
 def worker(args):
