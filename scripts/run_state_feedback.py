@@ -60,8 +60,8 @@ def credentials(path):
 
 
 def worker(args):
-    credentials(args.credentials_file)
     sys.path.insert(0, str(SOURCE))
+    credentials(args.credentials_file)
     from run_oracle import run_single
     rows = json.loads((args.run_root / 'generation_inputs.json').read_text())
     row = next(r for r in rows if r['instance_id'] == args.worker)
